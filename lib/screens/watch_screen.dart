@@ -76,30 +76,27 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _setupPreviewAndInitialize() async {
+    // Start initializing the main player in parallel with the preview
+    _initializePlayer();
+
     final previewPath = await _cacheService.getPreviewPath(widget.videoId);
     if (previewPath != null && mounted) {
       _previewController = VideoPlayerController.file(File(previewPath));
       await _previewController!.initialize();
-      if (mounted) {
+      if (mounted && _isLoading) { // Only play preview if main player isn't ready
         _previewController!.setLooping(true);
         _previewController!.play();
         setState(() {});
       }
+    } else if (mounted && _isLoading) {
+      // Show fallback buffer if no preview
+      _showGentleBuffer();
     }
-    
-    // Only show buffer if we DON'T have a preview (or if it's not ready)
-    if (_previewController == null) {
-      await _showGentleBuffer();
-    }
-    
-    _initializePlayer();
   }
 
   Future<void> _showGentleBuffer() async {
-    setState(() => _isShowingBuffer = true);
-    await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
-      setState(() => _isShowingBuffer = false);
+      setState(() => _isShowingBuffer = true);
     }
   }
 
@@ -162,56 +159,44 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         if (mounted) setState(() => _videoTitle = v.title);
       });
 
-      // 1. Check if video is downloaded (Travel Mode)
-      String? localPath = await _downloadService.getLocalPath(widget.videoId);
+      // 1 & 2. Check local/cache sources in parallel
+      final localResults = await Future.wait([
+        _downloadService.getLocalPath(widget.videoId),
+        _cacheService.getCachedVideoPath(widget.videoId),
+        _cacheService.getCachedStreamUrl(widget.videoId),
+      ]);
+
+      String? downloadPath = localResults[0];
+      String? cachePath = localResults[1];
+      String? cachedUrl = localResults[2];
       
-      // 2. Check if video is in local cache (Auto-cache)
-      if (localPath == null) {
-        localPath = await _cacheService.getCachedVideoPath(widget.videoId);
-      }
-      
-      if (localPath != null) {
-        // Play from local file
-        _videoPlayerController = VideoPlayerController.file(File(localPath));
+      if (downloadPath != null || cachePath != null) {
+        print('🚀 Turbo Watch: Playing from Local/Cache File');
+        _videoPlayerController = VideoPlayerController.file(File(downloadPath ?? cachePath!));
+      } else if (cachedUrl != null) {
+        print('💎 Turbo Watch: Using Persistent Link Cache (Instant Play!)');
+        _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(cachedUrl));
       } else {
         // 3. Play from network (Bypass Mode)
         final settings = Provider.of<SettingsProvider>(context, listen: false);
+        final manifest = await _cacheService.getManifest(widget.videoId);
         
-        // V3.3 Infinite Toy Box: Check Persistent Link Cache first
-        final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
-        if (cachedUrl != null) {
-           print('💎 V3.3: Using Persistent Link Cache (Instant Play!)');
-           _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(cachedUrl));
+        yt.MuxedStreamInfo? streamInfo;
+        final isTurbo = settings.turboModeEnabled;
+        final quality = isTurbo ? VideoQuality.p360 : settings.videoQuality;
+        
+        if (quality == VideoQuality.auto && !isTurbo) {
+          streamInfo = manifest.muxed.withHighestBitrate();
         } else {
-          // Use the cache service to get the manifest (leverages pre-fetching)
-          final manifest = await _cacheService.getManifest(widget.videoId);
-          
-          yt.MuxedStreamInfo? streamInfo;
-          
-          final isTurbo = settings.turboModeEnabled;
-          final quality = isTurbo ? VideoQuality.p360 : settings.videoQuality;
-          
-          if (quality == VideoQuality.auto && !isTurbo) {
-            streamInfo = manifest.muxed.withHighestBitrate();
-          } else {
-            // Filter by resolution
-            int targetWidth = (quality == VideoQuality.p360) ? 640 : (quality == VideoQuality.p720 ? 1280 : 1920);
-            final compatibleStreams = manifest.muxed.where((s) => s.videoResolution.width <= targetWidth).toList();
-            
-            if (compatibleStreams.isNotEmpty) {
-              streamInfo = compatibleStreams.withHighestBitrate();
-            } else {
-              streamInfo = manifest.muxed.withHighestBitrate();
-            }
-          }
-          
-          if (streamInfo == null) {
-            throw Exception("No playable stream found for this video.");
-          }
-          _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
+          int targetWidth = (quality == VideoQuality.p360) ? 640 : (quality == VideoQuality.p720 ? 1280 : 1920);
+          final compatibleStreams = manifest.muxed.where((s) => s.videoResolution.width <= targetWidth).toList();
+          streamInfo = compatibleStreams.isNotEmpty ? compatibleStreams.withHighestBitrate() : manifest.muxed.withHighestBitrate();
         }
         
-        // Bonus: Start caching this video in background since we're watching it
+        if (streamInfo == null) throw Exception("No playable stream found.");
+        _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
+        
+        // Bonus: Start caching this video in background
         _cacheService.cacheVideo(widget.videoId);
       }
 
@@ -280,6 +265,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
       setState(() {
         _isLoading = false;
+        _isShowingBuffer = false; // Hide buffer once ready
         // Clean up preview player to prevent "ghosting" or PiP overlaps
         if (_previewController != null) {
           _previewController!.pause();

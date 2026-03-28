@@ -15,7 +15,7 @@ class VideoCacheService {
   final yt.YoutubeExplode _yt = yt.YoutubeExplode();
   final Map<String, _PersistentManifest> _manifestCache = {};
   static const int _maxCacheEntries = 50; 
-  static const int _manifestTTLHours = 720; // 30 Days as requested
+  static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
 
   Future<String> get _cachePath async {
     final directory = await getTemporaryDirectory();
@@ -303,6 +303,6 @@ class _PersistentManifest {
   _PersistentManifest({required this.manifest, required this.timestamp});
 
   bool get isExpired {
-    return DateTime.now().difference(timestamp).inDays >= 30;
+    return DateTime.now().difference(timestamp).inHours >= 5;
   }
 }
