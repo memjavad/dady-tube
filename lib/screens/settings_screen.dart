@@ -1,0 +1,627 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/channel_provider.dart';
+import '../providers/usage_provider.dart';
+import '../core/tactile_widgets.dart';
+import '../core/theme.dart';
+import '../services/youtube_service.dart';
+import '../core/app_localizations.dart';
+import '../providers/settings_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(loc.translate('settings')),
+          centerTitle: true,
+          bottom: TabBar(
+            indicatorColor: DadyTubeTheme.primary,
+            labelColor: DadyTubeTheme.primary,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            tabs: [
+              Tab(text: loc.translate('experience')),
+              Tab(text: loc.translate('safety')),
+              Tab(text: loc.translate('channels')),
+              Tab(text: loc.translate('guide')),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _ExperienceTab(),
+            _SafetyTab(),
+            _ChannelsTab(),
+            _GuideTab(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExperienceTab extends StatelessWidget {
+  const _ExperienceTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final settings = context.watch<SettingsProvider>();
+    final usage = context.watch<UsageProvider>();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(context, loc.translate('language'), Icons.language_rounded),
+          const SizedBox(height: 16),
+          _buildLanguageSelector(context, settings, loc),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, loc.translate('video_experience'), Icons.video_settings_rounded),
+          const SizedBox(height: 16),
+          _buildQualitySelector(context, settings, loc),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('full_screen_playback'), settings.fullScreenByDefault, (val) => settings.setFullScreenByDefault(val)),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('show_suggestions'), settings.showSuggestions, (val) => settings.setShowSuggestions(val)),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('eye_protection'), settings.eyeProtectionEnabled, (val) => settings.setEyeProtection(val)),
+          const SizedBox(height: 16),
+          _buildTurboModeToggle(context, settings, loc),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, loc.translate('theme'), Icons.palette_rounded),
+          const SizedBox(height: 16),
+          _buildThemeSelector(context, settings, loc),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, loc.translate('bedtime_title'), Icons.nightlight_round),
+          const SizedBox(height: 16),
+          _buildUsageTimerCard(context, usage, loc),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+    return TactileCard(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: [
+          _buildLangOption(context, settings, const Locale('ar', 'IQ'), loc.translate('arabic')),
+          const SizedBox(width: 8),
+          _buildLangOption(context, settings, const Locale('en', 'US'), loc.translate('english')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLangOption(BuildContext context, SettingsProvider settings, Locale locale, String label) {
+    final isSelected = settings.locale.languageCode == locale.languageCode;
+    return Expanded(
+      child: TactileButton(
+        onTap: () => settings.setLocale(locale),
+        child: TactileCard(
+          color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualitySelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+    return TactileCard(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: VideoQuality.values.map((quality) {
+          final isSelected = settings.videoQuality == quality;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: TactileButton(
+                onTap: () => settings.setVideoQuality(quality),
+                child: TactileCard(
+                  color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text(
+                      quality.name.toUpperCase().replaceAll('P', ''),
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildThemeSelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+    return TactileCard(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildThemeOption(context, settings, AppThemeLevel.blush, loc.translate('theme_blush')),
+              const SizedBox(width: 8),
+              _buildThemeOption(context, settings, AppThemeLevel.sunset, loc.translate('theme_sunset')),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildThemeOption(context, settings, AppThemeLevel.midnight, loc.translate('theme_midnight')),
+              const SizedBox(width: 8),
+              _buildThemeOption(context, settings, AppThemeLevel.deepSpace, loc.translate('theme_deep_space')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(BuildContext context, SettingsProvider settings, AppThemeLevel level, String label) {
+    final isSelected = settings.themeLevel == level;
+    final themeData = DadyTubeTheme.getTheme(level);
+    return Expanded(
+      child: TactileButton(
+        onTap: () => settings.setThemeLevel(level),
+        child: TactileCard(
+          color: isSelected ? themeData.colorScheme.primary : (themeData.brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsageTimerCard(BuildContext context, UsageProvider usage, AppLocalizations loc) {
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(loc.translate('daily_limit'), style: Theme.of(context).textTheme.titleMedium),
+              Text('${usage.dailyLimitMinutes} ${loc.translate('minutes')}', style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Slider(
+            value: usage.dailyLimitMinutes.toDouble(),
+            min: 5,
+            max: 200,
+            divisions: 39, // (200 - 5) / 5 = 39 divisions for 5-min increments
+            activeColor: DadyTubeTheme.primary,
+            onChanged: (val) => usage.setDailyLimit(val.toInt()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTurboModeToggle(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+    return TactileCard(
+      color: settings.turboModeEnabled ? Colors.orangeAccent.withOpacity(0.1) : null,
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          const Icon(Icons.rocket_launch_rounded, color: Colors.orangeAccent, size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Turbo Mode", // Keeping it simple or we can add to loc later
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                Text(
+                  "Hyper-speed for slow internet",
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: settings.turboModeEnabled,
+            onChanged: (val) => settings.setTurboMode(val),
+            activeColor: Colors.orangeAccent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SafetyTab extends StatelessWidget {
+  const _SafetyTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final settings = context.watch<SettingsProvider>();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(context, loc.translate('safety_settings'), Icons.security_rounded),
+          const SizedBox(height: 16),
+          _buildBlockedKeywordsSection(context, loc, settings),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, loc.translate('smart_features'), Icons.auto_awesome_rounded),
+          const SizedBox(height: 16),
+          _buildAutoCacheToggle(context, loc, settings),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('rest_reminders'), settings.restRemindersEnabled, (val) => settings.setRestReminders(val)),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('distance_protection'), settings.distanceProtectionEnabled, (val) => settings.setDistanceProtection(val)),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('posture_protection'), settings.postureProtectionEnabled, (val) => settings.setPostureProtection(val)),
+          const SizedBox(height: 16),
+          _buildSettingToggle(context, loc.translate('safe_volume_mode'), settings.safeVolumeEnabled, (val) => settings.setSafeVolumeEnabled(val)),
+          if (settings.safeVolumeEnabled) ...[
+            const SizedBox(height: 16),
+            _buildVolumeSlider(context, settings, loc),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVolumeSlider(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(loc.translate('max_volume_level'), style: Theme.of(context).textTheme.titleSmall),
+              Text('${(settings.maxVolumeLevel * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Slider(
+            value: settings.maxVolumeLevel,
+            min: 0.1,
+            max: 1.0,
+            activeColor: DadyTubeTheme.primary,
+            onChanged: (val) => settings.setMaxVolumeLevel(val),
+          ),
+          Text(
+            loc.translate('safe_volume_desc'),
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoCacheToggle(BuildContext context, AppLocalizations loc, SettingsProvider settings) {
+    return TactileCard(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loc.translate('auto_cache_title'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  loc.translate('auto_cache_desc'),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Switch.adaptive(
+            value: settings.autoCacheEnabled,
+            onChanged: (val) => settings.setAutoCacheEnabled(val),
+            activeColor: DadyTubeTheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlockedKeywordsSection(BuildContext context, AppLocalizations loc, SettingsProvider settings) {
+    final controller = TextEditingController();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TactileCard(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    hintText: loc.translate('search_hint').replaceAll('!', ''),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TactileButton(
+                onTap: () {
+                  if (controller.text.isNotEmpty) {
+                    settings.addBlockedKeyword(controller.text);
+                    controller.clear();
+                  }
+                },
+                child: const TactileCard(
+                  color: DadyTubeTheme.primary,
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.add_rounded, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: settings.blockedKeywords.map((keyword) {
+            return Chip(
+              label: Text(keyword),
+              onDeleted: () => settings.removeBlockedKeyword(keyword),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              deleteIcon: const Icon(Icons.cancel_rounded, size: 18),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChannelsTab extends StatelessWidget {
+  const _ChannelsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final provider = context.watch<ChannelProvider>();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(context, loc.translate('add_channel'), Icons.add_to_queue_rounded),
+          const SizedBox(height: 16),
+          _buildAddChannelCard(context, provider, loc),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, loc.translate('your_channels'), Icons.list_alt_rounded),
+          const SizedBox(height: 16),
+          _buildChannelList(context, provider, loc),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddChannelCard(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+    final controller = TextEditingController();
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'youtube.com/@...',
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          TactileButton(
+            onTap: () async {
+              if (controller.text.isNotEmpty) {
+                final channel = await YoutubeService.getChannelInfo(controller.text);
+                if (channel != null) {
+                  provider.addChannel(channel);
+                  controller.clear();
+                }
+              }
+            },
+            child: const TactileCard(
+              color: DadyTubeTheme.primary,
+              padding: EdgeInsets.all(12),
+              child: Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChannelList(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+    return Column(
+      children: provider.channels.map((channel) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TactileCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundImage: CachedNetworkImageProvider(channel.thumbnailUrl),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(channel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                  onPressed: () => provider.removeChannel(channel.id),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+Widget _buildSettingToggle(BuildContext context, String title, bool value, Function(bool) onChanged) {
+  return TactileCard(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.bodyLarge),
+        Switch.adaptive(
+          value: value,
+          onChanged: onChanged,
+          activeColor: DadyTubeTheme.primary,
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+  return Row(
+    children: [
+      Icon(icon, color: DadyTubeTheme.primary, size: 24),
+      const SizedBox(width: 12),
+      Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
+    ],
+  );
+}
+
+class _GuideTab extends StatelessWidget {
+  const _GuideTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          _buildGuideCard(
+            context,
+            loc.translate('guide_magic_stars_title'),
+            loc.translate('guide_magic_stars_desc'),
+            Icons.auto_awesome_rounded,
+            Colors.amber,
+          ),
+          const SizedBox(height: 16),
+          _buildGuideCard(
+            context,
+            loc.translate('guide_distance_title'),
+            loc.translate('guide_distance_desc'),
+            Icons.straighten_rounded,
+            Colors.blue,
+          ),
+          const SizedBox(height: 16),
+          _buildGuideCard(
+            context,
+            loc.translate('guide_eye_yoga_title'),
+            loc.translate('guide_eye_yoga_desc'),
+            Icons.visibility_rounded,
+            Colors.green,
+          ),
+          const SizedBox(height: 16),
+          _buildGuideCard(
+            context,
+            loc.translate('guide_calm_mode_title'),
+            loc.translate('guide_calm_mode_desc'),
+            Icons.nightlight_round,
+            Colors.indigo,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideCard(BuildContext context, String title, String desc, IconData icon, Color accentColor) {
+    return TactileCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: accentColor, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            desc,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

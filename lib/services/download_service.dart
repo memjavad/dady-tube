@@ -1,0 +1,112 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+
+class DownloadService {
+  static const String _keyDownloaded = 'downloaded_video_ids';
+  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  Future<File> _getLocalFile(String videoId) async {
+    final path = await _localPath;
+    return File('$path/$videoId.mp4');
+  }
+
+  Future<void> downloadVideo(String videoId, Function(double) onProgress) async {
+    final client = http.Client();
+    try {
+      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      final streamInfo = manifest.muxed.withHighestBitrate();
+      
+      if (streamInfo == null) throw Exception("No downloadable stream found.");
+
+      final url = streamInfo.url;
+      final totalSize = streamInfo.size.totalBytes;
+      final file = await _getLocalFile(videoId);
+      
+      if (await file.exists()) await file.delete();
+      
+      // Parallel Turbo: 4 concurrent connections
+      const int segmentCount = 4;
+      final int segmentSize = (totalSize / segmentCount).ceil();
+      
+      List<Future<void>> downloadTasks = [];
+      int downloadedBytes = 0;
+
+      final raf = await file.open(mode: FileMode.write);
+
+      for (int i = 0; i < segmentCount; i++) {
+        final start = i * segmentSize;
+        final end = (i == segmentCount - 1) ? totalSize - 1 : (i + 1) * segmentSize - 1;
+
+        downloadTasks.add(() async {
+          try {
+            final response = await client.send(http.Request('GET', url)
+              ..headers['Range'] = 'bytes=$start-$end');
+
+            int currentPos = start;
+            await for (final chunk in response.stream) {
+              await raf.setPosition(currentPos);
+              await raf.writeFrom(chunk);
+              currentPos += chunk.length;
+              
+              downloadedBytes += chunk.length;
+              onProgress(downloadedBytes / totalSize);
+            }
+          } catch (e) {
+            print('Segment Download Error: $e');
+          }
+        }());
+      }
+
+      await Future.wait(downloadTasks);
+      await raf.close();
+      await _markAsDownloaded(videoId);
+    } catch (e) {
+      print('Parallel Download Error: $e');
+      rethrow;
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _markAsDownloaded(String videoId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList(_keyDownloaded) ?? [];
+    if (!downloaded.contains(videoId)) {
+      downloaded.add(videoId);
+      await prefs.setStringList(_keyDownloaded, downloaded);
+    }
+  }
+
+  Future<bool> isDownloaded(String videoId) async {
+    final file = await _getLocalFile(videoId);
+    return await file.exists();
+  }
+
+  Future<String?> getLocalPath(String videoId) async {
+    final file = await _getLocalFile(videoId);
+    if (await file.exists()) return file.path;
+    return null;
+  }
+
+  Future<void> deleteVideo(String videoId) async {
+    final file = await _getLocalFile(videoId);
+    if (await file.exists()) await file.delete();
+    
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList(_keyDownloaded) ?? [];
+    downloaded.remove(videoId);
+    await prefs.setStringList(_keyDownloaded, downloaded);
+  }
+
+  void dispose() {
+    _yt.close();
+  }
+}
