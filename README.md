@@ -79,7 +79,7 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/dr-mohammed-looti/dadytube.git
+   git clone https://github.com/memjavad/dadytube.git
    ```
 2. **Install dependencies:**
    ```bash
