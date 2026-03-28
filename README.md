@@ -79,17 +79,32 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/memjavad/dadytube.git
+   git clone https://github.com/memjavad/dady-tube.git
    ```
-2. **Install dependencies:**
+
+2. **Install Dependencies:**
    ```bash
    flutter pub get
    ```
-3. **Run the app:**
+
+3. **Platform-Specific Setup:**
+   - **iOS:**
+     ```bash
+     cd ios && pod install && cd ..
+     ```
+   - **Android:** Ensure `minSdkVersion` is at least **21** in `android/app/build.gradle`.
+
+4. **Permissions Configuration:**
+   DadyTube requires **Camera Permissions** for the "Step Back!" distance protection (ML Kit Face Detection).
+   - **iOS:** Handled via `Info.plist` (NSCameraUsageDescription).
+   - **Android:** Handled via `AndroidManifest.xml` (android.permission.CAMERA).
+
+5. **Run the App:**
    ```bash
    flutter run
    ```
-   *Note: Ensure you have camera permissions enabled on your physical device/emulator.*
+
+   *Note: For Windows users on slow connections, you can use the provided [build_offline.ps1](file:///c:/the%20ai/dady%20tube/build_offline.ps1) script for faster APK builds.*
 
 ---
 
