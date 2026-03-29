@@ -11,7 +11,11 @@ class DistanceProtectionService {
   DistanceProtectionService._internal();
 
   CameraController? _cameraController;
+  @visibleForTesting
+  set cameraControllerForTesting(CameraController? c) => _cameraController = c;
   FaceDetector? _faceDetector;
+  @visibleForTesting
+  set faceDetectorForTesting(FaceDetector? f) => _faceDetector = f;
   bool _isBusy = false;
   final _statusController = StreamController<bool>.broadcast();
   final _postureController = StreamController<bool>.broadcast();
@@ -69,8 +73,23 @@ class DistanceProtectionService {
   }
 
   int _lastProcessedTimestamp = 0;
+  @visibleForTesting
+  set lastProcessedTimestampForTesting(int t) => _lastProcessedTimestamp = t;
   bool _lastResult = false;
+  @visibleForTesting
+  set isBusyForTesting(bool b) => _isBusy = b;
   int _consecutiveStatusCount = 0;
+
+  @visibleForTesting
+  Future<void> processImageForTesting(CameraImage image) => _processImage(image);
+
+  @visibleForTesting
+  void resetForTesting() {
+    _cameraController = null;
+    _faceDetector = null;
+    _isBusy = false;
+    _lastProcessedTimestamp = 0;
+  }
 
   Future<void> _processImage(CameraImage image) async {
     final now = DateTime.now().millisecondsSinceEpoch;
