@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,7 +61,7 @@ class DownloadService {
               onProgress(downloadedBytes / totalSize);
             }
           } catch (e) {
-            print('Segment Download Error: $e');
+            debugPrint('Segment Download Error: $e');
           }
         }());
       }
@@ -69,7 +70,7 @@ class DownloadService {
       await raf.close();
       await _markAsDownloaded(videoId);
     } catch (e) {
-      print('Parallel Download Error: $e');
+      debugPrint('Parallel Download Error: $e');
       rethrow;
     } finally {
       client.close();
