@@ -13,9 +13,15 @@ class DownloadService {
     return directory.path;
   }
 
+  // Visible for testing
+  String sanitizeVideoId(String id) {
+    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
+  }
+
   Future<File> _getLocalFile(String videoId) async {
     final path = await _localPath;
-    return File('$path/$videoId.mp4');
+    final sanitizedId = sanitizeVideoId(videoId);
+    return File('$path/$sanitizedId.mp4');
   }
 
   Future<void> downloadVideo(String videoId, Function(double) onProgress) async {

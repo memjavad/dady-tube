@@ -22,6 +22,11 @@ class VideoCacheService {
     return '${directory.path}/video_cache';
   }
 
+  // Visible for testing
+  String sanitizeVideoId(String id) {
+    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
+  }
+
   /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
@@ -87,7 +92,8 @@ class VideoCacheService {
   /// Returns a local file path if the video is cached, or null otherwise.
   Future<String?> getCachedVideoPath(String videoId) async {
     final path = await _cachePath;
-    final file = File('$path/$videoId.mp4');
+    final sanitizedId = sanitizeVideoId(videoId);
+    final file = File('$path/$sanitizedId.mp4');
     if (await file.exists()) {
       return file.path;
     }
@@ -120,7 +126,8 @@ class VideoCacheService {
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
       
-      final file = File('$cacheDir/$videoId.mp4');
+      final sanitizedId = sanitizeVideoId(videoId);
+      final file = File('$cacheDir/$sanitizedId.mp4');
       final raf = await file.open(mode: FileMode.write);
       
       // Parallel Turbo Cache
@@ -163,7 +170,8 @@ class VideoCacheService {
     if (await getCachedVideoPath(videoId) != null) return;
     
     final cacheDir = await _cachePath;
-    final previewFile = File('$cacheDir/$videoId.preview');
+    final sanitizedId = sanitizeVideoId(videoId);
+    final previewFile = File('$cacheDir/$sanitizedId.preview');
     if (await previewFile.exists()) return;
 
     try {
@@ -196,7 +204,8 @@ class VideoCacheService {
   /// Returns a local file path for a preview if it exists.
   Future<String?> getPreviewPath(String videoId) async {
     final path = await _cachePath;
-    final file = File('$path/$videoId.preview');
+    final sanitizedId = sanitizeVideoId(videoId);
+    final file = File('$path/$sanitizedId.preview');
     if (await file.exists()) {
       return file.path;
     }
