@@ -482,6 +482,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final position = activeController.value.position;
     final isPlaying = activeController.value.isPlaying;
 
+    String formatDuration(Duration d) {
+      final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+      final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+      return "$minutes:$seconds";
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -497,114 +503,94 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       ),
       child: Column(
         children: [
-          _buildProgressBar(context, position, duration),
+          // Progress Bar
+          Row(
+            children: [
+              Text(formatDuration(position), style: Theme.of(context).textTheme.bodySmall),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 12,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                    activeTrackColor: DadyTubeTheme.primary,
+                    inactiveTrackColor: DadyTubeTheme.primary.withOpacity(0.1),
+                    thumbColor: DadyTubeTheme.primary,
+                  ),
+                  child: Slider(
+                    value: position.inSeconds.toDouble(),
+                    max: duration.inSeconds.toDouble(),
+                    onChanged: (value) {
+                      _videoPlayerController!.seekTo(Duration(seconds: value.toInt()));
+                    },
+                  ),
+                ),
+              ),
+              Text(formatDuration(duration), style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
           const SizedBox(height: 12),
-          _buildPlaybackControls(context, activeController, position, duration, isPlaying),
+          // Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TactileButton(
+                onTap: () {
+                  final newPos = position - const Duration(seconds: 10);
+                  activeController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                },
+                child: const TactileCard(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.replay_10_rounded, color: DadyTubeTheme.primary),
+                ),
+              ),
+              const SizedBox(width: 24),
+              TactileButton(
+                onTap: () {
+                  if (isPlaying) {
+                    activeController.pause();
+                  } else {
+                    activeController.play();
+                  }
+                  setState(() {});
+                },
+                child: TactileCard(
+                  color: DadyTubeTheme.primary,
+                  padding: const EdgeInsets.all(16),
+                  shape: const StadiumBorder(),
+                  child: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              TactileButton(
+                onTap: () {
+                  final newPos = position + const Duration(seconds: 10);
+                  activeController.seekTo(newPos > duration ? duration : newPos);
+                },
+                child: const TactileCard(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.forward_10_rounded, color: DadyTubeTheme.primary),
+                ),
+              ),
+              const SizedBox(width: 24),
+              TactileButton(
+                onTap: () {
+                  if (_chewieController != null) {
+                    _chewieController!.enterFullScreen();
+                  }
+                },
+                child: const TactileCard(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.fullscreen_rounded, color: DadyTubeTheme.primary),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
-    );
-  }
-
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return "$minutes:$seconds";
-  }
-
-  Widget _buildProgressBar(BuildContext context, Duration position, Duration duration) {
-    return Row(
-      children: [
-        Text(_formatDuration(position), style: Theme.of(context).textTheme.bodySmall),
-        Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 12,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-              activeTrackColor: DadyTubeTheme.primary,
-              inactiveTrackColor: DadyTubeTheme.primary.withOpacity(0.1),
-              thumbColor: DadyTubeTheme.primary,
-            ),
-            child: Slider(
-              value: position.inSeconds.toDouble(),
-              max: duration.inSeconds.toDouble(),
-              onChanged: (value) {
-                if (_videoPlayerController != null) {
-                  _videoPlayerController!.seekTo(Duration(seconds: value.toInt()));
-                }
-              },
-            ),
-          ),
-        ),
-        Text(_formatDuration(duration), style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-
-  Widget _buildPlaybackControls(
-    BuildContext context,
-    VideoPlayerController activeController,
-    Duration position,
-    Duration duration,
-    bool isPlaying,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TactileButton(
-          onTap: () {
-            final newPos = position - const Duration(seconds: 10);
-            activeController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
-          },
-          child: const TactileCard(
-            padding: EdgeInsets.all(12),
-            child: Icon(Icons.replay_10_rounded, color: DadyTubeTheme.primary),
-          ),
-        ),
-        const SizedBox(width: 24),
-        TactileButton(
-          onTap: () {
-            if (isPlaying) {
-              activeController.pause();
-            } else {
-              activeController.play();
-            }
-            setState(() {});
-          },
-          child: TactileCard(
-            color: DadyTubeTheme.primary,
-            padding: const EdgeInsets.all(16),
-            shape: const StadiumBorder(),
-            child: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: Colors.white,
-              size: 40,
-            ),
-          ),
-        ),
-        const SizedBox(width: 24),
-        TactileButton(
-          onTap: () {
-            final newPos = position + const Duration(seconds: 10);
-            activeController.seekTo(newPos > duration ? duration : newPos);
-          },
-          child: const TactileCard(
-            padding: EdgeInsets.all(12),
-            child: Icon(Icons.forward_10_rounded, color: DadyTubeTheme.primary),
-          ),
-        ),
-        const SizedBox(width: 24),
-        TactileButton(
-          onTap: () {
-            if (_chewieController != null) {
-              _chewieController!.enterFullScreen();
-            }
-          },
-          child: const TactileCard(
-            padding: EdgeInsets.all(12),
-            child: Icon(Icons.fullscreen_rounded, color: DadyTubeTheme.primary),
-          ),
-        ),
-      ],
     );
   }
 
@@ -735,9 +721,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           children: [
             Expanded(
               child: TactileButton(
-                onTap: () {
-                  // TODO: Implement save functionality
-                },
+                onTap: () {},
                 child: TactileCard(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Row(
@@ -864,9 +848,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             TactileButton(
-              onTap: () {
-                // TODO: Navigate to view all videos
-              },
+              onTap: () {},
               child: Text(
                 loc.translate('view_all'),
                 style: const TextStyle(color: DadyTubeTheme.primary, fontWeight: FontWeight.bold),
