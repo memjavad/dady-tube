@@ -14,8 +14,9 @@ class VideoCacheService {
 
   final yt.YoutubeExplode _yt = yt.YoutubeExplode();
   final Map<String, _PersistentManifest> _manifestCache = {};
-  static const int _maxCacheEntries = 50; 
-  static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
+  static const int _maxCacheEntries = 50;
+  static const int _manifestTTLHours =
+      5; // 5 Hours to match YouTube link expiry
 
   Future<String> get _cachePath async {
     final directory = await getTemporaryDirectory();
@@ -42,14 +43,14 @@ class VideoCacheService {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString('persistent_stream_urls');
       if (jsonStr == null) return null;
-      
+
       final Map<String, dynamic> data = json.decode(jsonStr);
       if (!data.containsKey(videoId)) return null;
-      
+
       final entry = data[videoId];
       final url = entry['url'] as String;
       final timestamp = entry['timestamp'] as int;
-      
+
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - timestamp < 1000 * 60 * 60 * _manifestTTLHours) {
         return url;
@@ -68,8 +69,11 @@ class VideoCacheService {
 
     // 2. Fetch fresh from YouTube
     final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-    _manifestCache[videoId] = _PersistentManifest(manifest: manifest, timestamp: DateTime.now());
-    
+    _manifestCache[videoId] = _PersistentManifest(
+      manifest: manifest,
+      timestamp: DateTime.now(),
+    );
+
     // Persistence for "Instant Play"
     final bestStream = manifest.muxed.withHighestBitrate();
     if (bestStream != null) {
@@ -100,7 +104,11 @@ class VideoCacheService {
     final dir = Directory(path);
     if (!(await dir.exists())) return {};
 
-    final files = await dir.list().where((e) => e is File).cast<File>().toList();
+    final files = await dir
+        .list()
+        .where((e) => e is File)
+        .cast<File>()
+        .toList();
     return files.map((f) => f.path.split('/').last.split('.').first).toSet();
   }
 
@@ -119,10 +127,10 @@ class VideoCacheService {
       final totalSize = streamInfo.size.totalBytes;
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
-      
+
       final file = File('$cacheDir/$videoId.mp4');
       final raf = await file.open(mode: FileMode.write);
-      
+
       // Parallel Turbo Cache
       const int segmentCount = 4;
       final int segmentSize = (totalSize / segmentCount).ceil();
@@ -130,12 +138,15 @@ class VideoCacheService {
 
       for (int i = 0; i < segmentCount; i++) {
         final start = i * segmentSize;
-        final end = (i == segmentCount - 1) ? totalSize - 1 : (i + 1) * segmentSize - 1;
+        final end = (i == segmentCount - 1)
+            ? totalSize - 1
+            : (i + 1) * segmentSize - 1;
 
         cacheTasks.add(() async {
           try {
-            final response = await client.send(http.Request('GET', url)
-              ..headers['Range'] = 'bytes=$start-$end');
+            final response = await client.send(
+              http.Request('GET', url)..headers['Range'] = 'bytes=$start-$end',
+            );
 
             int currentPos = start;
             await for (final chunk in response.stream) {
@@ -161,7 +172,7 @@ class VideoCacheService {
   Future<void> cachePreview(String videoId) async {
     // If full video is already cached, no need for preview
     if (await getCachedVideoPath(videoId) != null) return;
-    
+
     final cacheDir = await _cachePath;
     final previewFile = File('$cacheDir/$videoId.preview');
     if (await previewFile.exists()) return;
@@ -172,10 +183,10 @@ class VideoCacheService {
       if (streamInfo == null) return;
 
       await Directory(cacheDir).create(recursive: true);
-      
+
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
-      
+
       // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
       int totalBytes = 0;
       const int maxBytes = 1524 * 1024; // ~1.5MB
@@ -185,7 +196,8 @@ class VideoCacheService {
         totalBytes += chunk.length;
         if (totalBytes >= maxBytes) break;
       }
-      
+
+      await ios.flush();
       await ios.close();
       print('Preview Cache: Saved 5s for $videoId');
     } catch (e) {
@@ -209,7 +221,11 @@ class VideoCacheService {
     final dir = Directory(path);
     if (!(await dir.exists())) return;
 
-    final files = await dir.list().where((e) => e is File).cast<File>().toList();
+    final files = await dir
+        .list()
+        .where((e) => e is File)
+        .cast<File>()
+        .toList();
     if (files.length <= _maxCacheEntries) return;
 
     // Sort by last modified (oldest first)
@@ -229,14 +245,18 @@ class VideoCacheService {
   static const int _maxDailyCache = 3;
 
   /// Orchestrates smart background caching with night priority.
-  Future<void> syncAutoCache(Map<String, List<YoutubeVideo>> allChannelVideos) async {
+  Future<void> syncAutoCache(
+    Map<String, List<YoutubeVideo>> allChannelVideos,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final today = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString(_keyLastCacheDate) ?? "";
-    
-    int dailyCount = (lastDate == today) ? (prefs.getInt(_keyDailyCacheCount) ?? 0) : 0;
-    
+
+    int dailyCount = (lastDate == today)
+        ? (prefs.getInt(_keyDailyCacheCount) ?? 0)
+        : 0;
+
     if (dailyCount >= _maxDailyCache) {
       print('Smart Cache: Daily limit of $_maxDailyCache reached.');
       return;
@@ -244,11 +264,11 @@ class VideoCacheService {
 
     final lastTimestamp = prefs.getInt(_keyLastCacheTimestamp) ?? 0;
     final timeSinceLastCache = now.millisecondsSinceEpoch - lastTimestamp;
-    
+
     // Night priority: 11 PM to 5 AM
     final isNightTime = now.hour >= 23 || now.hour < 5;
-    
-    // Scheduling logic: 
+
+    // Scheduling logic:
     // - If night time, proceed (as long as it's been at least 1 hour since last cache to avoid bursts)
     // - If day time, only proceed if it's been at least 6 hours since the last cache
     bool shouldProceed = false;
@@ -259,7 +279,9 @@ class VideoCacheService {
     }
 
     if (!shouldProceed && lastTimestamp != 0) {
-      print('Smart Cache: Too soon to cache again. (Last cache: ${DateTime.fromMillisecondsSinceEpoch(lastTimestamp)})');
+      print(
+        'Smart Cache: Too soon to cache again. (Last cache: ${DateTime.fromMillisecondsSinceEpoch(lastTimestamp)})',
+      );
       return;
     }
 
@@ -270,7 +292,7 @@ class VideoCacheService {
 
     final cachedIds = await getCachedVideoIds();
     YoutubeVideo? vToCache;
-    
+
     for (var v in candidates) {
       if (!cachedIds.contains(v.id)) {
         vToCache = v;
@@ -279,8 +301,10 @@ class VideoCacheService {
     }
 
     if (vToCache != null) {
-      print('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
-      
+      print(
+        'Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)',
+      );
+
       // Update state before starting to avoid race conditions
       await prefs.setString(_keyLastCacheDate, today);
       await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
