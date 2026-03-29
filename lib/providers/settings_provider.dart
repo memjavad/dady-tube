@@ -5,7 +5,6 @@ import '../core/theme.dart';
 enum VideoQuality { auto, p360, p720, p1080 }
 
 class SettingsProvider with ChangeNotifier {
-  SharedPreferences? _prefs;
   VideoQuality _videoQuality = VideoQuality.p720;
   bool _fullScreenByDefault = true;
   bool _showSuggestions = false;
@@ -42,13 +41,8 @@ class SettingsProvider with ChangeNotifier {
     _loadSettings();
   }
 
-  Future<SharedPreferences> get _getPrefs async {
-    _prefs ??= await SharedPreferences.getInstance();
-    return _prefs!;
-  }
-
   Future<void> _loadSettings() async {
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     final qualityIndex = prefs.getInt('video_quality') ?? VideoQuality.p720.index;
     _videoQuality = VideoQuality.values[qualityIndex];
     _fullScreenByDefault = prefs.getBool('full_screen_by_default') ?? true;
@@ -77,7 +71,7 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setVideoQuality(VideoQuality quality) async {
     _videoQuality = quality;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('video_quality', quality.index);
     notifyListeners();
   }
@@ -102,56 +96,56 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setFullScreenByDefault(bool value) async {
     _fullScreenByDefault = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('full_screen_by_default', value);
     notifyListeners();
   }
 
   Future<void> setShowSuggestions(bool value) async {
     _showSuggestions = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_suggestions', value);
     notifyListeners();
   }
 
   Future<void> setAutoCacheEnabled(bool value) async {
     _autoCacheEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('auto_cache_enabled', value);
     notifyListeners();
   }
 
   Future<void> setBedtimeMode(bool value) async {
     _bedtimeMode = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('bedtimeMode', value);
     notifyListeners();
   }
 
   Future<void> setEyeProtection(bool value) async {
     _eyeProtectionEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('eyeProtectionEnabled', value);
     notifyListeners();
   }
 
   Future<void> setRestReminders(bool value) async {
     _restRemindersEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('restRemindersEnabled', value);
     notifyListeners();
   }
 
   Future<void> setDistanceProtection(bool value) async {
     _distanceProtectionEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('distanceProtectionEnabled', value);
     notifyListeners();
   }
 
   Future<void> setTurboMode(bool value) async {
     _turboModeEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('turbo_mode_enabled', value);
     notifyListeners();
   }
@@ -160,7 +154,7 @@ class SettingsProvider with ChangeNotifier {
     final trimmed = keyword.trim().toLowerCase();
     if (trimmed.isNotEmpty && !_blockedKeywords.contains(trimmed)) {
       _blockedKeywords.add(trimmed);
-      final prefs = await _getPrefs;
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('blocked_keywords', _blockedKeywords);
       notifyListeners();
     }
@@ -169,7 +163,7 @@ class SettingsProvider with ChangeNotifier {
   Future<void> removeBlockedKeyword(String keyword) async {
     if (_blockedKeywords.contains(keyword)) {
       _blockedKeywords.remove(keyword);
-      final prefs = await _getPrefs;
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('blocked_keywords', _blockedKeywords);
       notifyListeners();
     }
@@ -177,7 +171,7 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language_code', locale.languageCode);
     await prefs.setString('country_code', locale.countryCode ?? '');
     notifyListeners();
@@ -185,28 +179,28 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setPostureProtection(bool value) async {
     _postureProtectionEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('postureProtectionEnabled', value);
     notifyListeners();
   }
 
   Future<void> setSafeVolumeEnabled(bool value) async {
     _safeVolumeEnabled = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('safeVolumeEnabled', value);
     notifyListeners();
   }
 
   Future<void> setMaxVolumeLevel(double value) async {
     _maxVolumeLevel = value;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('maxVolumeLevel', value);
     notifyListeners();
   }
 
   Future<void> setThemeLevel(AppThemeLevel level) async {
     _themeLevel = level;
-    final prefs = await _getPrefs;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_level', level.index);
     notifyListeners();
   }

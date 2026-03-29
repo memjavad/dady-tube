@@ -6,12 +6,14 @@ class TactileButton extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final double scaleOnPress;
+  final String? semanticLabel;
 
   const TactileButton({
     Key? key,
     required this.child,
     this.onTap,
     this.scaleOnPress = 0.95,
+    this.semanticLabel,
   }) : super(key: key);
 
   @override

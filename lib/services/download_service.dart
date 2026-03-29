@@ -1,14 +1,16 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
   final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+
+  String sanitizeVideoId(String id) {
+    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
+  }
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -17,7 +19,8 @@ class DownloadService {
 
   Future<File> _getLocalFile(String videoId) async {
     final path = await _localPath;
-    return File('$path/$videoId.mp4');
+    final sanitizedId = sanitizeVideoId(videoId);
+    return File('$path/$sanitizedId.mp4');
   }
 
   Future<void> downloadVideo(String videoId, Function(double) onProgress) async {
@@ -62,7 +65,7 @@ class DownloadService {
               onProgress(downloadedBytes / totalSize);
             }
           } catch (e) {
-            debugPrint('Segment Download Error: $e');
+            print('Segment Download Error: $e');
           }
         }());
       }
@@ -71,7 +74,7 @@ class DownloadService {
       await raf.close();
       await _markAsDownloaded(videoId);
     } catch (e) {
-      debugPrint('Parallel Download Error: $e');
+      print('Parallel Download Error: $e');
       rethrow;
     } finally {
       client.close();
