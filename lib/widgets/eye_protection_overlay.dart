@@ -41,18 +41,23 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
     if (settings.distanceProtectionEnabled) {
       DistanceProtectionService().initialize().then((_) {
         if (mounted) {
-          _distanceSubscription = DistanceProtectionService().isTooCloseStream.listen((tooClose) {
-            if (mounted && _isTooClose != tooClose) {
-              setState(() => _isTooClose = tooClose);
-            }
-          });
+          _distanceSubscription = DistanceProtectionService().isTooCloseStream
+              .listen((tooClose) {
+                if (mounted && _isTooClose != tooClose) {
+                  setState(() => _isTooClose = tooClose);
+                }
+              });
 
-          _postureSubscription = DistanceProtectionService().isSlouchingStream.listen((slouching) {
-            final postureEnabled = Provider.of<SettingsProvider>(context, listen: false).postureProtectionEnabled;
-            if (mounted && _isSlouching != (slouching && postureEnabled)) {
-              setState(() => _isSlouching = slouching && postureEnabled);
-            }
-          });
+          _postureSubscription = DistanceProtectionService().isSlouchingStream
+              .listen((slouching) {
+                final postureEnabled = Provider.of<SettingsProvider>(
+                  context,
+                  listen: false,
+                ).postureProtectionEnabled;
+                if (mounted && _isSlouching != (slouching && postureEnabled)) {
+                  setState(() => _isSlouching = slouching && postureEnabled);
+                }
+              });
         }
       });
     }
@@ -79,7 +84,7 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
       _showOverlay = true;
       _currentActivity = 0;
     });
-    
+
     // Cycle through 3 activities every 7 seconds
     _activityTimer = Timer.periodic(const Duration(seconds: 7), (timer) {
       if (mounted && _showOverlay) {
@@ -116,7 +121,7 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final loc = AppLocalizations.of(context);
-    
+
     return Stack(
       children: [
         widget.child,
@@ -126,24 +131,26 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
             child: AnimatedContainer(
               duration: const Duration(seconds: 3),
               curve: Curves.easeInOut,
-              color: Colors.deepOrange.withOpacity(settings.blueLightIntensity * 0.25),
+              color: Colors.deepOrange.withOpacity(
+                settings.blueLightIntensity * 0.25,
+              ),
             ),
           ),
-        
+
         // --- Sunset Fadeout Overlay ---
         IgnorePointer(
           child: Consumer<UsageProvider>(
             builder: (context, usage, child) {
               final intensity = usage.sunsetIntensity;
               if (intensity <= 0) return const SizedBox.shrink();
-              
+
               return Container(
                 color: const Color(0xFF1A1A2E).withOpacity(intensity * 0.8),
               );
             },
           ),
         ),
-        
+
         // Break Overlay
         if (_showOverlay)
           Positioned.fill(
@@ -151,17 +158,28 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
               color: Colors.white.withOpacity(0.98),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 48,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.spa_rounded, color: DadyTubeTheme.primary, size: 60),
+                      const Icon(
+                        Icons.spa_rounded,
+                        color: DadyTubeTheme.primary,
+                        size: 60,
+                      ),
                       const SizedBox(height: 32),
                       const SizedBox(height: 48),
                       Expanded(
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 500),
-                          child: _buildActivityCard(context, _currentActivity, loc),
+                          child: _buildActivityCard(
+                            context,
+                            _currentActivity,
+                            loc,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -179,7 +197,10 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
             child: Container(
               color: Colors.white.withOpacity(0.85),
               child: BackdropFilter(
-                filter: ColorFilter.mode(Colors.white.withOpacity(0.2), BlendMode.overlay),
+                filter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.2),
+                  BlendMode.overlay,
+                ),
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(40),
@@ -199,25 +220,41 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
                             ],
                           ),
                           child: Image.file(
-                            File('C:/Users/memja/.gemini/antigravity/brain/98245db2-aa35-43b2-8914-926aaa5807db/step_back_bunny_3d_1774629347285.png'),
+                            File(
+                              'C:/Users/memja/.gemini/antigravity/brain/98245db2-aa35-43b2-8914-926aaa5807db/step_back_bunny_3d_1774629347285.png',
+                            ),
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.warning_amber_rounded, size: 80, color: Colors.pinkAccent),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 80,
+                                  color: Colors.pinkAccent,
+                                ),
                           ),
                         ),
                         const SizedBox(height: 32),
                         Image.file(
-                          File('C:/Users/memja/.gemini/antigravity/brain/98245db2-aa35-43b2-8914-926aaa5807db/bunny_distance_guide_3d_1774629473626.png'),
+                          File(
+                            'C:/Users/memja/.gemini/antigravity/brain/98245db2-aa35-43b2-8914-926aaa5807db/bunny_distance_guide_3d_1774629473626.png',
+                          ),
                           height: 280,
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 32),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(32),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
                           child: Column(
@@ -225,18 +262,28 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.straighten_rounded, color: DadyTubeTheme.primary),
+                                  const Icon(
+                                    Icons.straighten_rounded,
+                                    color: DadyTubeTheme.primary,
+                                  ),
                                   const SizedBox(width: 12),
                                   Text(
                                     loc.translate('step_back_title'),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary, fontSize: 18),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: DadyTubeTheme.primary,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 loc.translate('safety_pause'),
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -280,22 +327,36 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
                       ),
                       const SizedBox(height: 32),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
                           ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.accessibility_new_rounded, color: DadyTubeTheme.primary),
+                            const Icon(
+                              Icons.accessibility_new_rounded,
+                              color: DadyTubeTheme.primary,
+                            ),
                             const SizedBox(width: 12),
                             Text(
                               loc.translate('sit_up_title'),
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary, fontSize: 18),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: DadyTubeTheme.primary,
+                                fontSize: 18,
+                              ),
                             ),
                           ],
                         ),
@@ -325,13 +386,21 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         const SizedBox(height: 16),
         Text(
           "${_currentActivity + 1} / 3",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 18),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+            fontSize: 18,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildActivityCard(BuildContext context, int index, AppLocalizations loc) {
+  Widget _buildActivityCard(
+    BuildContext context,
+    int index,
+    AppLocalizations loc,
+  ) {
     final activities = [
       {
         'image': 'assets/images/eye_yoga_look_far.png',

@@ -32,9 +32,13 @@ class ShimmerVideoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Container(height: 20, width: double.infinity, color: Colors.white),
-                   const SizedBox(height: 8),
-                   Container(height: 20, width: 150, color: Colors.white),
+                  Container(
+                    height: 20,
+                    width: double.infinity,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(height: 20, width: 150, color: Colors.white),
                 ],
               ),
             ),

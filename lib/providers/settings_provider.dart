@@ -43,7 +43,8 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final qualityIndex = prefs.getInt('video_quality') ?? VideoQuality.p720.index;
+    final qualityIndex =
+        prefs.getInt('video_quality') ?? VideoQuality.p720.index;
     _videoQuality = VideoQuality.values[qualityIndex];
     _fullScreenByDefault = prefs.getBool('full_screen_by_default') ?? true;
     _showSuggestions = prefs.getBool('show_suggestions') ?? false;
@@ -51,21 +52,23 @@ class SettingsProvider with ChangeNotifier {
     _bedtimeMode = prefs.getBool('bedtimeMode') ?? false;
     _eyeProtectionEnabled = prefs.getBool('eyeProtectionEnabled') ?? false;
     _restRemindersEnabled = prefs.getBool('restRemindersEnabled') ?? true;
-    _distanceProtectionEnabled = prefs.getBool('distanceProtectionEnabled') ?? false;
+    _distanceProtectionEnabled =
+        prefs.getBool('distanceProtectionEnabled') ?? false;
     _turboModeEnabled = prefs.getBool('turbo_mode_enabled') ?? false;
     _blockedKeywords = prefs.getStringList('blocked_keywords') ?? [];
-    
-    _postureProtectionEnabled = prefs.getBool('postureProtectionEnabled') ?? false;
+
+    _postureProtectionEnabled =
+        prefs.getBool('postureProtectionEnabled') ?? false;
     _safeVolumeEnabled = prefs.getBool('safeVolumeEnabled') ?? false;
     _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.6;
-    
+
     final langCode = prefs.getString('language_code') ?? 'ar';
     final countryCode = prefs.getString('country_code') ?? 'IQ';
     _locale = Locale(langCode, countryCode);
 
     final levelIndex = prefs.getInt('theme_level') ?? AppThemeLevel.blush.index;
     _themeLevel = AppThemeLevel.values[levelIndex];
-    
+
     notifyListeners();
   }
 
@@ -83,7 +86,7 @@ class SettingsProvider with ChangeNotifier {
 
   double get blueLightIntensity {
     if (!_eyeProtectionEnabled) return 0.0;
-    
+
     final hour = DateTime.now().hour;
     if (hour >= 21 || hour < 6) {
       return 0.32; // Maximum protection late at night

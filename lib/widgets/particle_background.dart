@@ -10,7 +10,8 @@ class ParticleBackground extends StatefulWidget {
   State<ParticleBackground> createState() => _ParticleBackgroundState();
 }
 
-class _ParticleBackgroundState extends State<ParticleBackground> with SingleTickerProviderStateMixin {
+class _ParticleBackgroundState extends State<ParticleBackground>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<Particle> _particles = List.generate(6, (index) => Particle());
 

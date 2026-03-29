@@ -13,7 +13,7 @@ class PlaytimeBucket extends StatelessWidget {
       builder: (context, usage, child) {
         final progress = usage.progress; // 0.0 (full) to 1.0 (empty)
         final activeBars = (12 * (1.0 - progress)).ceil().clamp(0, 12);
-        
+
         final List<Color> barColors = [
           const Color(0xFFF44336), // Red
           const Color(0xFFFF5722), // Deep Orange
@@ -41,7 +41,7 @@ class PlaytimeBucket extends StatelessWidget {
               final barIndex = 11 - index; // 11 at top, 0 at bottom
               final isActive = barIndex < activeBars;
               final color = barColors[barIndex % barColors.length];
-              
+
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
@@ -52,31 +52,37 @@ class PlaytimeBucket extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isActive ? color : color.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(size * 0.2),
-                      gradient: isActive ? LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          color.withOpacity(0.8),
-                          color,
-                          color.withOpacity(0.9),
-                        ],
-                      ) : null,
-                      boxShadow: isActive ? [
-                        BoxShadow(
-                          color: color.withOpacity(0.4),
-                          blurRadius: 6,
-                          offset: const Offset(2, 2),
-                        ),
-                      ] : [],
+                      gradient: isActive
+                          ? LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                color.withOpacity(0.8),
+                                color,
+                                color.withOpacity(0.9),
+                              ],
+                            )
+                          : null,
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color: color.withOpacity(0.4),
+                                blurRadius: 6,
+                                offset: const Offset(2, 2),
+                              ),
+                            ]
+                          : [],
                     ),
-                    child: isActive ? Container(
-                      margin: const EdgeInsets.all(3),
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ) : null,
+                    child: isActive
+                        ? Container(
+                            margin: const EdgeInsets.all(3),
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );

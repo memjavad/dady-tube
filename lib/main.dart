@@ -19,7 +19,7 @@ late AudioHandler audioHandler;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Providers (Load only essential local data first)
   final channelProvider = ChannelProvider();
   final downloadProvider = DownloadProvider();
@@ -67,10 +67,7 @@ class DadyTubeApp extends StatelessWidget {
           title: 'DadyTube',
           debugShowCheckedModeBanner: false,
           theme: DadyTubeTheme.getTheme(settings.themeLevel),
-          supportedLocales: const [
-            Locale('en', 'US'),
-            Locale('ar', 'IQ'),
-          ],
+          supportedLocales: const [Locale('en', 'US'), Locale('ar', 'IQ')],
           locale: settings.locale,
           localizationsDelegates: const [
             AppLocalizationsDelegate(),

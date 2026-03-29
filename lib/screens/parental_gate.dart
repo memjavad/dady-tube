@@ -40,7 +40,10 @@ class _ParentalGateState extends State<ParentalGate> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
+          icon: Icon(
+            Icons.close_rounded,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(loc.translate('parental_gate_title')),
@@ -54,7 +57,11 @@ class _ParentalGateState extends State<ParentalGate> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lock_person_rounded, size: 64, color: DadyTubeTheme.primary),
+                const Icon(
+                  Icons.lock_person_rounded,
+                  size: 64,
+                  color: DadyTubeTheme.primary,
+                ),
                 const SizedBox(height: 24),
                 // Removed redundant title here as it's now in AppBar
                 Text(
@@ -66,7 +73,13 @@ class _ParentalGateState extends State<ParentalGate> {
                 _buildPinField(context),
                 if (_error.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text(loc.translate('try_again'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  Text(
+                    loc.translate('try_again'),
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 32),
                 _buildNumPad(context),
@@ -88,7 +101,9 @@ class _ParentalGateState extends State<ParentalGate> {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: filled ? DadyTubeTheme.primary : Colors.grey.withOpacity(0.3),
+            color: filled
+                ? DadyTubeTheme.primary
+                : Colors.grey.withOpacity(0.3),
             shape: BoxShape.circle,
           ),
         );
@@ -113,7 +128,10 @@ class _ParentalGateState extends State<ParentalGate> {
             onTap: () {
               if (_pinController.text.isNotEmpty) {
                 setState(() {
-                  _pinController.text = _pinController.text.substring(0, _pinController.text.length - 1);
+                  _pinController.text = _pinController.text.substring(
+                    0,
+                    _pinController.text.length - 1,
+                  );
                 });
               }
             },
@@ -123,7 +141,7 @@ class _ParentalGateState extends State<ParentalGate> {
             ),
           );
         }
-        
+
         final number = index == 10 ? '0' : (index + 1).toString();
         return TactileButton(
           onTap: () {
@@ -137,13 +155,13 @@ class _ParentalGateState extends State<ParentalGate> {
             }
           },
           child: TactileCard(
-             color: Theme.of(context).colorScheme.surfaceContainerLow,
-             child: Center(
-               child: Text(
-                 number,
-                 style: Theme.of(context).textTheme.headlineSmall,
-               ),
-             ),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            child: Center(
+              child: Text(
+                number,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
           ),
         );
       },

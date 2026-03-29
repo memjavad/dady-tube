@@ -11,15 +11,17 @@ class DownloadProvider extends ChangeNotifier {
     _loadMetadata();
   }
 
-  List<YoutubeVideo> get downloadedVideos => _downloadedMetadata.values.toList();
+  List<YoutubeVideo> get downloadedVideos =>
+      _downloadedMetadata.values.toList();
 
   Future<void> _loadMetadata() async {
     final prefs = await SharedPreferences.getInstance();
     final metadataJson = prefs.getString(_keyMetadata);
     if (metadataJson != null) {
       final Map<String, dynamic> decoded = json.decode(metadataJson);
-      _downloadedMetadata = decoded.map((key, value) => 
-          MapEntry(key, YoutubeVideo.fromJson(value)));
+      _downloadedMetadata = decoded.map(
+        (key, value) => MapEntry(key, YoutubeVideo.fromJson(value)),
+      );
     }
     notifyListeners();
   }
@@ -38,8 +40,9 @@ class DownloadProvider extends ChangeNotifier {
 
   Future<void> _saveMetadata() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = json.encode(_downloadedMetadata.map((key, value) => 
-        MapEntry(key, value.toJson())));
+    final encoded = json.encode(
+      _downloadedMetadata.map((key, value) => MapEntry(key, value.toJson())),
+    );
     await prefs.setString(_keyMetadata, encoded);
   }
 }
