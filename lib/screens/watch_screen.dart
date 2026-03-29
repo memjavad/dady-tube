@@ -721,7 +721,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           children: [
             Expanded(
               child: TactileButton(
-                onTap: () {},
+                onTap: () {
+                  // TODO: Implement save functionality
+                },
                 child: TactileCard(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Row(
@@ -848,7 +850,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             TactileButton(
-              onTap: () {},
+              onTap: () {
+                // TODO: Navigate to view all videos
+              },
               child: Text(
                 loc.translate('view_all'),
                 style: const TextStyle(color: DadyTubeTheme.primary, fontWeight: FontWeight.bold),
