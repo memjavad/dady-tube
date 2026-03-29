@@ -3,10 +3,12 @@ import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
 class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
-  final AudioPlayer _player = AudioPlayer();
-  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+  final AudioPlayer _player;
+  final yt.YoutubeExplode _yt;
 
-  BackgroundAudioService() {
+  BackgroundAudioService({AudioPlayer? player, yt.YoutubeExplode? ytExplode})
+      : _player = player ?? AudioPlayer(),
+        _yt = ytExplode ?? yt.YoutubeExplode() {
     // Broadcast playback state changes
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
   }
