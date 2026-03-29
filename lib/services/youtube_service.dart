@@ -8,8 +8,8 @@ import '../providers/channel_provider.dart';
 class YoutubeService {
   // We'll use a simple method to try and resolve channel info
   // For a real production app, you'd use YouTube Data API or a more robust parser.
-  static Future<YoutubeChannel?> getChannelInfo(String url) async {
-    final ytExplode = yt.YoutubeExplode();
+  static Future<YoutubeChannel?> getChannelInfo(String url, {yt.YoutubeExplode? ytClient}) async {
+    final ytExplode = ytClient ?? yt.YoutubeExplode();
     try {
       final channel = await ytExplode.channels.getByVideo(url); // Can resolve from various URLs
       return YoutubeChannel(
@@ -22,18 +22,20 @@ class YoutubeService {
       try {
         if (url.contains('/channel/')) {
           final id = url.split('/channel/')[1].split('?')[0];
-          return getChannelInfoById(id);
+          return getChannelInfoById(id, ytClient: ytClient);
         }
       } catch (_) {}
       print('Error fetching channel info: $e');
     } finally {
-      ytExplode.close();
+      if (ytClient == null) {
+        ytExplode.close();
+      }
     }
     return null;
   }
 
-  static Future<YoutubeChannel?> getChannelInfoById(String id) async {
-    final ytExplode = yt.YoutubeExplode();
+  static Future<YoutubeChannel?> getChannelInfoById(String id, {yt.YoutubeExplode? ytClient, http.Client? httpClient}) async {
+    final ytExplode = ytClient ?? yt.YoutubeExplode();
     try {
       final channel = await ytExplode.channels.get(id);
       return YoutubeChannel(
@@ -47,11 +49,15 @@ class YoutubeService {
       // Basic scraping fallback for metadata
       try {
         final url = 'https://www.youtube.com/channel/$id';
-        final response = await http.get(Uri.parse(url));
+        final client = httpClient ?? http.Client();
+        final response = await client.get(Uri.parse(url));
+        if (httpClient == null) client.close();
         return _parseChannelResponse(response);
       } catch (_) {}
     } finally {
-      ytExplode.close();
+      if (ytClient == null) {
+        ytExplode.close();
+      }
     }
     return null;
   }
