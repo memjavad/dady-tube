@@ -12,7 +12,11 @@ class YoutubeChannel {
   final String name;
   final String thumbnailUrl;
 
-  YoutubeChannel({required this.id, required this.name, required this.thumbnailUrl});
+  YoutubeChannel({
+    required this.id,
+    required this.name,
+    required this.thumbnailUrl,
+  });
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -32,7 +36,7 @@ class ChannelProvider with ChangeNotifier {
   Map<String, List<YoutubeVideo>> _channelVideos = {};
   bool _isLoading = false;
   bool _isOffline = false;
-  
+
   // New: Initialization progress for Splash Screen
   double _initProgress = 0.0;
   String _initStatusKey = "splash_preparing"; // Changed to Key
@@ -48,10 +52,23 @@ class ChannelProvider with ChangeNotifier {
   String get initStatusArg => _initStatusArg;
   bool get isInitialized => _isInitialized;
 
+  // Cache for expensive getter computations
+  List<YoutubeVideo>? _cachedAllVideos;
+  List<YoutubeVideo>? _cachedShuffledVideos;
+
+  void _invalidateVideoCache() {
+    _cachedAllVideos = null;
+    _cachedShuffledVideos = null;
+  }
+
   List<YoutubeVideo> get allVideos {
+    if (_cachedAllVideos != null) {
+      return _cachedAllVideos!;
+    }
+
     List<YoutubeVideo> all = [];
     final activeChannelIds = _channels.map((c) => c.id).toSet();
-    
+
     _channelVideos.forEach((channelId, vids) {
       if (activeChannelIds.contains(channelId)) {
         all.addAll(vids);
@@ -60,28 +77,40 @@ class ChannelProvider with ChangeNotifier {
 
     // Sort all videos by publishedAt descending
     all.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    _cachedAllVideos = all;
     return all;
   }
 
   /// Returns only videos that are playable right now (Offline or Online)
-  Future<List<YoutubeVideo>> getAvailableVideos(DownloadProvider downloadProvider) async {
+  Future<List<YoutubeVideo>> getAvailableVideos(
+    DownloadProvider downloadProvider,
+  ) async {
     final all = allVideos;
     if (!_isOffline) return all;
 
     final cachedIds = await VideoCacheService().getCachedVideoIds();
-    final downloadedIds = downloadProvider.downloadedVideos.map((v) => v.id).toSet();
+    final downloadedIds = downloadProvider.downloadedVideos
+        .map((v) => v.id)
+        .toSet();
 
-    return all.where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id)).toList();
+    return all
+        .where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id))
+        .toList();
   }
 
   List<YoutubeVideo> get shuffledVideos {
+    if (_cachedShuffledVideos != null) {
+      return _cachedShuffledVideos!;
+    }
+
     final all = allVideos;
     if (all.isEmpty) return [];
-    
+
     // Sort logic remains the same
     final newest = all.take(10).toList()..shuffle();
     final remaining = all.skip(10).toList()..shuffle();
-    return [...newest, ...remaining];
+    _cachedShuffledVideos = [...newest, ...remaining];
+    return _cachedShuffledVideos!;
   }
 
   ChannelProvider() {
@@ -94,36 +123,90 @@ class ChannelProvider with ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     final channelsJson = prefs.getStringList('channels') ?? [];
-    
+
     // Curated Channel List (Version 2.5 Global Health Verified)
     final curatedChannels = [
-      YoutubeChannel(id: 'UCAfwGn6Xq-TscvdChnPrktQ', name: 'The Fixies بالعربية', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCuQKih3Ac3NABADQKQdeV6A', name: 'Spacetoon', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCOGBA-T3jCfOPey73FzsxCw', name: 'Nick Jr. Arabia', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCNbmKQcBE3Sdx2HN6KGkxKw', name: 'Hello Maestro', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCXGCkE7vRMkwQwLVHJPd8fQ', name: 'أوكتونوتس', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCXQ3-_m82KAnh-U6brMmvrA', name: 'مايا النحلة', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCBZLg-ixSGqEjh3ld7nSwLg', name: 'السنافر', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UC1ShKv0O7polu_tlhcqg4Xw', name: 'نقيب لابرادور', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCvr9YT7AwMTxKDqou3e_OUQ', name: 'زاد الحروف', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCT21_ci7c9PKYy9XZDHuJZg', name: 'Gecko\'s Garage Arabic', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCqiIbqnJB0AVTg6Z6QnZNdw', name: 'مغامرات منصور', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCpzp1_jpI3lfYy6eTW1kqhw', name: 'مدينة الأصدقاء', thumbnailUrl: ''),
+      YoutubeChannel(
+        id: 'UCAfwGn6Xq-TscvdChnPrktQ',
+        name: 'The Fixies بالعربية',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCuQKih3Ac3NABADQKQdeV6A',
+        name: 'Spacetoon',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCOGBA-T3jCfOPey73FzsxCw',
+        name: 'Nick Jr. Arabia',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCNbmKQcBE3Sdx2HN6KGkxKw',
+        name: 'Hello Maestro',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCXGCkE7vRMkwQwLVHJPd8fQ',
+        name: 'أوكتونوتس',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCXQ3-_m82KAnh-U6brMmvrA',
+        name: 'مايا النحلة',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCBZLg-ixSGqEjh3ld7nSwLg',
+        name: 'السنافر',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UC1ShKv0O7polu_tlhcqg4Xw',
+        name: 'نقيب لابرادور',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCvr9YT7AwMTxKDqou3e_OUQ',
+        name: 'زاد الحروف',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCT21_ci7c9PKYy9XZDHuJZg',
+        name: 'Gecko\'s Garage Arabic',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCqiIbqnJB0AVTg6Z6QnZNdw',
+        name: 'مغامرات منصور',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCpzp1_jpI3lfYy6eTW1kqhw',
+        name: 'مدينة الأصدقاء',
+        thumbnailUrl: '',
+      ),
     ];
 
-    if (channelsJson.isEmpty || (prefs.getBool('v2_5_migration_applied') ?? false) == false) {
+    if (channelsJson.isEmpty ||
+        (prefs.getBool('v2_5_migration_applied') ?? false) == false) {
       // Force reset to curated list to repair "Empty World" content issues
       _channels = curatedChannels;
       await prefs.setBool('v2_5_migration_applied', true);
       await prefs.setBool('v2_2_migration_applied', true);
       await prefs.setBool('v2_1_migration_applied', true);
       await prefs.setBool('v2_migration_applied', true);
-      await prefs.setStringList('channels', curatedChannels.map((c) => json.encode(c.toJson())).toList());
+      await prefs.setStringList(
+        'channels',
+        curatedChannels.map((c) => json.encode(c.toJson())).toList(),
+      );
     } else {
       _channels = channelsJson
           .map((item) => YoutubeChannel.fromJson(json.decode(item)))
           .toList();
     }
+
+    _invalidateVideoCache();
 
     // Load cached videos in background to avoid skipping frames
     final videosCache = prefs.getString('videos_cache');
@@ -133,14 +216,15 @@ class ChannelProvider with ChangeNotifier {
 
     if (videosCache != null) {
       _channelVideos = await compute(_decodeVideoCache, videosCache);
-      
+      _invalidateVideoCache();
+
       // Fast Boot: If we have data, we can start immediately
       if (_channelVideos.isNotEmpty) {
         _isInitialized = true;
         _initProgress = 1.0;
         _initStatusKey = "splash_ready";
         notifyListeners();
-        
+
         // Refresh in background if stale
         if (isCacheStale) {
           loadAllVideos(isBackground: true);
@@ -154,12 +238,16 @@ class ChannelProvider with ChangeNotifier {
     _initProgress = 0.1;
     _initStatusKey = "splash_preparing";
     notifyListeners();
-    loadAllVideos(); 
+    loadAllVideos();
   }
 
-  Future<void> loadAllVideos({bool? autoCache, bool isBackground = false}) async {
+  Future<void> loadAllVideos({
+    bool? autoCache,
+    bool isBackground = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final shouldAutoCache = autoCache ?? prefs.getBool('auto_cache_enabled') ?? true;
+    final shouldAutoCache =
+        autoCache ?? prefs.getBool('auto_cache_enabled') ?? true;
 
     // Only show shimmer if we don't have cached content
     if (_channelVideos.isEmpty) {
@@ -183,7 +271,9 @@ class ChannelProvider with ChangeNotifier {
           if (channel.thumbnailUrl.isEmpty) {
             final info = await YoutubeService.getChannelInfoById(channel.id);
             if (info != null && info.thumbnailUrl.isNotEmpty) {
-              final newName = (info.name.isEmpty || info.name == 'Kid Channel') ? channel.name : info.name;
+              final newName = (info.name.isEmpty || info.name == 'Kid Channel')
+                  ? channel.name
+                  : info.name;
               _channels[index] = YoutubeChannel(
                 id: channel.id,
                 name: newName,
@@ -197,6 +287,7 @@ class ChannelProvider with ChangeNotifier {
           if (vids.isNotEmpty) {
             vids.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
             _channelVideos[channel.id] = vids;
+            _invalidateVideoCache();
             updated = true;
           }
         } catch (e) {
@@ -218,7 +309,7 @@ class ChannelProvider with ChangeNotifier {
     await Future.wait(discoveryTasks);
 
     if (updated) {
-       await _saveChannels(skipVideoReload: true);
+      await _saveChannels(skipVideoReload: true);
     }
 
     // Finishing touches - Only if NOT background
@@ -234,7 +325,7 @@ class ChannelProvider with ChangeNotifier {
 
     if (updated) {
       _saveVideosToCache();
-      
+
       // Pre-fetch manifests for top videos
       final topVideos = allVideos.take(5);
       for (var video in topVideos) {
@@ -250,7 +341,7 @@ class ChannelProvider with ChangeNotifier {
       _initStatusArg = "";
     }
     notifyListeners();
-    
+
     if (updated) {
       _cacheTopPreviews();
       _precacheTopThumbnails();
@@ -275,15 +366,22 @@ class ChannelProvider with ChangeNotifier {
 
   Future<void> _saveVideosToCache() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = json.encode(_channelVideos.map((key, value) => 
-        MapEntry(key, value.map((v) => v.toJson()).toList())));
+    final encoded = json.encode(
+      _channelVideos.map(
+        (key, value) => MapEntry(key, value.map((v) => v.toJson()).toList()),
+      ),
+    );
     await prefs.setString('videos_cache', encoded);
-    await prefs.setInt('last_sync_timestamp', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      'last_sync_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   Future<void> removeChannel(String id) async {
     _channels.removeWhere((c) => c.id == id);
     _channelVideos.remove(id); // Important: clean up videos too
+    _invalidateVideoCache();
     await _saveChannels();
     _saveVideosToCache(); // Sync cache
     notifyListeners();
@@ -292,6 +390,7 @@ class ChannelProvider with ChangeNotifier {
   Future<void> addChannel(YoutubeChannel channel) async {
     if (!_channels.any((c) => c.id == channel.id)) {
       _channels.add(channel);
+      _invalidateVideoCache();
       await _saveChannels();
       notifyListeners();
     }
@@ -299,7 +398,10 @@ class ChannelProvider with ChangeNotifier {
 
   Future<void> _saveChannels({bool skipVideoReload = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('channels', _channels.map((c) => json.encode(c.toJson())).toList());
+    await prefs.setStringList(
+      'channels',
+      _channels.map((c) => json.encode(c.toJson())).toList(),
+    );
     if (!skipVideoReload) {
       loadAllVideos();
     }
@@ -308,18 +410,18 @@ class ChannelProvider with ChangeNotifier {
   Future<void> triggerBackgroundSync() async {
     final prefs = await SharedPreferences.getInstance();
     final shouldAutoCache = prefs.getBool('auto_cache_enabled') ?? true;
-    
+
     if (shouldAutoCache && _channelVideos.isNotEmpty) {
       VideoCacheService().syncAutoCache(_channelVideos);
     }
   }
 
-  /// Predictive Pre-warming: Pre-fetches the manifest for the video physically following 
+  /// Predictive Pre-warming: Pre-fetches the manifest for the video physically following
   /// the current one in the shuffled list.
   void prewarmNextVideo(String currentVideoId) {
     final list = shuffledVideos;
     final index = list.indexWhere((v) => v.id == currentVideoId);
-    
+
     if (index != -1 && index < list.length - 1) {
       final nextVideo = list[index + 1];
       print('🚀 Predictive Pre-warming for: ${nextVideo.title}');
@@ -330,6 +432,10 @@ class ChannelProvider with ChangeNotifier {
 
 Map<String, List<YoutubeVideo>> _decodeVideoCache(String jsonString) {
   final Map<String, dynamic> decoded = json.decode(jsonString);
-  return decoded.map((key, value) => 
-      MapEntry(key, (value as List).map((v) => YoutubeVideo.fromJson(v)).toList()));
+  return decoded.map(
+    (key, value) => MapEntry(
+      key,
+      (value as List).map((v) => YoutubeVideo.fromJson(v)).toList(),
+    ),
+  );
 }
