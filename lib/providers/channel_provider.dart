@@ -125,7 +125,6 @@ class ChannelProvider with ChangeNotifier {
           .toList();
     }
 
-    // Load cached videos in background to avoid skipping frames
     final videosCache = prefs.getString('videos_cache');
     final lastSync = prefs.getInt('last_sync_timestamp') ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
