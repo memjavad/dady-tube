@@ -100,22 +100,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeContent(BuildContext context, ChannelProvider provider) {
     final loc = AppLocalizations.of(context);
-    return SingleChildScrollView(
+    // ⚡ Bolt: Using CustomScrollView instead of SingleChildScrollView to avoid ListView shrinkWrap bottleneck.
+    // This allows Slivers to render lazily, significantly reducing memory and CPU usage on long lists.
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 24,
-        left: 24,
-        right: 24,
-        bottom: 24,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (provider.isOffline) _buildOfflineBanner(context, loc),
-          const SizedBox(height: 16),
-          _buildBigImmersiveList(context, provider, loc),
-        ],
-      ),
+      slivers: [
+        if (provider.isOffline)
+          SliverPadding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 24,
+              left: 24,
+              right: 24,
+              bottom: 16, // Instead of SizedBox(height: 16)
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _buildOfflineBanner(context, loc),
+            ),
+          ),
+        SliverPadding(
+          padding: EdgeInsets.only(
+            top: provider.isOffline ? 0 : MediaQuery.of(context).padding.top + 24,
+            left: 24,
+            right: 24,
+            bottom: 24,
+          ),
+          sliver: _buildBigImmersiveList(context, provider, loc),
+        ),
+      ],
     );
   }
 
@@ -176,21 +187,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (videos.isEmpty && provider.isLoading) {
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 5,
-        itemBuilder: (context, index) => const ShimmerVideoCard(),
+      // ⚡ Bolt: Using SliverList instead of ListView with shrinkWrap: true.
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => const ShimmerVideoCard(),
+          childCount: 5,
+        ),
       );
     }
     
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: videos.length,
-      itemBuilder: (context, index) {
-        return VideoCard(video: videos[index]);
-      },
+    // ⚡ Bolt: Using SliverList instead of ListView with shrinkWrap: true.
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          return VideoCard(video: videos[index]);
+        },
+        childCount: videos.length,
+      ),
     );
   }
 
