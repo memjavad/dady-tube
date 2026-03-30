@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
@@ -15,19 +17,37 @@ class ParentalGate extends StatefulWidget {
 class _ParentalGateState extends State<ParentalGate> {
   final TextEditingController _pinController = TextEditingController();
   String _error = '';
+  String _expectedAnswer = '';
+  String _question = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _generateMathProblem();
+  }
+
+  void _generateMathProblem() {
+    final random = Random();
+    final num1 = random.nextInt(8) + 5; // 5 to 12
+    final num2 = random.nextInt(8) + 5; // 5 to 12
+    setState(() {
+      _question = 'What is $num1 × $num2?';
+      _expectedAnswer = (num1 * num2).toString();
+      _pinController.clear();
+    });
+  }
 
   void _verifyPin() {
-    // Simple mock PIN for now: 1234
-    if (_pinController.text == '1234') {
+    if (_pinController.text == _expectedAnswer) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => widget.destination),
       );
     } else {
+      _generateMathProblem();
       setState(() {
         _error = 'Oops! Ask a grown-up for help.';
       });
-      _pinController.clear();
     }
   }
 
@@ -62,7 +82,13 @@ class _ParentalGateState extends State<ParentalGate> {
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+                Text(
+                  _question,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
                 _buildPinField(context),
                 if (_error.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -81,7 +107,7 @@ class _ParentalGateState extends State<ParentalGate> {
   Widget _buildPinField(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(4, (index) {
+      children: List.generate(_expectedAnswer.length, (index) {
         bool filled = _pinController.text.length > index;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -127,11 +153,12 @@ class _ParentalGateState extends State<ParentalGate> {
         final number = index == 10 ? '0' : (index + 1).toString();
         return TactileButton(
           onTap: () {
-            if (_pinController.text.length < 4) {
+            if (_pinController.text.length < _expectedAnswer.length) {
               setState(() {
+                if (_error.isNotEmpty) _error = '';
                 _pinController.text += number;
               });
-              if (_pinController.text.length == 4) {
+              if (_pinController.text.length == _expectedAnswer.length) {
                 _verifyPin();
               }
             }
