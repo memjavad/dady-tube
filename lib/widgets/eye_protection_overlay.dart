@@ -41,18 +41,23 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
     if (settings.distanceProtectionEnabled) {
       DistanceProtectionService().initialize().then((_) {
         if (mounted) {
-          _distanceSubscription = DistanceProtectionService().isTooCloseStream.listen((tooClose) {
-            if (mounted && _isTooClose != tooClose) {
-              setState(() => _isTooClose = tooClose);
-            }
-          });
+          _distanceSubscription = DistanceProtectionService().isTooCloseStream
+              .listen((tooClose) {
+                if (mounted && _isTooClose != tooClose) {
+                  setState(() => _isTooClose = tooClose);
+                }
+              });
 
-          _postureSubscription = DistanceProtectionService().isSlouchingStream.listen((slouching) {
-            final postureEnabled = Provider.of<SettingsProvider>(context, listen: false).postureProtectionEnabled;
-            if (mounted && _isSlouching != (slouching && postureEnabled)) {
-              setState(() => _isSlouching = slouching && postureEnabled);
-            }
-          });
+          _postureSubscription = DistanceProtectionService().isSlouchingStream
+              .listen((slouching) {
+                final postureEnabled = Provider.of<SettingsProvider>(
+                  context,
+                  listen: false,
+                ).postureProtectionEnabled;
+                if (mounted && _isSlouching != (slouching && postureEnabled)) {
+                  setState(() => _isSlouching = slouching && postureEnabled);
+                }
+              });
         }
       });
     }
@@ -122,201 +127,109 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         widget.child,
         // Optimized Blue Light Filter (Lightweight Overlay)
         if (settings.eyeProtectionEnabled)
-          IgnorePointer(
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 3),
-              curve: Curves.easeInOut,
-              color: Colors.deepOrange.withOpacity(settings.blueLightIntensity * 0.25),
-            ),
-          ),
+          _BlueLightFilterOverlay(intensity: settings.blueLightIntensity),
 
         // --- Sunset Fadeout Overlay ---
-        IgnorePointer(
-          child: Consumer<UsageProvider>(
-            builder: (context, usage, child) {
-              final intensity = usage.sunsetIntensity;
-              if (intensity <= 0) return const SizedBox.shrink();
-
-              return Container(
-                color: const Color(0xFF1A1A2E).withOpacity(intensity * 0.8),
-              );
-            },
-          ),
-        ),
+        const _SunsetFadeoutOverlay(),
 
         // Break Overlay
-        if (_showOverlay)
-          Positioned.fill(
-            child: Container(
-              color: Colors.white.withOpacity(0.98),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.spa_rounded, color: DadyTubeTheme.primary, size: 60),
-                      const SizedBox(height: 32),
-                      const SizedBox(height: 48),
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
-                          child: _buildActivityCard(context, _currentActivity, loc),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      _buildProgressBar(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+        if (_showOverlay) _BreakOverlay(currentActivity: _currentActivity),
 
         // Distance Warning Overlay (Step Back!)
         if (_isTooClose && settings.distanceProtectionEnabled)
-          Positioned.fill(
-            child: Container(
-              color: Colors.white.withOpacity(0.85),
-              child: BackdropFilter(
-                filter: ColorFilter.mode(Colors.white.withOpacity(0.2), BlendMode.overlay),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          height: 180,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: DadyTubeTheme.primary.withOpacity(0.2),
-                                blurRadius: 32,
-                                spreadRadius: 8,
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/images/learning_icon_3d.png',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.warning_amber_rounded, size: 80, color: Colors.pinkAccent),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Image.asset(
-                          'assets/images/rabbit_posture_3d.png',
-                          height: 280,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(32),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.straighten_rounded, color: DadyTubeTheme.primary),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    loc.translate('step_back_title'),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary, fontSize: 18),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                loc.translate('safety_pause'),
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _DistanceWarningOverlay(loc: loc),
 
         // Posture Warning Overlay (Sit Up Straight!)
         if (_isSlouching && settings.postureProtectionEnabled)
-          Positioned.fill(
-            child: Container(
-              color: Colors.white.withOpacity(0.92),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: DadyTubeTheme.primary.withOpacity(0.1),
-                                blurRadius: 40,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/images/rabbit_posture_3d.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.accessibility_new_rounded, color: DadyTubeTheme.primary),
-                            const SizedBox(width: 12),
-                            Text(
-                              loc.translate('sit_up_title'),
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary, fontSize: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _PostureWarningOverlay(loc: loc),
       ],
     );
   }
+}
 
-  Widget _buildProgressBar() {
+class _BlueLightFilterOverlay extends StatelessWidget {
+  final double intensity;
+
+  const _BlueLightFilterOverlay({required this.intensity});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedContainer(
+        duration: const Duration(seconds: 3),
+        curve: Curves.easeInOut,
+        color: Colors.deepOrange.withOpacity(intensity * 0.25),
+      ),
+    );
+  }
+}
+
+class _SunsetFadeoutOverlay extends StatelessWidget {
+  const _SunsetFadeoutOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Consumer<UsageProvider>(
+        builder: (context, usage, child) {
+          final intensity = usage.sunsetIntensity;
+          if (intensity <= 0) return const SizedBox.shrink();
+
+          return Container(
+            color: const Color(0xFF1A1A2E).withOpacity(intensity * 0.8),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BreakOverlay extends StatelessWidget {
+  final int currentActivity;
+
+  const _BreakOverlay({required this.currentActivity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.white.withOpacity(0.98),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.spa_rounded,
+                  color: DadyTubeTheme.primary,
+                  size: 60,
+                ),
+                const SizedBox(height: 32),
+                const SizedBox(height: 48),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: _buildActivityCard(context, currentActivity),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildProgressBar(currentActivity),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressBar(int activity) {
     return Column(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
-            value: (_currentActivity + 1) / 3,
+            value: (activity + 1) / 3,
             backgroundColor: DadyTubeTheme.primary.withOpacity(0.1),
             valueColor: const AlwaysStoppedAnimation(DadyTubeTheme.primary),
             minHeight: 12,
@@ -324,14 +237,18 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         ),
         const SizedBox(height: 16),
         Text(
-          "${_currentActivity + 1} / 3",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 18),
+          "${activity + 1} / 3",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+            fontSize: 18,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildActivityCard(BuildContext context, int index, AppLocalizations loc) {
+  Widget _buildActivityCard(BuildContext context, int index) {
     final activities = [
       {
         'image': 'assets/images/eye_yoga_look_far.png',
@@ -378,6 +295,192 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         // Wordless Design Sandbox: Removing explicit text instructions to let the UI breathe
         // and allow children to simply copy the "Virtual Buddy" rabbit.
       ],
+    );
+  }
+}
+
+class _DistanceWarningOverlay extends StatelessWidget {
+  final AppLocalizations loc;
+
+  const _DistanceWarningOverlay({required this.loc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.white.withOpacity(0.85),
+        child: BackdropFilter(
+          filter: ColorFilter.mode(
+            Colors.white.withOpacity(0.2),
+            BlendMode.overlay,
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: DadyTubeTheme.primary.withOpacity(0.2),
+                          blurRadius: 32,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/learning_icon_3d.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 80,
+                        color: Colors.pinkAccent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Image.asset(
+                    'assets/images/rabbit_posture_3d.png',
+                    height: 280,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.straighten_rounded,
+                              color: DadyTubeTheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              loc.translate('step_back_title'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: DadyTubeTheme.primary,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          loc.translate('safety_pause'),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PostureWarningOverlay extends StatelessWidget {
+  final AppLocalizations loc;
+
+  const _PostureWarningOverlay({required this.loc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.white.withOpacity(0.92),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: DadyTubeTheme.primary.withOpacity(0.1),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/rabbit_posture_3d.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.accessibility_new_rounded,
+                        color: DadyTubeTheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        loc.translate('sit_up_title'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: DadyTubeTheme.primary,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
