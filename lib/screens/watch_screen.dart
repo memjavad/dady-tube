@@ -446,9 +446,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                 left: 24,
                 child: const PlaytimeBucket(size: 80),
               ),
-
-              // Phase 2: Gentle Transition Overlay
-              if (_isShowingBuffer) _buildGentleBuffer(context),
             ],
           ),
         ),
@@ -528,9 +525,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             : (_previewController != null &&
                   _previewController!.value.isInitialized)
             ? VideoPlayer(_previewController!)
-            : const Center(
-                child: CircularProgressIndicator(color: DadyTubeTheme.primary),
-              ),
+            : _buildGentleBuffer(context),
       ),
     );
   }
@@ -1090,30 +1085,23 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   Widget _buildGentleBuffer(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Positioned.fill(
-      child: Container(
-        color: Colors.white.withOpacity(0.9),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const _PulseCloud(),
-              const SizedBox(height: 32),
-              Text(
-                loc.translate('breathe_in'),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: DadyTubeTheme.primary,
-                ),
+    return Container(
+      color: Colors.white.withOpacity(0.95),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const _PulseCloud(),
+            const SizedBox(height: 16),
+            Text(
+              loc.translate('breathe_in'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: DadyTubeTheme.primary,
               ),
-              const SizedBox(height: 8),
-              Text(
-                loc.translate('get_ready_adventure'),
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

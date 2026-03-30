@@ -64,9 +64,11 @@ class DistanceProtectionService {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.low,
+      ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.nv21, // Optimized for Android/MLKit
+      imageFormatGroup: defaultTargetPlatform == TargetPlatform.android 
+          ? ImageFormatGroup.nv21 
+          : ImageFormatGroup.bgra8888,
     );
 
     _faceDetector = FaceDetector(
@@ -100,13 +102,13 @@ class DistanceProtectionService {
     final now = DateTime.now().millisecondsSinceEpoch;
     // Ultra-Light: Only process 1 frame every 1200ms (approx 0.8 FPS)
     // This dramatically reduces CPU pressure while remaining safe.
-    if (_isBusy || _faceDetector == null || (now - _lastProcessedTimestamp < 1200)) return;
+    // Light: Process every 500ms for responsiveness (2 FPS)
+    if (_isBusy || _faceDetector == null || (now - _lastProcessedTimestamp < 500)) return;
     
     _isBusy = true;
     _lastProcessedTimestamp = now;
 
     try {
-      // Optimized conversion: Only convert if we are definitely going to process
       final WriteBuffer allBytes = WriteBuffer();
       for (final Plane plane in image.planes) {
         allBytes.putUint8List(plane.bytes);
@@ -120,10 +122,14 @@ class DistanceProtectionService {
       else if (sensorOrientation == 180) rotation = InputImageRotation.rotation180deg;
       else if (sensorOrientation == 270) rotation = InputImageRotation.rotation270deg;
 
+      final format = defaultTargetPlatform == TargetPlatform.android
+          ? InputImageFormat.nv21
+          : InputImageFormat.bgra8888;
+
       final metadata = InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
-        format: InputImageFormat.nv21,
+        format: format,
         bytesPerRow: image.planes[0].bytesPerRow,
       );
 
