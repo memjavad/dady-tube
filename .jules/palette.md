@@ -1,0 +1,3 @@
+## 2024-05-18 - [Add Semantic properties to custom gestures]
+**Learning:** Custom interactive widgets (like `TactileButton` wrapped in `GestureDetector`) need explicit semantic markup (`Semantics(button: true)`) because screen readers otherwise won't announce them as interactive buttons or identify when they are disabled.
+**Action:** When building custom tactile/animated buttons in Flutter, always wrap the base gesture detector in a `Semantics` widget, passing through `button: true`, the `semanticLabel`, and the `enabled` state based on the callback's nullability.
