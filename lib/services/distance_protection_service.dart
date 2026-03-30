@@ -95,8 +95,6 @@ class DistanceProtectionService {
   }
 
   int _lastProcessedTimestamp = 0;
-  bool _lastResult = false;
-  int _consecutiveStatusCount = 0;
 
   Future<void> _processImage(CameraImage image) async {
     final now = DateTime.now().millisecondsSinceEpoch;
