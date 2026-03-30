@@ -289,7 +289,6 @@ class VideoCacheService {
     if (vToCache != null) {
       print('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
 
-      // Update state before starting to avoid race conditions
       await prefs.setString(_keyLastCacheDate, today);
       await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
       await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
