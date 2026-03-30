@@ -100,4 +100,58 @@ void main() {
       verifyNever(() => mockChannelClient.get(any()));
     });
   });
+
+  group('YoutubeService.getOptimizedThumbnail Tests', () {
+    test('Returns original URL when turboMode is false', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, false);
+      expect(result, original);
+    });
+
+    test('Replaces hqdefault.jpg with mqdefault.jpg when turboMode is true', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg';
+      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, expected);
+    });
+
+    test('Replaces sddefault.jpg with mqdefault.jpg when turboMode is true', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/sddefault.jpg';
+      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, expected);
+    });
+
+    test('Replaces maxresdefault.jpg with mqdefault.jpg when turboMode is true', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg';
+      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, expected);
+    });
+
+    test('Returns original URL if it already contains mqdefault.jpg', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, original);
+    });
+
+    test('Returns original URL if it contains an unknown resolution string', () {
+      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, original);
+    });
+
+    test('Returns original URL if it is empty', () {
+      final original = '';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, original);
+    });
+
+    test('Replaces only the first occurrence of the resolution string', () {
+      final original = 'https://i.ytimg.com/vi/hqdefault.jpg/hqdefault.jpg';
+      final expected = 'https://i.ytimg.com/vi/mqdefault.jpg/hqdefault.jpg';
+      final result = YoutubeService.getOptimizedThumbnail(original, true);
+      expect(result, expected);
+    });
+  });
 }
