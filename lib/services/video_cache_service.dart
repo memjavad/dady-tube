@@ -92,15 +92,20 @@ class VideoCacheService {
     getManifest(videoId).catchError((_) => null);
   }
 
-  /// Returns a local file path if the video is cached, or null otherwise.
-  Future<String?> getCachedVideoPath(String videoId) async {
+  /// Helper method to return an existing file path based on video ID and extension.
+  Future<String?> _getExistingFilePath(String videoId, String extension) async {
     final path = await _cachePath;
     final sanitizedId = sanitizeVideoId(videoId);
-    final file = File('$path/$sanitizedId.mp4');
+    final file = File('$path/$sanitizedId$extension');
     if (await file.exists()) {
       return file.path;
     }
     return null;
+  }
+
+  /// Returns a local file path if the video is cached, or null otherwise.
+  Future<String?> getCachedVideoPath(String videoId) async {
+    return _getExistingFilePath(videoId, '.mp4');
   }
 
   /// Returns a set of all video IDs currently in the cache.
@@ -213,13 +218,7 @@ class VideoCacheService {
 
   /// Returns a local file path for a preview if it exists.
   Future<String?> getPreviewPath(String videoId) async {
-    final path = await _cachePath;
-    final sanitizedId = sanitizeVideoId(videoId);
-    final file = File('$path/$sanitizedId.preview');
-    if (await file.exists()) {
-      return file.path;
-    }
-    return null;
+    return _getExistingFilePath(videoId, '.preview');
   }
 
   /// Ensures we don't exceed the storage limit.
