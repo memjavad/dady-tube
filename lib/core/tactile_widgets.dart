@@ -20,7 +20,8 @@ class TactileButton extends StatefulWidget {
   _TactileButtonState createState() => _TactileButtonState();
 }
 
-class _TactileButtonState extends State<TactileButton> with SingleTickerProviderStateMixin {
+class _TactileButtonState extends State<TactileButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -31,9 +32,10 @@ class _TactileButtonState extends State<TactileButton> with SingleTickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: widget.scaleOnPress).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: widget.scaleOnPress,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -64,13 +66,15 @@ class _TactileButtonState extends State<TactileButton> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: widget.child,
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: _onTapCancel,
+        child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
       ),
     );
   }
@@ -105,7 +109,7 @@ class TactileCard extends StatelessWidget {
 
     return Container(
       padding: padding,
-      decoration: shape != null 
+      decoration: shape != null
           ? ShapeDecoration(
               color: effectiveColor,
               shape: shape!,
@@ -138,7 +142,9 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassColor = isDark ? Colors.black.withOpacity(opacity) : Colors.white.withOpacity(opacity);
+    final glassColor = isDark
+        ? Colors.black.withOpacity(opacity)
+        : Colors.white.withOpacity(opacity);
 
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.circular(32.0),

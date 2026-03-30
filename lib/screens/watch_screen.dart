@@ -70,7 +70,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _yt = yt.YoutubeExplode();
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Phase 2: Show Gentle Buffer before initializing player
     _setupPreviewAndInitialize();
   }
@@ -83,7 +83,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     if (previewPath != null && mounted) {
       _previewController = VideoPlayerController.file(File(previewPath));
       await _previewController!.initialize();
-      if (mounted && _isLoading) { // Only play preview if main player isn't ready
+      if (mounted && _isLoading) {
+        // Only play preview if main player isn't ready
         _previewController!.setLooping(true);
         _previewController!.play();
         setState(() {});
@@ -102,7 +103,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       _maybeStartBackgroundPlayback();
     } else if (state == AppLifecycleState.resumed) {
       _maybeStopBackgroundPlayback();
@@ -110,36 +112,41 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   void _maybeStartBackgroundPlayback() {
-    if (_videoPlayerController != null && _videoPlayerController!.value.isPlaying) {
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isPlaying) {
       final position = _videoPlayerController!.value.position;
       _videoPlayerController!.pause();
-      
-      final audioHandler = context.read<AudioHandler>() as BackgroundAudioService;
-      audioHandler.playVideo(
-        widget.videoId, 
-        _videoTitle ?? "DadyTube", 
-        "DadyTube", 
-        widget.thumbnailUrl
-      ).then((_) {
-        audioHandler.seek(position);
-        setState(() => _isBackgroundPlaying = true);
-      });
+
+      final audioHandler =
+          context.read<AudioHandler>() as BackgroundAudioService;
+      audioHandler
+          .playVideo(
+            widget.videoId,
+            _videoTitle ?? "DadyTube",
+            "DadyTube",
+            widget.thumbnailUrl,
+          )
+          .then((_) {
+            audioHandler.seek(position);
+            setState(() => _isBackgroundPlaying = true);
+          });
     }
   }
 
   void _maybeStopBackgroundPlayback() {
     if (_isBackgroundPlaying) {
-      final audioHandler = context.read<AudioHandler>() as BackgroundAudioService;
+      final audioHandler =
+          context.read<AudioHandler>() as BackgroundAudioService;
       final position = audioHandler.playbackState.value.position;
-      
+
       audioHandler.pause();
       audioHandler.stop();
-      
+
       if (_videoPlayerController != null) {
         _videoPlayerController!.seekTo(position);
         _videoPlayerController!.play();
       }
-      
+
       setState(() => _isBackgroundPlaying = false);
     }
   }
@@ -169,33 +176,45 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       String? downloadPath = localResults[0];
       String? cachePath = localResults[1];
       String? cachedUrl = localResults[2];
-      
+
       if (downloadPath != null || cachePath != null) {
         print('🚀 Turbo Watch: Playing from Local/Cache File');
-        _videoPlayerController = VideoPlayerController.file(File(downloadPath ?? cachePath!));
+        _videoPlayerController = VideoPlayerController.file(
+          File(downloadPath ?? cachePath!),
+        );
       } else if (cachedUrl != null) {
         print('💎 Turbo Watch: Using Persistent Link Cache (Instant Play!)');
-        _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(cachedUrl));
+        _videoPlayerController = VideoPlayerController.networkUrl(
+          Uri.parse(cachedUrl),
+        );
       } else {
         // 3. Play from network (Bypass Mode)
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         final manifest = await _cacheService.getManifest(widget.videoId);
-        
+
         yt.MuxedStreamInfo? streamInfo;
         final isTurbo = settings.turboModeEnabled;
         final quality = isTurbo ? VideoQuality.p360 : settings.videoQuality;
-        
+
         if (quality == VideoQuality.auto && !isTurbo) {
           streamInfo = manifest.muxed.withHighestBitrate();
         } else {
-          int targetWidth = (quality == VideoQuality.p360) ? 640 : (quality == VideoQuality.p720 ? 1280 : 1920);
-          final compatibleStreams = manifest.muxed.where((s) => s.videoResolution.width <= targetWidth).toList();
-          streamInfo = compatibleStreams.isNotEmpty ? compatibleStreams.withHighestBitrate() : manifest.muxed.withHighestBitrate();
+          int targetWidth = (quality == VideoQuality.p360)
+              ? 640
+              : (quality == VideoQuality.p720 ? 1280 : 1920);
+          final compatibleStreams = manifest.muxed
+              .where((s) => s.videoResolution.width <= targetWidth)
+              .toList();
+          streamInfo = compatibleStreams.isNotEmpty
+              ? compatibleStreams.withHighestBitrate()
+              : manifest.muxed.withHighestBitrate();
         }
-        
+
         if (streamInfo == null) throw Exception("No playable stream found.");
-        _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
-        
+        _videoPlayerController = VideoPlayerController.networkUrl(
+          streamInfo.url,
+        );
+
         // Bonus: Start caching this video in background
         _cacheService.cacheVideo(widget.videoId);
       }
@@ -204,7 +223,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         await _videoPlayerController!.initialize();
       } catch (e) {
         // If it was a cached URL, it might have expired. Try one more time with fresh manifest.
-        final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
+        final cachedUrl = await _cacheService.getCachedStreamUrl(
+          widget.videoId,
+        );
         if (cachedUrl != null) {
           print('⚠️ V3.4: Cached URL expired or failed. Refreshing...');
           // Invalidate cache
@@ -218,7 +239,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           final manifest = await _cacheService.getManifest(widget.videoId);
           final freshStream = manifest.muxed.withHighestBitrate();
           if (freshStream != null) {
-            _videoPlayerController = VideoPlayerController.networkUrl(freshStream.url);
+            _videoPlayerController = VideoPlayerController.networkUrl(
+              freshStream.url,
+            );
             await _videoPlayerController!.initialize();
           } else {
             rethrow;
@@ -229,7 +252,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       }
 
       _videoPlayerController!.addListener(_onVideoProgress);
-      
+
       final settings = Provider.of<SettingsProvider>(context, listen: false);
 
       _chewieController = ChewieController(
@@ -238,13 +261,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         looping: false,
         fullScreenByDefault: settings.fullScreenByDefault,
         aspectRatio: _videoPlayerController!.value.aspectRatio,
-        placeholder: widget.thumbnailUrl != null 
+        placeholder: widget.thumbnailUrl != null
             ? Image.network(widget.thumbnailUrl!, fit: BoxFit.cover)
-            : const Center(child: CircularProgressIndicator(color: DadyTubeTheme.primary)),
+            : const Center(
+                child: CircularProgressIndicator(color: DadyTubeTheme.primary),
+              ),
         materialProgressColors: ChewieProgressColors(
           playedColor: Theme.of(context).colorScheme.primary,
           handleColor: Theme.of(context).colorScheme.primaryContainer,
-          bufferedColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+          bufferedColor: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withOpacity(0.3),
           backgroundColor: Colors.grey.withOpacity(0.2),
         ),
         // Design Sandbox rules: Customizing controls
@@ -259,7 +286,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             DeviceOrientation.portraitUp,
             DeviceOrientation.portraitDown,
           ]);
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+          SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: SystemUiOverlay.values,
+          );
         }
       });
 
@@ -276,13 +306,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = "Oh no! This toy is currently taking a nap. \n(Error: ${e.toString()})";
+        _errorMessage =
+            "Oh no! This toy is currently taking a nap. \n(Error: ${e.toString()})";
       });
     }
   }
 
   void _onVideoProgress() {
-    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized) {
       final position = _videoPlayerController!.value.position;
       final duration = _videoPlayerController!.value.duration;
       final isPlayingNow = _videoPlayerController!.value.isPlaying;
@@ -293,27 +325,28 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         // Still need to rebuild to update the progress slider
         setState(() {});
       }
-      
+
       if (position >= duration && !_isFinished) {
         setState(() {
           _isFinished = true;
         });
-      
-      // Predictive Pre-warming: Prepare the next video while this one plays
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-           context.read<ChannelProvider>().prewarmNextVideo(widget.videoId);
-        }
-      });
-      
+
+        // Predictive Pre-warming: Prepare the next video while this one plays
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.read<ChannelProvider>().prewarmNextVideo(widget.videoId);
+          }
+        });
+
         // Phase 4: Grant Stars for educational content
         final title = (_videoTitle ?? widget.videoTitle ?? "").toLowerCase();
-        final isEducational = title.contains('learn') || 
-                             title.contains('story') || 
-                             title.contains('abc') || 
-                             title.contains('math') ||
-                             title.contains('number');
-                             
+        final isEducational =
+            title.contains('learn') ||
+            title.contains('story') ||
+            title.contains('abc') ||
+            title.contains('math') ||
+            title.contains('number');
+
         if (isEducational) {
           context.read<UsageProvider>().addStar();
         }
@@ -327,13 +360,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _yt.close();
     _downloadService.dispose();
     _videoPlayerController?.removeListener(_onVideoProgress);
-    
+
     // Safety Reset for System UI
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
 
     _videoPlayerController?.dispose();
     _previewController?.dispose();
@@ -343,41 +379,54 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final showImmersive = isLandscape || (_isPlaying && !_isShowingBuffer);
 
     return BedtimeOverlay(
       child: Container(
-        color: Theme.of(context).colorScheme.background, // Ensure solid background even if Scaffold has issues
+        color: Theme.of(context)
+            .colorScheme
+            .background, // Ensure solid background even if Scaffold has issues
         child: Scaffold(
-          backgroundColor: Colors.transparent, // Let Container provide the solid color
+          backgroundColor:
+              Colors.transparent, // Let Container provide the solid color
           body: Stack(
             children: [
               Column(
                 children: [
-                  SizedBox(height: isLandscape ? 0 : MediaQuery.of(context).padding.top),
-                  if (isLandscape) 
+                  SizedBox(
+                    height: isLandscape
+                        ? 0
+                        : MediaQuery.of(context).padding.top,
+                  ),
+                  if (isLandscape)
                     Expanded(child: _buildPlayerArea(context))
                   else
                     _buildPlayerArea(context),
-                  
-                  if (!isLandscape) 
-                    _buildTactileControls(context),
-                  
+
+                  if (!isLandscape) _buildTactileControls(context),
+
                   // Keep metadata visible but maybe dimmed in portrait
-                  if (!isLandscape) 
+                  if (!isLandscape)
                     Expanded(
                       child: Opacity(
-                        opacity: 1.0, // Fixed opacity to prevent dimming during play
+                        opacity:
+                            1.0, // Fixed opacity to prevent dimming during play
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 24,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildVideoInfo(context),
                               const SizedBox(height: 32),
                               _buildActions(context),
-                              if (Provider.of<SettingsProvider>(context).showSuggestions) ...[
+                              if (Provider.of<SettingsProvider>(
+                                context,
+                              ).showSuggestions) ...[
                                 const SizedBox(height: 48),
                                 _buildWatchMore(context),
                               ],
@@ -391,14 +440,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               // Hide PlaytimeBucket when video is playing for a fully immersive look
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
-                bottom: MediaQuery.of(context).padding.bottom + 24, // Keep visible even when playing
+                bottom:
+                    MediaQuery.of(context).padding.bottom +
+                    24, // Keep visible even when playing
                 left: 24,
                 child: const PlaytimeBucket(size: 80),
               ),
-              
+
               // Phase 2: Gentle Transition Overlay
-              if (_isShowingBuffer)
-                _buildGentleBuffer(context),
+              if (_isShowingBuffer) _buildGentleBuffer(context),
             ],
           ),
         ),
@@ -414,26 +464,42 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.stars_rounded, size: 80, color: Colors.orangeAccent),
+            const Icon(
+              Icons.stars_rounded,
+              size: 80,
+              color: Colors.orangeAccent,
+            ),
             const SizedBox(height: 24),
             Text(
               loc.translate('video_finished'),
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(color: DadyTubeTheme.primary, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                color: DadyTubeTheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
               loc.translate('ready_for_break'),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
             ),
             const SizedBox(height: 32),
             TactileButton(
               onTap: () => Navigator.pop(context),
               child: TactileCard(
                 color: DadyTubeTheme.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
                 child: Text(
                   loc.translate('go_home'),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ),
@@ -445,7 +511,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   Widget _buildPlayerArea(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    
+
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
@@ -453,28 +519,35 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         child: _errorMessage != null
             ? _buildErrorState(context)
             : _chewieController != null
-                ? Stack(
-                    children: [
-                      Chewie(controller: _chewieController!),
-                      if (_isFinished) _buildConclusionOverlay(context),
-                    ],
-                  )
-                : (_previewController != null && _previewController!.value.isInitialized)
-                    ? VideoPlayer(_previewController!)
-                    : const Center(child: CircularProgressIndicator(color: DadyTubeTheme.primary)),
+            ? Stack(
+                children: [
+                  Chewie(controller: _chewieController!),
+                  if (_isFinished) _buildConclusionOverlay(context),
+                ],
+              )
+            : (_previewController != null &&
+                  _previewController!.value.isInitialized)
+            ? VideoPlayer(_previewController!)
+            : const Center(
+                child: CircularProgressIndicator(color: DadyTubeTheme.primary),
+              ),
       ),
     );
   }
 
   Widget _buildTactileControls(BuildContext context) {
-    final hasPlayer = (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) ||
-                      (_previewController != null && _previewController!.value.isInitialized);
-    
+    final hasPlayer =
+        (_videoPlayerController != null &&
+            _videoPlayerController!.value.isInitialized) ||
+        (_previewController != null && _previewController!.value.isInitialized);
+
     if (!hasPlayer) {
       return const SizedBox.shrink();
     }
 
-    final activeController = (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
+    final activeController =
+        (_videoPlayerController != null &&
+            _videoPlayerController!.value.isInitialized)
         ? _videoPlayerController!
         : _previewController!;
 
@@ -506,12 +579,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           // Progress Bar
           Row(
             children: [
-              Text(formatDuration(position), style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                formatDuration(position),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               Expanded(
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 12,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 10,
+                    ),
                     activeTrackColor: DadyTubeTheme.primary,
                     inactiveTrackColor: DadyTubeTheme.primary.withOpacity(0.1),
                     thumbColor: DadyTubeTheme.primary,
@@ -520,12 +598,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     value: position.inSeconds.toDouble(),
                     max: duration.inSeconds.toDouble(),
                     onChanged: (value) {
-                      _videoPlayerController!.seekTo(Duration(seconds: value.toInt()));
+                      _videoPlayerController!.seekTo(
+                        Duration(seconds: value.toInt()),
+                      );
                     },
                   ),
                 ),
               ),
-              Text(formatDuration(duration), style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                formatDuration(duration),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -534,17 +617,24 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TactileButton(
+                semanticLabel: 'Rewind 10 seconds',
                 onTap: () {
                   final newPos = position - const Duration(seconds: 10);
-                  activeController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                  activeController.seekTo(
+                    newPos < Duration.zero ? Duration.zero : newPos,
+                  );
                 },
                 child: const TactileCard(
                   padding: EdgeInsets.all(12),
-                  child: Icon(Icons.replay_10_rounded, color: DadyTubeTheme.primary),
+                  child: Icon(
+                    Icons.replay_10_rounded,
+                    color: DadyTubeTheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(width: 24),
               TactileButton(
+                semanticLabel: isPlaying ? 'Pause' : 'Play',
                 onTap: () {
                   if (isPlaying) {
                     activeController.pause();
@@ -566,17 +656,24 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 24),
               TactileButton(
+                semanticLabel: 'Fast forward 10 seconds',
                 onTap: () {
                   final newPos = position + const Duration(seconds: 10);
-                  activeController.seekTo(newPos > duration ? duration : newPos);
+                  activeController.seekTo(
+                    newPos > duration ? duration : newPos,
+                  );
                 },
                 child: const TactileCard(
                   padding: EdgeInsets.all(12),
-                  child: Icon(Icons.forward_10_rounded, color: DadyTubeTheme.primary),
+                  child: Icon(
+                    Icons.forward_10_rounded,
+                    color: DadyTubeTheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(width: 24),
               TactileButton(
+                semanticLabel: 'Enter Fullscreen',
                 onTap: () {
                   if (_chewieController != null) {
                     _chewieController!.enterFullScreen();
@@ -584,7 +681,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                 },
                 child: const TactileCard(
                   padding: EdgeInsets.all(12),
-                  child: Icon(Icons.fullscreen_rounded, color: DadyTubeTheme.primary),
+                  child: Icon(
+                    Icons.fullscreen_rounded,
+                    color: DadyTubeTheme.primary,
+                  ),
                 ),
               ),
             ],
@@ -598,18 +698,22 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.toys_outlined, size: 48, color: Theme.of(context).colorScheme.primaryContainer),
+          Icon(
+            Icons.toys_outlined,
+            size: 48,
+            color: Theme.of(context).colorScheme.primaryContainer,
+          ),
           const SizedBox(height: 8),
           Text(
             _errorMessage ?? loc.translate('error_loading_video'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -619,8 +723,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             child: TactileCard(
               color: DadyTubeTheme.primary,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                child: Text(loc.translate('try_again'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                child: Text(
+                  loc.translate('try_again'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
@@ -636,7 +749,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       children: [
         Text(
           _videoTitle ?? loc.translate('play'),
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: 24, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -645,7 +761,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           children: [
             if (widget.channelThumbnailUrl != null)
               CircleAvatar(
-                backgroundImage: CachedNetworkImageProvider(widget.channelThumbnailUrl!),
+                backgroundImage: CachedNetworkImageProvider(
+                  widget.channelThumbnailUrl!,
+                ),
                 radius: 20,
               )
             else
@@ -661,11 +779,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                 children: [
                   Text(
                     widget.channelName ?? "DadyTube Channel",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
                     loc.translate('popular_now'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
                 ],
               ),
@@ -675,7 +798,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       ],
     );
   }
-
 
   Widget _buildActions(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -692,21 +814,28 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3, color: DadyTubeTheme.primary),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: DadyTubeTheme.primary,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(loc.translate('downloading_travel'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            loc.translate('downloading_travel'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const SizedBox(height: 8),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: _downloadProgress,
                               color: DadyTubeTheme.primary,
-                              backgroundColor: DadyTubeTheme.primary.withOpacity(0.1),
+                              backgroundColor: DadyTubeTheme.primary
+                                  .withOpacity(0.1),
                             ),
                           ),
                         ],
@@ -727,9 +856,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.favorite_rounded, color: Color(0xFFFF5C5C)),
+                      const Icon(
+                        Icons.favorite_rounded,
+                        color: Color(0xFFFF5C5C),
+                      ),
                       const SizedBox(width: 12),
-                      Text(loc.translate('save'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        loc.translate('save'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -744,9 +879,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.download_rounded, color: Colors.blueAccent),
+                      const Icon(
+                        Icons.download_rounded,
+                        color: Colors.blueAccent,
+                      ),
                       const SizedBox(width: 12),
-                      Text(loc.translate('download'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        loc.translate('download'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -767,7 +908,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                 const SizedBox(width: 12),
                 Text(
                   loc.translate('go_home'),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.onSurface),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),
@@ -783,7 +928,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final authorized = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ParentalGate(destination: _AuthorizedDownload()),
+        builder: (context) =>
+            const ParentalGate(destination: _AuthorizedDownload()),
       ),
     );
 
@@ -799,11 +945,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             _downloadProgress = progress;
           });
         });
-        
+
         // Register metadata for offline browsing
-        final channelProvider = Provider.of<ChannelProvider>(context, listen: false);
-        final downloadProvider = Provider.of<DownloadProvider>(context, listen: false);
-        
+        final channelProvider = Provider.of<ChannelProvider>(
+          context,
+          listen: false,
+        );
+        final downloadProvider = Provider.of<DownloadProvider>(
+          context,
+          listen: false,
+        );
+
         final video = channelProvider.allVideos.firstWhere(
           (v) => v.id == widget.videoId,
           orElse: () => YoutubeVideo(
@@ -814,9 +966,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             publishedAt: DateTime.now(),
           ),
         );
-        
+
         await downloadProvider.addDownloadedVideo(video);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(loc.translate('added_to_travel'))),
         );
@@ -851,28 +1003,43 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               onTap: () {},
               child: Text(
                 loc.translate('view_all'),
-                style: const TextStyle(color: DadyTubeTheme.primary, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: DadyTubeTheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        ...moreVideos.map((video) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildVideoListItem(context, video.title, video.thumbnailUrl, videoId: video.id),
-        )),
+        ...moreVideos.map(
+          (video) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildVideoListItem(
+              context,
+              video.title,
+              video.thumbnailUrl,
+              videoId: video.id,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildVideoListItem(BuildContext context, String title, String imageUrl, {String videoId = 'L_LUpnjyPso'}) {
+  Widget _buildVideoListItem(
+    BuildContext context,
+    String title,
+    String imageUrl, {
+    String videoId = 'L_LUpnjyPso',
+  }) {
     return TactileButton(
       onTap: () {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => WatchScreen(
-              videoId: videoId, 
+              videoId: videoId,
               thumbnailUrl: imageUrl,
               channelName: "DadyTube Channel", // Ideally we'd have this data
             ),
@@ -890,12 +1057,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: CachedNetworkImage(
-                    imageUrl: imageUrl, 
-                    height: 160, 
-                    width: 260, 
+                    imageUrl: imageUrl,
+                    height: 160,
+                    width: 260,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Theme.of(context).colorScheme.surfaceContainerLow),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                    placeholder: (context, url) => Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    ),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.error),
                   ),
                 ),
                 Container(
@@ -904,7 +1074,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     color: Colors.orangeAccent.withOpacity(0.9),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
               ],
             ),
@@ -958,9 +1132,16 @@ class _AuthorizedDownload extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.download_rounded, size: 64, color: DadyTubeTheme.primary),
+            const Icon(
+              Icons.download_rounded,
+              size: 64,
+              color: DadyTubeTheme.primary,
+            ),
             const SizedBox(height: 24),
-            Text(loc.translate('download_confirm'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              loc.translate('download_confirm'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Text(loc.translate('download_msg'), textAlign: TextAlign.center),
             const SizedBox(height: 48),
@@ -979,8 +1160,17 @@ class _AuthorizedDownload extends StatelessWidget {
                   onTap: () => Navigator.pop(context, true),
                   child: TactileCard(
                     color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                    child: Text(loc.translate('yes_download'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
+                    child: Text(
+                      loc.translate('yes_download'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -990,7 +1180,6 @@ class _AuthorizedDownload extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _PulseCloud extends StatefulWidget {
@@ -1000,15 +1189,22 @@ class _PulseCloud extends StatefulWidget {
   State<_PulseCloud> createState() => _PulseCloudState();
 }
 
-class _PulseCloudState extends State<_PulseCloud> with SingleTickerProviderStateMixin {
+class _PulseCloudState extends State<_PulseCloud>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(duration: const Duration(seconds: 3), vsync: this)..repeat(reverse: true);
-    _animation = Tween<double>(begin: 1.0, end: 1.5).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat(reverse: true);
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: 1.5,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1021,7 +1217,11 @@ class _PulseCloudState extends State<_PulseCloud> with SingleTickerProviderState
   Widget build(BuildContext context) {
     return ScaleTransition(
       scale: _animation,
-      child: const Icon(Icons.cloud_rounded, size: 80, color: Colors.blueAccent),
+      child: const Icon(
+        Icons.cloud_rounded,
+        size: 80,
+        color: Colors.blueAccent,
+      ),
     );
   }
 }
