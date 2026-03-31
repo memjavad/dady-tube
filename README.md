@@ -110,6 +110,12 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 ## 📈 Changelog
 
+### [v3.5] - 2026-04-01
+- **Added**: Background Operation Latching (Resource Prioritization). The app now pauses background sync/caching during video initialization to dedicate 100% of device resources to playback.
+- **Improved**: Enforced a strict 100-video sync limit per channel to maintain high performance as the library grows.
+- **Fixed**: Resolved all "setState() after dispose" crashes in WatchScreen using standardized mounted guards.
+- **Fixed**: UI overflow in Eye Protection alerts on smaller devices.
+
 ### [v3.4] - 2026-03-27
 - **Added**: Lazy-Refresh (Self-Healing Cache). Links now persist for 30 days and refresh automatically on failure.
 - **Improved**: WatchScreen stability and zero-latency transition logic.

@@ -34,6 +34,12 @@ Every UI element in DadyTube must feel soft and tactile:
 * **Lists:** Never use `ListView.builder` with `shrinkWrap: true` inside a `SingleChildScrollView`. Always use `CustomScrollView` with `SliverList` for large lists to maintain 60fps.
 * **Logging:** Use `debugPrint` from `package:flutter/foundation.dart` instead of standard `print()`.
 
+### Performance & Stability Patterns
+
+1. **Mounted Guard Policy**: All asynchronous callbacks that use `setState()` must be guarded by an `if (mounted)` check at the earliest possible entry point to prevent "defunct" state access crashes and memory leaks.
+2. **Background Task Latching**: When performing resource-intensive operations like video playback, call `_cacheService.pauseBackgroundOperations()` to yield device resources. Ensure these are resumed in `dispose()` or after a successful initialization.
+3. **Synchronization Limits**: To maintain sub-200ms startup times, keep the local video metadata library lean. Enforce hard limits (e.g., 100 most recent videos per channel) in synchronization loops.
+
 ### Security
 * **Sanitization:** Always sanitize external inputs, especially YouTube video IDs, using an allowlist approach (e.g., `id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '')`) before using them to construct local file paths to prevent path traversal vulnerabilities.
 * **Image Paths:** Avoid absolute system file paths for local assets; always use `Image.asset` with relative paths defined in `pubspec.yaml` (e.g., `- assets/images/`).

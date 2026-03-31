@@ -38,5 +38,14 @@ DadyTube utilizes a heavily optimized **VideoCacheService** to achieve its sub-1
 4. **Super-Turbo Performance Suite:**
    * During channel discovery, DadyTube utilizes a Parallel Discovery Engine (up to 12x concurrent fetches) to minimize startup times by 90%.
 
+5. **Background Operation Latching (Resource Prioritization):**
+   * To ensure the fastest possible video startup, DadyTube implements a global "latch" in `VideoCacheService`.
+   * When `WatchScreen` initializes, it signals the service to pause all non-essential background operations (syncing, caching).
+   * This dedicates 100% of the device's CPU and network bandwidth to the video player. Operations resume automatically after playback starts or a safety timeout of 15 seconds.
+
+6. **Sync Management & Hard Limits:**
+   * To prevent database bloat and ensure fast boot times for heavy users, background synchronization is capped at the **100 most recent videos per channel**.
+   * This ensures the "Infinite Toy Box" remains manageable while still providing a vast selection for the child.
+
 ### Avoiding "Ghosting"
 When integrating preview players with main video players, ensure that the preview controller is disposed of or paused correctly before transitioning to the `youtube_player_flutter` instance to prevent "Dual-Player Ghosting".
