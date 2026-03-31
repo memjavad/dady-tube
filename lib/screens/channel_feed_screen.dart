@@ -30,8 +30,9 @@ class ChannelFeedScreen extends StatelessWidget {
       }).toList();
     }
 
-    // Sort by latest first
-    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    // ⚡ Bolt: Removed redundant `videos.sort()` here.
+    // The videos are already sorted by `publishedAt DESC` when fetched from the DB.
+    // Sorting in `build` is an unnecessary O(N log N) operation and mutates provider state.
 
     return ParticleBackground(
       child: Scaffold(
