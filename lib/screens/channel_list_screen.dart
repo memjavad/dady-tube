@@ -7,6 +7,8 @@ import '../core/app_localizations.dart';
 import '../providers/settings_provider.dart';
 import '../services/youtube_service.dart';
 import 'watch_screen.dart';
+import 'parental_gate.dart';
+import 'settings_screen.dart';
 
 import 'channel_feed_screen.dart';
 
@@ -108,6 +110,27 @@ class ChannelListScreen extends StatelessWidget {
               loc.translate('ask_parent_msg'),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          const SizedBox(height: 32),
+          TactileButton(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ParentalGate(destination: SettingsScreen()),
+                ),
+              );
+            },
+            child: TactileCard(
+              color: DadyTubeTheme.primary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Text(
+                  loc.translate('settings'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ),
         ],

@@ -1,0 +1,3 @@
+## 2026-03-27 - [Helpful Call-to-Action in Gated Empty States]
+**Learning:** Empty states that only describe a problem (e.g., "Ask a parent to add channels in Settings") cause unnecessary navigation friction because they lack a direct solution path. Adding a direct Call-to-Action button that leads to the required Settings, even if it requires passing an authorization gate first, significantly improves the user experience by reducing the steps to resolution.
+**Action:** Always provide contextual call-to-action buttons in empty states that route users directly to the solution, instead of just displaying text instructions.
