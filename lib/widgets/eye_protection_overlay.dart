@@ -321,7 +321,7 @@ class _DistanceWarningOverlay extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 180,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
@@ -337,7 +337,7 @@ class _DistanceWarningOverlay extends StatelessWidget {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.warning_amber_rounded,
-                        size: 80,
+                        size: 60,
                         color: Colors.pinkAccent,
                       ),
                     ),
@@ -345,7 +345,7 @@ class _DistanceWarningOverlay extends StatelessWidget {
                   const SizedBox(height: 32),
                   Image.asset(
                     'assets/images/rabbit_posture_3d.png',
-                    height: 280,
+                    height: 200,
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 32),

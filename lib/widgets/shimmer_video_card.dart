@@ -10,8 +10,8 @@ class ShimmerVideoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Shimmer.fromColors(
-      baseColor: colorScheme.surfaceContainerLow,
-      highlightColor: colorScheme.surface.withOpacity(0.5),
+      baseColor: colorScheme.surfaceContainerLow.withOpacity(0.5),
+      highlightColor: colorScheme.surface.withOpacity(0.8),
       child: TactileCard(
         padding: EdgeInsets.zero,
         borderRadius: 32,
@@ -21,9 +21,9 @@ class ShimmerVideoCard extends StatelessWidget {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.4),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                 ),
               ),
             ),
@@ -32,9 +32,23 @@ class ShimmerVideoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Container(height: 20, width: double.infinity, color: Colors.white),
+                   Container(
+                     height: 20, 
+                     width: double.infinity, 
+                     decoration: BoxDecoration(
+                       color: Colors.white.withOpacity(0.4),
+                       borderRadius: BorderRadius.circular(8),
+                     ),
+                   ),
                    const SizedBox(height: 8),
-                   Container(height: 20, width: 150, color: Colors.white),
+                   Container(
+                     height: 20, 
+                     width: 150, 
+                     decoration: BoxDecoration(
+                       color: Colors.white.withOpacity(0.4),
+                       borderRadius: BorderRadius.circular(8),
+                     ),
+                   ),
                 ],
               ),
             ),

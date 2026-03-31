@@ -63,6 +63,8 @@ class VideoCacheService {
     return null;
   }
 
+  final Map<String, Future<yt.StreamManifest>> _activeFetches = {};
+
   /// Gets a cached manifest, or fetches and caches it if missing.
   Future<yt.StreamManifest> getManifest(String videoId) async {
     // 1. Check in-memory cache
@@ -71,25 +73,91 @@ class VideoCacheService {
       if (!cached.isExpired) return cached.manifest;
     }
 
-    // 2. Fetch fresh from YouTube
-    final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-    _manifestCache[videoId] = _PersistentManifest(
-      manifest: manifest,
-      timestamp: DateTime.now(),
-    );
-
-    // Persistence for "Instant Play"
-    final bestStream = manifest.muxed.withHighestBitrate();
-    if (bestStream != null) {
-      _persistStreamUrl(videoId, bestStream.url.toString());
+    // 1.5. Deduplicate Race Conditions (JIT taps vs Background Queue)
+    if (_activeFetches.containsKey(videoId)) {
+      return await _activeFetches[videoId]!;
     }
 
-    return manifest;
+    // 2. Fetch fresh from YouTube and broadcast the Future to any concurrent callers
+    final fetchFuture = _yt.videos.streamsClient.getManifest(videoId);
+    _activeFetches[videoId] = fetchFuture;
+
+    try {
+      final manifest = await fetchFuture;
+      _manifestCache[videoId] = _PersistentManifest(
+        manifest: manifest,
+        timestamp: DateTime.now(),
+      );
+
+      // Persistence for "Instant Play"
+      final bestStream = manifest.muxed.withHighestBitrate();
+      if (bestStream != null) {
+        _persistStreamUrl(videoId, bestStream.url.toString());
+      }
+
+      return manifest;
+    } finally {
+      // Clear the lock whether it succeeds or fails
+      _activeFetches.remove(videoId);
+    }
   }
+
+  // ⚡ Performance Prioritization: Pause all background tasks during video startup
+  bool _isBackgroundPaused = false;
+
+  void pauseBackgroundOperations() {
+    _isBackgroundPaused = true;
+    print('⏸️ Background operations PAUSED for video playback prioritization.');
+  }
+
+  void resumeBackgroundOperations() {
+    if (!_isBackgroundPaused) return;
+    _isBackgroundPaused = false;
+    print('▶️ Background operations RESUMED.');
+    _processManifestQueue();
+  }
+
+  Future<void> _waitUntilResumed() async {
+    while (_isBackgroundPaused) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  // ⚡ SyncQueue: Process one manifest at a time to prevent HTTP 429
+  bool _isFetchingManifest = false;
+  final List<String> _manifestFetchQueue = [];
 
   /// Background task to fetch a manifest to make future clicks instant.
   void prefetchManifest(String videoId) {
-    getManifest(videoId).catchError((_) => null);
+    if (_manifestCache.containsKey(videoId)) {
+      final cached = _manifestCache[videoId]!;
+      if (!cached.isExpired) return;
+    }
+    
+    if (!_manifestFetchQueue.contains(videoId)) {
+      _manifestFetchQueue.add(videoId);
+      _processManifestQueue();
+    }
+  }
+
+  Future<void> _processManifestQueue() async {
+    if (_isFetchingManifest || _manifestFetchQueue.isEmpty || _isBackgroundPaused) return;
+    
+    _isFetchingManifest = true;
+    final videoId = _manifestFetchQueue.removeAt(0);
+    
+    try {
+      final cachedUrl = await getCachedStreamUrl(videoId);
+      if (cachedUrl == null) {
+        await getManifest(videoId);
+        // Add a gentle delay to avoid triggering YouTube rate limits
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    } catch (_) {
+    } finally {
+      _isFetchingManifest = false;
+      _processManifestQueue();
+    }
   }
 
   /// Helper method to return an existing file path based on video ID and extension.
@@ -124,6 +192,7 @@ class VideoCacheService {
 
   /// Starts caching a video in the background.
   Future<void> cacheVideo(String videoId) async {
+    await _waitUntilResumed(); // Yield to prioritized playback
     final existing = await getCachedVideoPath(videoId);
     if (existing != null) return;
 
@@ -252,18 +321,19 @@ class VideoCacheService {
 
   /// Orchestrates smart background caching with night priority.
   Future<void> syncAutoCache(
-    Map<String, List<YoutubeVideo>> allChannelVideos,
-  ) async {
+    Map<String, List<YoutubeVideo>> allChannelVideos, {
+    bool ignoreTimers = false,
+    bool deep = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final today = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString(_keyLastCacheDate) ?? "";
 
-    int dailyCount = (lastDate == today)
-        ? (prefs.getInt(_keyDailyCacheCount) ?? 0)
-        : 0;
+    int dailyCount =
+        (lastDate == today) ? (prefs.getInt(_keyDailyCacheCount) ?? 0) : 0;
 
-    if (dailyCount >= _maxDailyCache) {
+    if (!ignoreTimers && !deep && dailyCount >= _maxDailyCache) {
       print('Smart Cache: Daily limit of $_maxDailyCache reached.');
       return;
     }
@@ -281,40 +351,99 @@ class VideoCacheService {
       shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 6); // 6 hours
     }
 
-    if (!shouldProceed && lastTimestamp != 0) {
+    if (!ignoreTimers && !deep && !shouldProceed && lastTimestamp != 0) {
       print(
         'Smart Cache: Too soon to cache again. (Last cache: ${DateTime.fromMillisecondsSinceEpoch(lastTimestamp)})',
       );
       return;
     }
 
-    // Pick the "best" video to cache: find the newest video across all channels that isn't cached yet
-    List<YoutubeVideo> candidates = [];
-    allChannelVideos.values.forEach((vids) => candidates.addAll(vids));
-    candidates.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    // Step 1: Video File Caching (Heavy Downloads)
+    // We only do 1 heavy download at a time unless deep
+    if (!deep) {
+      List<YoutubeVideo> candidates = [];
+      allChannelVideos.values.forEach((vids) => candidates.addAll(vids));
+      candidates.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
 
-    final cachedIds = await getCachedVideoIds();
-    YoutubeVideo? vToCache;
+      final cachedIds = await getCachedVideoIds();
+      YoutubeVideo? vToCache;
 
-    for (var v in candidates) {
-      if (!cachedIds.contains(v.id)) {
-        vToCache = v;
-        break;
+      for (var v in candidates) {
+        if (!cachedIds.contains(v.id)) {
+          vToCache = v;
+          break;
+        }
+      }
+
+      if (vToCache != null) {
+        print(
+          'Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)',
+        );
+        await prefs.setString(_keyLastCacheDate, today);
+        await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
+        await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
+        cacheVideo(vToCache.id);
       }
     }
 
-    if (vToCache != null) {
-      print(
-        'Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)',
-      );
-
-      await prefs.setString(_keyLastCacheDate, today);
-      await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
-      await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
-
-      // Start download
-      cacheVideo(vToCache.id);
+    // Step 2: Instant Play Links Pre-fetching (Manifests only)
+    // If deep sync, we fetch many more manifests (Instant Play Links)
+    final manifestLimit = deep ? 100 : 2; 
+    print('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
+    
+    for (var channelVids in allChannelVideos.values) {
+      await _waitUntilResumed(); // Yield between channels
+      final topVids = channelVids.take(manifestLimit);
+      for (var v in topVids) {
+        prefetchManifest(v.id);
+      }
     }
+  }
+
+  Future<Map<String, dynamic>> getCacheStatistics() async {
+    int totalBytes = 0;
+    int mp4Count = 0;
+    int previewCount = 0;
+    int urlCount = 0;
+
+    try {
+      final path = await _cachePath;
+      final dir = Directory(path);
+      if (await dir.exists()) {
+        final files = await dir.list().where((e) => e is File).cast<File>().toList();
+        for (var file in files) {
+          totalBytes += await file.length();
+          if (file.path.endsWith('.mp4')) mp4Count++;
+          if (file.path.endsWith('.preview')) previewCount++;
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('persistent_stream_urls');
+      if (jsonStr != null) {
+        final Map<String, dynamic> data = json.decode(jsonStr);
+        urlCount = data.length;
+      }
+    } catch (_) {}
+
+    return {
+      'totalBytes': totalBytes,
+      'mp4Count': mp4Count,
+      'previewCount': previewCount,
+      'urlCount': urlCount,
+    };
+  }
+
+  Future<void> clearAllCache() async {
+    try {
+      final path = await _cachePath;
+      final dir = Directory(path);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('persistent_stream_urls');
+    } catch (_) {}
   }
 
   void dispose() {

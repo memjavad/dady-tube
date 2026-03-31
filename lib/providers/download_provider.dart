@@ -36,6 +36,12 @@ class DownloadProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> clearAllDownloads() async {
+    _downloadedMetadata.clear();
+    await _saveMetadata();
+    notifyListeners();
+  }
+
   Future<void> _saveMetadata() async {
     final prefs = await SharedPreferences.getInstance();
     final encoded = json.encode(_downloadedMetadata.map((key, value) => 

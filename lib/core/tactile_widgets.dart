@@ -5,6 +5,7 @@ import 'dart:ui';
 class TactileButton extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onTapDown;
   final double scaleOnPress;
   final String? semanticLabel;
 
@@ -12,6 +13,7 @@ class TactileButton extends StatefulWidget {
     Key? key,
     required this.child,
     this.onTap,
+    this.onTapDown,
     this.scaleOnPress = 0.95,
     this.semanticLabel,
   }) : super(key: key);
@@ -45,9 +47,10 @@ class _TactileButtonState extends State<TactileButton>
   }
 
   void _onTapDown(TapDownDetails details) {
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onTapDown != null) {
       HapticFeedback.mediumImpact();
       _controller.forward();
+      widget.onTapDown?.call();
     }
   }
 
@@ -74,7 +77,22 @@ class _TactileButtonState extends State<TactileButton>
         onTapDown: _onTapDown,
         onTapUp: _onTapUp,
         onTapCancel: _onTapCancel,
-        child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final scale = _scaleAnimation.value;
+            final pressProgress = _controller.value;
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(-0.05 * pressProgress)
+                ..scale(scale),
+              child: child,
+            );
+          },
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -142,9 +160,9 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassColor = isDark
-        ? Colors.black.withOpacity(opacity)
-        : Colors.white.withOpacity(opacity);
+    final baseColor = isDark ? Colors.black : Colors.white;
+    final glassColor = baseColor.withValues(alpha: opacity);
+    final sheenColor = baseColor.withValues(alpha: 0.05); // Very subtle static reflection
 
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.circular(32.0),
@@ -156,11 +174,21 @@ class GlassContainer extends StatelessWidget {
             borderRadius: borderRadius ?? BorderRadius.circular(32.0),
             boxShadow: [
               BoxShadow(
-                color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
                 blurRadius: 1,
                 spreadRadius: 0,
               ),
             ],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                sheenColor,
+                Colors.transparent,
+                sheenColor,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
           ),
           child: child,
         ),

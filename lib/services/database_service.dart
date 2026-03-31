@@ -153,6 +153,23 @@ CREATE TABLE videos (
     return map;
   }
   
+  Future<int> getTotalChannelCount() async {
+    final db = await instance.database;
+    final result = await db.rawQuery('SELECT COUNT(*) FROM channels');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<int> getTotalVideoCount() async {
+    final db = await instance.database;
+    final result = await db.rawQuery('SELECT COUNT(*) FROM videos');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+  
+  Future<void> clearAllVideos() async {
+    final db = await instance.database;
+    await db.delete('videos');
+  }
+
   Future<void> close() async {
     final db = await instance.database;
     db.close();

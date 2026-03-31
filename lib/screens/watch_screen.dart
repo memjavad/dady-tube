@@ -71,8 +71,31 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
 
+    // ⚡ Performance Prioritization: Pause background tasks immediately 
+    // to give the video player 100% of device resources.
+    _cacheService.pauseBackgroundOperations();
+
     // Phase 2: Show Gentle Buffer before initializing player
     _setupPreviewAndInitialize();
+
+    // Safety timeout: Re-enable background tasks if video fails to play within 15s
+    Future.delayed(const Duration(seconds: 15), () {
+      if (mounted) {
+        _cacheService.resumeBackgroundOperations();
+      }
+    });
+  }
+
+  void _onPlayerStateChanged() {
+    if (_videoPlayerController != null && 
+        _videoPlayerController!.value.isInitialized && 
+        _videoPlayerController!.value.isPlaying && 
+        !_videoPlayerController!.value.isBuffering) {
+      // 🚀 Video is playing smoothly. Resume background processes.
+      _cacheService.resumeBackgroundOperations();
+      // Keep listener for buffering changes if needed, but for now we just want the initial resume.
+      _videoPlayerController!.removeListener(_onPlayerStateChanged);
+    }
   }
 
   Future<void> _setupPreviewAndInitialize() async {
@@ -86,8 +109,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       if (mounted && _isLoading) {
         // Only play preview if main player isn't ready
         _previewController!.setLooping(true);
-        _previewController!.play();
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       }
     } else if (mounted && _isLoading) {
       // Show fallback buffer if no preview
@@ -127,8 +151,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             widget.thumbnailUrl,
           )
           .then((_) {
-            audioHandler.seek(position);
-            setState(() => _isBackgroundPlaying = true);
+            if (mounted) {
+              audioHandler.seek(position);
+              setState(() => _isBackgroundPlaying = true);
+            }
           });
     }
   }
@@ -147,7 +173,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _videoPlayerController!.play();
       }
 
-      setState(() => _isBackgroundPlaying = false);
+      if (mounted) {
+        setState(() => _isBackgroundPlaying = false);
+      }
     }
   }
 
@@ -158,8 +186,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _errorMessage = null;
       });
 
-      // Trigger background sync now that the user is actively watching
-      context.read<ChannelProvider>().triggerBackgroundSync();
+      // Defer background sync until video is actually playing smoothly
+      // context.read<ChannelProvider>().triggerBackgroundSync();
 
       // Fetch video title for background notification
       _yt.videos.get(widget.videoId).then((v) {
@@ -218,10 +246,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         // Bonus: Start caching this video in background
         _cacheService.cacheVideo(widget.videoId);
       }
-
-      try {
-        await _videoPlayerController!.initialize();
-      } catch (e) {
+        try {
+          _videoPlayerController!.addListener(_onPlayerStateChanged);
+          await _videoPlayerController!.initialize();
+        } catch (e) {
         // If it was a cached URL, it might have expired. Try one more time with fresh manifest.
         final cachedUrl = await _cacheService.getCachedStreamUrl(
           widget.videoId,
@@ -242,6 +270,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             _videoPlayerController = VideoPlayerController.networkUrl(
               freshStream.url,
             );
+            _videoPlayerController!.addListener(_onPlayerStateChanged);
             await _videoPlayerController!.initialize();
           } else {
             rethrow;
@@ -293,17 +322,20 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         }
       });
 
-      setState(() {
-        _isLoading = false;
-        _isShowingBuffer = false; // Hide buffer once ready
-        // Clean up preview player to prevent "ghosting" or PiP overlaps
-        if (_previewController != null) {
-          _previewController!.pause();
-          _previewController!.dispose();
-          _previewController = null;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isShowingBuffer = false; // Hide buffer once ready
+          // Clean up preview player to prevent "ghosting" or PiP overlaps
+          if (_previewController != null) {
+            _previewController!.pause();
+            _previewController!.dispose();
+            _previewController = null;
+          }
+        });
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage =
@@ -313,6 +345,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   void _onVideoProgress() {
+    if (!mounted) return;
     if (_videoPlayerController != null &&
         _videoPlayerController!.value.isInitialized) {
       final position = _videoPlayerController!.value.position;
@@ -356,10 +389,14 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    // ⚡ Reset background state if we exit mid-buffer
+    _cacheService.resumeBackgroundOperations();
+    _videoPlayerController?.removeListener(_onPlayerStateChanged);
+    _videoPlayerController?.removeListener(_onVideoProgress);
+
     WidgetsBinding.instance.removeObserver(this);
     _yt.close();
     _downloadService.dispose();
-    _videoPlayerController?.removeListener(_onVideoProgress);
 
     // Safety Reset for System UI
     SystemChrome.setPreferredOrientations([
@@ -444,6 +481,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     MediaQuery.of(context).padding.bottom +
                     24, // Keep visible even when playing
                 left: 24,
+                right: 24,
                 child: const PlaytimeBucket(size: 80),
               ),
             ],
@@ -936,9 +974,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
       try {
         await _downloadService.downloadVideo(widget.videoId, (progress) {
-          setState(() {
-            _downloadProgress = progress;
-          });
+          if (mounted) {
+            setState(() {
+              _downloadProgress = progress;
+            });
+          }
         });
 
         // Register metadata for offline browsing
@@ -972,9 +1012,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           SnackBar(content: Text('${loc.translate('download_failed')}: $e')),
         );
       } finally {
-        setState(() {
-          _isDownloading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isDownloading = false;
+          });
+        }
       }
     }
   }

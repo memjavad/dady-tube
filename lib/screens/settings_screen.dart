@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/usage_provider.dart';
+import '../providers/download_provider.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
 import '../services/youtube_service.dart';
+import '../services/video_cache_service.dart';
+import '../services/database_service.dart';
 import '../core/app_localizations.dart';
 import '../providers/settings_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -17,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
     final loc = AppLocalizations.of(context);
     
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Text(loc.translate('settings')),
@@ -27,10 +31,12 @@ class SettingsScreen extends StatelessWidget {
             labelColor: DadyTubeTheme.primary,
             unselectedLabelColor: Colors.grey,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            isScrollable: true,
             tabs: [
               Tab(text: loc.translate('experience')),
               Tab(text: loc.translate('safety')),
               Tab(text: loc.translate('channels')),
+              Tab(text: loc.translate('statistics')),
               Tab(text: loc.translate('guide')),
             ],
           ),
@@ -40,6 +46,7 @@ class SettingsScreen extends StatelessWidget {
             _ExperienceTab(),
             _SafetyTab(),
             _ChannelsTab(),
+            _StatisticsTab(),
             _GuideTab(),
           ],
         ),
@@ -518,7 +525,10 @@ Widget _buildSettingToggle(BuildContext context, String title, bool value, Funct
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.bodyLarge),
+        Expanded(
+          child: Text(title, style: Theme.of(context).textTheme.bodyLarge),
+        ),
+        const SizedBox(width: 8),
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
@@ -621,6 +631,352 @@ class _GuideTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatisticsTab extends StatefulWidget {
+  @override
+  State<_StatisticsTab> createState() => _StatisticsTabState();
+}
+
+class _StatisticsTabState extends State<_StatisticsTab> {
+  Map<String, dynamic>? _cacheStats;
+  int _channelCount = 0;
+  int _videoCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final stats = await VideoCacheService().getCacheStatistics();
+    final chCount = await DatabaseService.instance.getTotalChannelCount();
+    final vidCount = await DatabaseService.instance.getTotalVideoCount();
+    if (mounted) {
+      setState(() {
+        _cacheStats = stats;
+        _channelCount = chCount;
+        _videoCount = vidCount;
+      });
+    }
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
+  bool _isSyncing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final downloadProvider = context.watch<DownloadProvider>();
+    final channelProvider = context.read<ChannelProvider>();
+    final int downloadedCount = downloadProvider.downloadedVideos.length;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTotalSummaryCard(context),
+          const SizedBox(height: 24),
+          if (_isSyncing) 
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TactileCard(
+                color: DadyTubeTheme.primary.withOpacity(0.1),
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 20, 
+                      height: 20, 
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Refreshing Worlds & Cache...',
+                      style: TextStyle(
+                        color: DadyTubeTheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          _buildSectionHeader(
+            context,
+            loc.translate('storage_usage'),
+            Icons.storage_rounded,
+          ),
+          const SizedBox(height: 16),
+          if (_cacheStats == null)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            _buildStatCard(
+              context,
+              loc.translate('cached_videos'),
+              '${_cacheStats!['mp4Count']} videos, ${_cacheStats!['previewCount']} previews\n${_formatBytes(_cacheStats!['totalBytes'])}',
+              Icons.video_library_rounded,
+              Colors.purple,
+              onClear: () async {
+                await VideoCacheService().clearAllCache();
+                _loadStats();
+              },
+              onAction: () async {
+                setState(() => _isSyncing = true);
+                await channelProvider.forceSyncFull();
+                await _loadStats();
+                setState(() => _isSyncing = false);
+              },
+              actionLabel: 'Pre-cache',
+              actionIcon: Icons.auto_awesome_rounded,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              context,
+              loc.translate('instant_play_links'),
+              '${_cacheStats!['urlCount']} cached URLs',
+              Icons.link_rounded,
+              Colors.teal,
+              onClear: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final keys = prefs.getKeys().where((k) => k.startsWith('stream_link_'));
+                for (var key in keys) {
+                  await prefs.remove(key);
+                }
+                _loadStats();
+              },
+              onAction: () async {
+                setState(() => _isSyncing = true);
+                await channelProvider.loadAllVideos();
+                await _loadStats();
+                setState(() => _isSyncing = false);
+              },
+              actionLabel: 'Refresh',
+            ),
+          ],
+          const SizedBox(height: 32),
+          _buildSectionHeader(
+            context,
+            loc.translate('manual_downloads'),
+            Icons.card_travel_rounded,
+          ),
+          const SizedBox(height: 16),
+          _buildStatCard(
+            context,
+            loc.translate('manual_downloads'),
+            '$downloadedCount videos saved offline',
+            Icons.offline_pin_rounded,
+            Colors.green,
+            onClear: () async {
+              await downloadProvider.clearAllDownloads();
+              _loadStats();
+            },
+            onAction: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            actionLabel: 'Home',
+            actionIcon: Icons.home_rounded,
+          ),
+          const SizedBox(height: 32),
+          _buildSectionHeader(
+            context,
+            loc.translate('metadata_stored'),
+            Icons.my_library_books_rounded,
+          ),
+          const SizedBox(height: 16),
+          _buildStatCard(
+            context,
+            loc.translate('metadata_stored'),
+            '$_channelCount channels\n$_videoCount videos indexed',
+            Icons.sd_storage_rounded,
+            Colors.orange,
+            onClear: () async {
+              await DatabaseService.instance.clearAllVideos();
+              _loadStats();
+            },
+            onAction: () async {
+              setState(() => _isSyncing = true);
+              await channelProvider.loadAllVideos();
+              await _loadStats();
+              setState(() => _isSyncing = false);
+            },
+            actionLabel: 'Sync All',
+            actionIcon: Icons.cloud_download_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    String title,
+    String value,
+    IconData icon,
+    Color color, {
+    VoidCallback? onClear,
+    VoidCallback? onAction,
+    IconData? actionIcon,
+    String? actionLabel,
+  }) {
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (onClear != null || onAction != null) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (onClear != null)
+                  _buildSmallActionBtn(
+                    context,
+                    Icons.delete_outline_rounded,
+                    'Clear',
+                    Colors.redAccent,
+                    onClear,
+                  ),
+                if (onClear != null && onAction != null) const SizedBox(width: 8),
+                if (onAction != null)
+                  _buildSmallActionBtn(
+                    context,
+                    actionIcon ?? Icons.refresh_rounded,
+                    actionLabel ?? 'Sync',
+                    DadyTubeTheme.primary,
+                    onAction,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalSummaryCard(BuildContext context) {
+    if (_cacheStats == null) return const SizedBox.shrink();
+    
+    return TactileCard(
+      color: DadyTubeTheme.primary,
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your DadyTube Bag',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_formatBytes(_cacheStats!['totalBytes'])} used locally',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallActionBtn(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return TactileButton(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

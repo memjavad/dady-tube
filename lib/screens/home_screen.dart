@@ -21,6 +21,7 @@ import '../widgets/video_card.dart';
 import '../widgets/playtime_bucket.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../services/video_cache_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,12 +47,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Color? _getWorldColor(BuildContext context) {
+    if (_selectedWorld == 'All') return null;
+    final loc = AppLocalizations.of(context);
+    if (_selectedWorld == loc.translate('animals')) return Colors.orangeAccent;
+    if (_selectedWorld == loc.translate('music')) return Colors.greenAccent;
+    if (_selectedWorld == loc.translate('toys')) return Colors.yellowAccent;
+    if (_selectedWorld == loc.translate('learning')) return Colors.blueAccent;
+    if (_selectedWorld == loc.translate('travel_mode')) return DadyTubeTheme.primary;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ChannelProvider>();
 
     return BedtimeOverlay(
       child: ParticleBackground(
+        overrideColor: _getWorldColor(context),
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: null,
@@ -63,11 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 Builder(builder: (context) {
                   // Trigger availability check when showing home
                   _checkAvailability(context);
-                  
-                  final videos = provider.shuffledVideos.take(5);
-                  for (var video in videos) {
-                    precacheImage(CachedNetworkImageProvider(video.thumbnailUrl), context);
-                  }
                   return _buildHomeContent(context, provider);
                 }),
                 _buildSearchPlaceholder(context),
@@ -163,28 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
     
-    List<YoutubeVideo> videos = provider.isOffline ? _availableVideos : provider.shuffledVideos;
-    
-    // Filter videos by blocked keywords
-    if (blockedKeywords.isNotEmpty) {
-      videos = videos.where((video) {
-        final title = video.title.toLowerCase();
-        return !blockedKeywords.any((keyword) => title.contains(keyword));
-      }).toList();
-    }
-
-    // Calm Mode: Prioritize Learning and Music at night
-    if (settings.isNightTime) {
-      final calmVideos = videos.where((v) => 
-        v.title.toLowerCase().contains('learn') || 
-        v.title.toLowerCase().contains('music') ||
-        v.title.toLowerCase().contains('lullaby') ||
-        v.title.toLowerCase().contains('story')
-      ).toList();
-      
-      final otherVideos = videos.where((v) => !calmVideos.contains(v)).toList();
-      videos = [...calmVideos, ...otherVideos];
-    }
+    final videos = provider.getFilteredBigList(
+      isOffline: provider.isOffline,
+      availableVideos: _availableVideos,
+      blockedKeywords: blockedKeywords,
+      isNightTime: settings.isNightTime,
+    );
 
     if (videos.isEmpty && provider.isLoading) {
       // ⚡ Bolt: Using SliverList instead of ListView with shrinkWrap: true.
@@ -200,7 +192,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          return VideoCard(video: videos[index]);
+          return StaggeredEntryCard(
+            uniqueId: videos[index].id,
+            index: index,
+            child: VideoCard(video: videos[index]),
+          );
         },
         childCount: videos.length,
       ),
@@ -318,22 +314,18 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildShimmerHeader(),
           const SizedBox(height: 24),
-          const ShimmerVideoCard(),
+          const StaggeredEntryCard(index: 0, child: ShimmerVideoCard()),
           const SizedBox(height: 16),
-          const ShimmerVideoCard(),
+          const StaggeredEntryCard(index: 1, child: ShimmerVideoCard()),
         ],
       );
     }
 
-    var videos = provider.allVideos;
     final downloadProvider = context.watch<DownloadProvider>();
-
-    if (_selectedWorld == 'Travel Mode') {
-      videos = downloadProvider.downloadedVideos;
-    } else if (_selectedWorld != 'All') {
-      // Basic filtering by world name
-      videos = videos.where((v) => v.title.toLowerCase().contains(_selectedWorld.toLowerCase())).toList();
-    }
+    final videos = provider.getFilteredPopularList(
+      selectedWorld: _selectedWorld,
+      downloadedVideos: downloadProvider.downloadedVideos,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,28 +355,38 @@ class _HomeScreenState extends State<HomeScreen> {
         else ...[
           Builder(builder: (context) {
             final firstChannel = provider.channels.firstWhere((c) => c.id == videos[0].channelId, orElse: () => YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''));
-            return _buildVideoCard(
-              context,
-              videos[0].title,
-              firstChannel.name,
-              videos[0].thumbnailUrl,
-              videoId: videos[0].id,
-              videoTitle: videos[0].title, // Added title
-              channelThumbnailUrl: firstChannel.thumbnailUrl,
+            return StaggeredEntryCard(
+              uniqueId: videos[0].id,
+              index: 0,
+              child: _buildVideoCard(
+                context,
+                videos[0].title,
+                firstChannel.name,
+                videos[0].thumbnailUrl,
+                videoId: videos[0].id,
+                videoTitle: videos[0].title,
+                channelThumbnailUrl: firstChannel.thumbnailUrl,
+              ),
             );
           }),
           const SizedBox(height: 16),
-          ...videos.skip(1).take(5).map((video) {
+          ...videos.skip(1).take(5).toList().asMap().entries.map((entry) {
+            final index = entry.key + 1;
+            final video = entry.value;
             final channel = provider.channels.firstWhere((c) => c.id == video.channelId, orElse: () => YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''));
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
-              child: _buildVideoCard(
-                context, 
-                video.title, 
-                channel.name, 
-                video.thumbnailUrl,
-                videoId: video.id,
-                channelThumbnailUrl: channel.thumbnailUrl,
+              child: StaggeredEntryCard(
+                uniqueId: video.id,
+                index: index,
+                child: _buildVideoCard(
+                  context, 
+                  video.title, 
+                  channel.name, 
+                  video.thumbnailUrl,
+                  videoId: video.id,
+                  channelThumbnailUrl: channel.thumbnailUrl,
+                ),
               ),
             );
           }),
@@ -438,17 +440,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildVideoCard(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso', String? videoTitle, String? channelThumbnailUrl}) {
     return TactileButton(
+      onTapDown: () {
+        VideoCacheService().prefetchManifest(videoId);
+      },
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => WatchScreen(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 250),
+            pageBuilder: (context, animation, secondaryAnimation) => WatchScreen(
               videoId: videoId, 
-              videoTitle: videoTitle ?? title, // Pass title
+              videoTitle: videoTitle ?? title,
               thumbnailUrl: isAsset ? imageUrl : null,
               channelName: subtitle,
               channelThumbnailUrl: channelThumbnailUrl,
             ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
           ),
         );
       },
@@ -499,10 +508,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildVideoListItem(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso'}) {
     return TactileButton(
+      onTapDown: () {
+        VideoCacheService().prefetchManifest(videoId);
+      },
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => WatchScreen(videoId: videoId, thumbnailUrl: isAsset ? imageUrl : null)),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 250),
+            pageBuilder: (context, animation, secondaryAnimation) => WatchScreen(
+              videoId: videoId, 
+              thumbnailUrl: isAsset ? imageUrl : null,
+            ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
         );
       },
       child: TactileCard(
@@ -654,4 +675,59 @@ class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProvid
     );
   }
 }
+
+class StaggeredEntryCard extends StatefulWidget {
+  final Widget child;
+  final int index;
+  final String? uniqueId;
+  const StaggeredEntryCard({super.key, required this.child, required this.index, this.uniqueId});
+
+  @override
+  State<StaggeredEntryCard> createState() => _StaggeredEntryCardState();
+}
+
+class _StaggeredEntryCardState extends State<StaggeredEntryCard> {
+  static final Set<String> _animatedIds = {};
+  bool _shouldAnimate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.uniqueId != null) {
+      if (!_animatedIds.contains(widget.uniqueId)) {
+        _animatedIds.add(widget.uniqueId!);
+        _shouldAnimate = true;
+      }
+      // ⚡ Viewport Pre-warming: Instantly queue this video's stream URL when scrolled onto screen
+      VideoCacheService().prefetchManifest(widget.uniqueId!);
+    } else {
+      // If no ID is provided, animate based on index for fallback UI Elements like shimmer
+      _shouldAnimate = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_shouldAnimate) {
+      return widget.child;
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (widget.index * 100).clamp(0, 600)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 50 * (1 - value)),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
 

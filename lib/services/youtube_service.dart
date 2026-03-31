@@ -134,30 +134,46 @@ class YoutubeService {
   }
 
   static Future<List<YoutubeVideo>> fetchVideosForChannel(
-    String channelId,
-  ) async {
+    String channelId, {
+    int limit = 50,
+    void Function(List<YoutubeVideo>)? onVideosFetched,
+  }) async {
     final ytExplode = yt.YoutubeExplode();
-    debugPrint('🔍 Fetching videos for: $channelId');
+    final List<YoutubeVideo> allVideos = [];
+    debugPrint('🔍 Fetching videos for: $channelId (Limit: $limit)');
+
     try {
       // Phase 1: High Fidelity - YoutubeExplode
-      final List<YoutubeVideo> videos = [];
       final uploads = ytExplode.channels.getUploads(channelId);
+      List<YoutubeVideo> currentChunk = [];
 
-      await for (final video in uploads.take(30)) {
-        videos.add(
-          YoutubeVideo(
-            id: video.id.value,
-            title: video.title,
-            thumbnailUrl: video.thumbnails.highResUrl,
-            channelId: channelId,
-            publishedAt: video.uploadDate ?? DateTime.now(),
-          ),
+      await for (final video in uploads.take(limit)) {
+        final v = YoutubeVideo(
+          id: video.id.value,
+          title: video.title,
+          thumbnailUrl: video.thumbnails.highResUrl,
+          channelId: channelId,
+          publishedAt: video.uploadDate ?? DateTime.now(),
         );
+
+        currentChunk.add(v);
+        allVideos.add(v);
+
+        // Emit chunks of 50 to the provider for "piece by piece" saving
+        if (onVideosFetched != null && currentChunk.length >= 50) {
+          onVideosFetched(List.from(currentChunk));
+          currentChunk.clear();
+        }
       }
 
-      if (videos.isNotEmpty) {
-        debugPrint('✅ Stage 1 (Explode) Success: ${videos.length} videos');
-        return videos;
+      // Emit any remaining videos in the final chunk
+      if (onVideosFetched != null && currentChunk.isNotEmpty) {
+        onVideosFetched(currentChunk);
+      }
+
+      if (allVideos.isNotEmpty) {
+        debugPrint('✅ Stage 1 (Explode) Success: ${allVideos.length} videos');
+        return allVideos;
       }
     } catch (e) {
       debugPrint('❌ Stage 1 (Explode) Failed: $e');
@@ -165,20 +181,21 @@ class YoutubeService {
       ytExplode.close();
     }
 
-    // Phase 2: Rapid Fallback - Scraping
+    // Phase 2: Rapid Fallback - Scraping (Limited to one page, ~30 vids)
     try {
       final scrapeResults = await _fetchVideosViaScraping(channelId);
       if (scrapeResults.isNotEmpty) {
         debugPrint(
           '✅ Stage 2 (Scraping) Success: ${scrapeResults.length} videos',
         );
+        if (onVideosFetched != null) onVideosFetched(scrapeResults);
         return scrapeResults;
       }
     } catch (e) {
       debugPrint('❌ Stage 2 (Scraping) Failed: $e');
     }
 
-    // Phase 3: Ultimate Fallback - RSS
+    // Phase 3: Ultimate Fallback - RSS (Limited to ~15 vids)
     try {
       final url =
           'https://www.youtube.com/feeds/videos.xml?channel_id=$channelId&hl=ar&gl=IQ';
@@ -214,6 +231,7 @@ class YoutubeService {
 
         if (videos.isNotEmpty) {
           debugPrint('✅ Stage 3 (RSS) Success: ${videos.length} videos');
+          if (onVideosFetched != null) onVideosFetched(videos);
           return videos;
         }
       }

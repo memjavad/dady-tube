@@ -4,7 +4,8 @@ import '../core/theme.dart';
 
 class ParticleBackground extends StatefulWidget {
   final Widget child;
-  const ParticleBackground({super.key, required this.child});
+  final Color? overrideColor;
+  const ParticleBackground({super.key, required this.child, this.overrideColor});
 
   @override
   State<ParticleBackground> createState() => _ParticleBackgroundState();
@@ -32,19 +33,27 @@ class _ParticleBackgroundState extends State<ParticleBackground> with SingleTick
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final targetColor = widget.overrideColor ?? theme.colorScheme.primary;
+
     return Container(
       color: theme.scaffoldBackgroundColor,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          for (var particle in _particles) {
-            particle.update();
-          }
-          return RepaintBoundary(
-            child: CustomPaint(
-              painter: ParticlePainter(_particles, theme.colorScheme.primary),
-              child: widget.child,
-            ),
+      child: TweenAnimationBuilder<Color?>(
+        tween: ColorTween(end: targetColor),
+        duration: const Duration(milliseconds: 800),
+        builder: (context, color, child) {
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              for (var particle in _particles) {
+                particle.update();
+              }
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: ParticlePainter(_particles, color ?? theme.colorScheme.primary),
+                  child: widget.child,
+                ),
+              );
+            },
           );
         },
       ),

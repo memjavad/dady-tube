@@ -60,6 +60,8 @@ class ChannelProvider with ChangeNotifier {
   void _invalidateVideoCache() {
     _cachedAllVideos = null;
     _cachedShuffledVideos = null;
+    _cachedBigFilteredVideos = null;
+    _cachedPopularFilteredVideos = null;
   }
 
   List<YoutubeVideo> get allVideos {
@@ -112,6 +114,70 @@ class ChannelProvider with ChangeNotifier {
     final remaining = all.skip(10).toList()..shuffle();
     _cachedShuffledVideos = [...newest, ...remaining];
     return _cachedShuffledVideos!;
+  }
+
+  // Cache for filtered lists to prevent 60fps UI rebuild bottlenecks
+  int _lastBigFilterHash = 0;
+  List<YoutubeVideo>? _cachedBigFilteredVideos;
+
+  int _lastPopularFilterHash = 0;
+  List<YoutubeVideo>? _cachedPopularFilteredVideos;
+
+  List<YoutubeVideo> getFilteredBigList({
+    required bool isOffline,
+    required List<YoutubeVideo> availableVideos,
+    required List<String> blockedKeywords,
+    required bool isNightTime,
+  }) {
+    final hash = Object.hash(isOffline, availableVideos.length, Object.hashAll(blockedKeywords), isNightTime, allVideos.length);
+    if (_cachedBigFilteredVideos != null && _lastBigFilterHash == hash) {
+      return _cachedBigFilteredVideos!;
+    }
+
+    List<YoutubeVideo> videos = isOffline ? availableVideos : shuffledVideos;
+    if (blockedKeywords.isNotEmpty) {
+      videos = videos.where((video) {
+        final title = video.title.toLowerCase();
+        return !blockedKeywords.any((keyword) => title.contains(keyword));
+      }).toList();
+    }
+
+    if (isNightTime) {
+      final calmVideos = videos.where((v) => 
+        v.title.toLowerCase().contains('learn') || 
+        v.title.toLowerCase().contains('music') ||
+        v.title.toLowerCase().contains('lullaby') ||
+        v.title.toLowerCase().contains('story')
+      ).toList();
+      
+      final otherVideos = videos.where((v) => !calmVideos.contains(v)).toList();
+      videos = [...calmVideos, ...otherVideos];
+    }
+
+    _cachedBigFilteredVideos = videos;
+    _lastBigFilterHash = hash;
+    return videos;
+  }
+
+  List<YoutubeVideo> getFilteredPopularList({
+    required String selectedWorld,
+    required List<YoutubeVideo> downloadedVideos,
+  }) {
+    final hash = Object.hash(selectedWorld, downloadedVideos.length, allVideos.length);
+    if (_cachedPopularFilteredVideos != null && _lastPopularFilterHash == hash) {
+      return _cachedPopularFilteredVideos!;
+    }
+
+    var videos = allVideos;
+    if (selectedWorld == 'Travel Mode') {
+      videos = downloadedVideos;
+    } else if (selectedWorld != 'All') {
+      videos = videos.where((v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase())).toList();
+    }
+
+    _cachedPopularFilteredVideos = videos;
+    _lastPopularFilterHash = hash;
+    return videos;
   }
 
   ChannelProvider() {
@@ -232,16 +298,27 @@ class ChannelProvider with ChangeNotifier {
             }
           }
 
-          final vids = await YoutubeService.fetchVideosForChannel(channel.id);
-          if (vids.isNotEmpty) {
-            // Save newly fetched videos to database (appends without duplicate issues)
-            await DatabaseService.instance.insertOrUpdateVideos(vids);
-            
-            // Refetch the unified list of videos for this channel from DB
-            _channelVideos[channel.id] = await DatabaseService.instance.getVideosForChannel(channel.id);
-            _invalidateVideoCache();
-            updated = true;
-          }
+          await YoutubeService.fetchVideosForChannel(
+            channel.id,
+            limit: 100, // Strictly limit to 100 per channel
+            onVideosFetched: (chunk) async {
+              // Save newly fetched videos to database piece-by-piece
+              await DatabaseService.instance.insertOrUpdateVideos(chunk);
+
+              // Update the in-memory map incrementally
+              final existingVids = _channelVideos[channel.id] ?? [];
+              final chunkIds = chunk.map((v) => v.id).toSet();
+              
+              // Simple way to avoid in-memory dupes before the next full reload
+              final newInChunk = chunk.where((v) => !existingVids.any((existing) => existing.id == v.id)).toList();
+              
+              if (newInChunk.isNotEmpty) {
+                _channelVideos[channel.id] = [...existingVids, ...newInChunk];
+                _invalidateVideoCache();
+                notifyListeners(); // Live update for Statistics tab
+              }
+            },
+          );
         } catch (e) {
           print('Failed to load channel ${channel.name}: $e');
           failCount++;
@@ -334,6 +411,16 @@ class ChannelProvider with ChangeNotifier {
 
     if (shouldAutoCache && _channelVideos.isNotEmpty) {
       VideoCacheService().syncAutoCache(_channelVideos);
+    }
+  }
+
+  Future<void> forceSyncFull() async {
+    // Perform a deep metadata sync first
+    await loadAllVideos(isBackground: false); 
+    
+    if (_channelVideos.isNotEmpty) {
+       // Also perform a thorough auto-cache sync for links
+       await VideoCacheService().syncAutoCache(_channelVideos, ignoreTimers: true, deep: true);
     }
   }
 
