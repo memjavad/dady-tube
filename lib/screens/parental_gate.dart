@@ -61,6 +61,7 @@ class _ParentalGateState extends State<ParentalGate> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
+          tooltip: loc.translate('back'),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(loc.translate('parental_gate_title')),
@@ -136,6 +137,7 @@ class _ParentalGateState extends State<ParentalGate> {
         if (index == 9) return const SizedBox.shrink(); // Empty slot
         if (index == 11) {
           return TactileButton(
+            semanticLabel: loc.translate('back'),
             onTap: () {
               if (_pinController.text.isNotEmpty) {
                 setState(() {

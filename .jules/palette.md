@@ -1,0 +1,3 @@
+## 2026-04-01 - Missing Semantics on Icon-Only Buttons
+**Learning:** While the custom `TactileButton` widget correctly wraps its children in a `Semantics(button: true)` widget to announce them as buttons, it lacks intrinsic descriptions for icon-only instances. If a `semanticLabel` is not explicitly provided to the `TactileButton` (or a `tooltip` to standard `IconButton`s), screen readers will announce them simply as "button" with no context, causing severe accessibility issues for visually impaired users.
+**Action:** Always ensure that any icon-only button (e.g., back, delete, or unlock) explicitly receives a localized descriptive label via the `semanticLabel` or `tooltip` properties.
