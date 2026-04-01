@@ -19,7 +19,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    
+
     return DefaultTabController(
       length: 5,
       child: Scaffold(
@@ -69,27 +69,58 @@ class _ExperienceTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(context, loc.translate('language'), Icons.language_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('language'),
+            Icons.language_rounded,
+          ),
           const SizedBox(height: 16),
           _buildLanguageSelector(context, settings, loc),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, loc.translate('video_experience'), Icons.video_settings_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('video_experience'),
+            Icons.video_settings_rounded,
+          ),
           const SizedBox(height: 16),
           _buildQualitySelector(context, settings, loc),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('full_screen_playback'), settings.fullScreenByDefault, (val) => settings.setFullScreenByDefault(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('full_screen_playback'),
+            settings.fullScreenByDefault,
+            (val) => settings.setFullScreenByDefault(val),
+          ),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('show_suggestions'), settings.showSuggestions, (val) => settings.setShowSuggestions(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('show_suggestions'),
+            settings.showSuggestions,
+            (val) => settings.setShowSuggestions(val),
+          ),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('eye_protection'), settings.eyeProtectionEnabled, (val) => settings.setEyeProtection(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('eye_protection'),
+            settings.eyeProtectionEnabled,
+            (val) => settings.setEyeProtection(val),
+          ),
           const SizedBox(height: 16),
           _buildTurboModeToggle(context, settings, loc),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, loc.translate('theme'), Icons.palette_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('theme'),
+            Icons.palette_rounded,
+          ),
           const SizedBox(height: 16),
           _buildThemeSelector(context, settings, loc),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, loc.translate('bedtime_title'), Icons.nightlight_round),
+          _buildSectionHeader(
+            context,
+            loc.translate('bedtime_title'),
+            Icons.nightlight_round,
+          ),
           const SizedBox(height: 16),
           _buildUsageTimerCard(context, usage, loc),
         ],
@@ -97,20 +128,39 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageSelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  Widget _buildLanguageSelector(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          _buildLangOption(context, settings, const Locale('ar', 'IQ'), loc.translate('arabic')),
+          _buildLangOption(
+            context,
+            settings,
+            const Locale('ar', 'IQ'),
+            loc.translate('arabic'),
+          ),
           const SizedBox(width: 8),
-          _buildLangOption(context, settings, const Locale('en', 'US'), loc.translate('english')),
+          _buildLangOption(
+            context,
+            settings,
+            const Locale('en', 'US'),
+            loc.translate('english'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLangOption(BuildContext context, SettingsProvider settings, Locale locale, String label) {
+  Widget _buildLangOption(
+    BuildContext context,
+    SettingsProvider settings,
+    Locale locale,
+    String label,
+  ) {
     final isSelected = settings.locale.languageCode == locale.languageCode;
     return Expanded(
       child: TactileButton(
@@ -122,7 +172,9 @@ class _ExperienceTab extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -132,7 +184,11 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildQualitySelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  Widget _buildQualitySelector(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -144,14 +200,20 @@ class _ExperienceTab extends StatelessWidget {
               child: TactileButton(
                 onTap: () => settings.setVideoQuality(quality),
                 child: TactileCard(
-                  color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
+                  color: isSelected
+                      ? DadyTubeTheme.primary
+                      : Colors.transparent,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Center(
                     child: Text(
                       quality.name.toUpperCase().replaceAll('P', ''),
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         fontSize: 12,
                       ),
                     ),
@@ -165,24 +227,48 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeSelector(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  Widget _buildThemeSelector(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(8),
       child: Column(
         children: [
           Row(
             children: [
-              _buildThemeOption(context, settings, AppThemeLevel.blush, loc.translate('theme_blush')),
+              _buildThemeOption(
+                context,
+                settings,
+                AppThemeLevel.blush,
+                loc.translate('theme_blush'),
+              ),
               const SizedBox(width: 8),
-              _buildThemeOption(context, settings, AppThemeLevel.sunset, loc.translate('theme_sunset')),
+              _buildThemeOption(
+                context,
+                settings,
+                AppThemeLevel.sunset,
+                loc.translate('theme_sunset'),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _buildThemeOption(context, settings, AppThemeLevel.midnight, loc.translate('theme_midnight')),
+              _buildThemeOption(
+                context,
+                settings,
+                AppThemeLevel.midnight,
+                loc.translate('theme_midnight'),
+              ),
               const SizedBox(width: 8),
-              _buildThemeOption(context, settings, AppThemeLevel.deepSpace, loc.translate('theme_deep_space')),
+              _buildThemeOption(
+                context,
+                settings,
+                AppThemeLevel.deepSpace,
+                loc.translate('theme_deep_space'),
+              ),
             ],
           ),
         ],
@@ -190,20 +276,31 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeOption(BuildContext context, SettingsProvider settings, AppThemeLevel level, String label) {
+  Widget _buildThemeOption(
+    BuildContext context,
+    SettingsProvider settings,
+    AppThemeLevel level,
+    String label,
+  ) {
     final isSelected = settings.themeLevel == level;
     final themeData = DadyTubeTheme.getTheme(level);
     return Expanded(
       child: TactileButton(
         onTap: () => settings.setThemeLevel(level),
         child: TactileCard(
-          color: isSelected ? themeData.colorScheme.primary : (themeData.brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          color: isSelected
+              ? themeData.colorScheme.primary
+              : (themeData.brightness == Brightness.dark
+                    ? Colors.white10
+                    : Colors.black.withOpacity(0.05)),
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -214,7 +311,11 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildUsageTimerCard(BuildContext context, UsageProvider usage, AppLocalizations loc) {
+  Widget _buildUsageTimerCard(
+    BuildContext context,
+    UsageProvider usage,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -223,8 +324,17 @@ class _ExperienceTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(loc.translate('daily_limit'), style: Theme.of(context).textTheme.titleMedium),
-              Text('${usage.dailyLimitMinutes} ${loc.translate('minutes')}', style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary)),
+              Text(
+                loc.translate('daily_limit'),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                '${usage.dailyLimitMinutes} ${loc.translate('minutes')}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: DadyTubeTheme.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -241,13 +351,23 @@ class _ExperienceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildTurboModeToggle(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  Widget _buildTurboModeToggle(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
-      color: settings.turboModeEnabled ? Colors.orangeAccent.withOpacity(0.1) : null,
+      color: settings.turboModeEnabled
+          ? Colors.orangeAccent.withOpacity(0.1)
+          : null,
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          const Icon(Icons.rocket_launch_rounded, color: Colors.orangeAccent, size: 32),
+          const Icon(
+            Icons.rocket_launch_rounded,
+            color: Colors.orangeAccent,
+            size: 32,
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -288,21 +408,49 @@ class _SafetyTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(context, loc.translate('safety_settings'), Icons.security_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('safety_settings'),
+            Icons.security_rounded,
+          ),
           const SizedBox(height: 16),
           _buildBlockedKeywordsSection(context, loc, settings),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, loc.translate('smart_features'), Icons.auto_awesome_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('smart_features'),
+            Icons.auto_awesome_rounded,
+          ),
           const SizedBox(height: 16),
           _buildAutoCacheToggle(context, loc, settings),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('rest_reminders'), settings.restRemindersEnabled, (val) => settings.setRestReminders(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('rest_reminders'),
+            settings.restRemindersEnabled,
+            (val) => settings.setRestReminders(val),
+          ),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('distance_protection'), settings.distanceProtectionEnabled, (val) => settings.setDistanceProtection(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('distance_protection'),
+            settings.distanceProtectionEnabled,
+            (val) => settings.setDistanceProtection(val),
+          ),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('posture_protection'), settings.postureProtectionEnabled, (val) => settings.setPostureProtection(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('posture_protection'),
+            settings.postureProtectionEnabled,
+            (val) => settings.setPostureProtection(val),
+          ),
           const SizedBox(height: 16),
-          _buildSettingToggle(context, loc.translate('safe_volume_mode'), settings.safeVolumeEnabled, (val) => settings.setSafeVolumeEnabled(val)),
+          _buildSettingToggle(
+            context,
+            loc.translate('safe_volume_mode'),
+            settings.safeVolumeEnabled,
+            (val) => settings.setSafeVolumeEnabled(val),
+          ),
           if (settings.safeVolumeEnabled) ...[
             const SizedBox(height: 16),
             _buildVolumeSlider(context, settings, loc),
@@ -312,7 +460,11 @@ class _SafetyTab extends StatelessWidget {
     );
   }
 
-  Widget _buildVolumeSlider(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  Widget _buildVolumeSlider(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -321,8 +473,17 @@ class _SafetyTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(loc.translate('max_volume_level'), style: Theme.of(context).textTheme.titleSmall),
-              Text('${(settings.maxVolumeLevel * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: DadyTubeTheme.primary)),
+              Text(
+                loc.translate('max_volume_level'),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              Text(
+                '${(settings.maxVolumeLevel * 100).toInt()}%',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: DadyTubeTheme.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -342,7 +503,11 @@ class _SafetyTab extends StatelessWidget {
     );
   }
 
-  Widget _buildAutoCacheToggle(BuildContext context, AppLocalizations loc, SettingsProvider settings) {
+  Widget _buildAutoCacheToggle(
+    BuildContext context,
+    AppLocalizations loc,
+    SettingsProvider settings,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -354,7 +519,10 @@ class _SafetyTab extends StatelessWidget {
               children: [
                 Text(
                   loc.translate('auto_cache_title'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -375,7 +543,11 @@ class _SafetyTab extends StatelessWidget {
     );
   }
 
-  Widget _buildBlockedKeywordsSection(BuildContext context, AppLocalizations loc, SettingsProvider settings) {
+  Widget _buildBlockedKeywordsSection(
+    BuildContext context,
+    AppLocalizations loc,
+    SettingsProvider settings,
+  ) {
     final controller = TextEditingController();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,7 +590,9 @@ class _SafetyTab extends StatelessWidget {
             return Chip(
               label: Text(keyword),
               onDeleted: () => settings.removeBlockedKeyword(keyword),
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow,
               deleteIcon: const Icon(Icons.cancel_rounded, size: 18),
             );
           }).toList(),
@@ -441,11 +615,19 @@ class _ChannelsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(context, loc.translate('add_channel'), Icons.add_to_queue_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('add_channel'),
+            Icons.add_to_queue_rounded,
+          ),
           const SizedBox(height: 16),
           _buildAddChannelCard(context, provider, loc),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, loc.translate('your_channels'), Icons.list_alt_rounded),
+          _buildSectionHeader(
+            context,
+            loc.translate('your_channels'),
+            Icons.list_alt_rounded,
+          ),
           const SizedBox(height: 16),
           _buildChannelList(context, provider, loc),
         ],
@@ -453,7 +635,11 @@ class _ChannelsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildAddChannelCard(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+  Widget _buildAddChannelCard(
+    BuildContext context,
+    ChannelProvider provider,
+    AppLocalizations loc,
+  ) {
     final controller = TextEditingController();
     return TactileCard(
       padding: const EdgeInsets.all(20),
@@ -472,7 +658,9 @@ class _ChannelsTab extends StatelessWidget {
           TactileButton(
             onTap: () async {
               if (controller.text.isNotEmpty) {
-                final channel = await YoutubeService.getChannelInfo(controller.text);
+                final channel = await YoutubeService.getChannelInfo(
+                  controller.text,
+                );
                 if (channel != null) {
                   provider.addChannel(channel);
                   controller.clear();
@@ -482,7 +670,10 @@ class _ChannelsTab extends StatelessWidget {
             child: const TactileCard(
               color: DadyTubeTheme.primary,
               padding: EdgeInsets.all(12),
-              child: Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+              child: Icon(
+                Icons.check_circle_outline_rounded,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -490,7 +681,11 @@ class _ChannelsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildChannelList(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+  Widget _buildChannelList(
+    BuildContext context,
+    ChannelProvider provider,
+    AppLocalizations loc,
+  ) {
     return Column(
       children: provider.channels.map((channel) {
         return Padding(
@@ -500,14 +695,22 @@ class _ChannelsTab extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: CachedNetworkImageProvider(channel.thumbnailUrl),
+                  backgroundImage: CachedNetworkImageProvider(
+                    channel.thumbnailUrl,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(channel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    channel.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.redAccent,
+                  ),
                   onPressed: () => provider.removeChannel(channel.id),
                 ),
               ],
@@ -519,7 +722,12 @@ class _ChannelsTab extends StatelessWidget {
   }
 }
 
-Widget _buildSettingToggle(BuildContext context, String title, bool value, Function(bool) onChanged) {
+Widget _buildSettingToggle(
+  BuildContext context,
+  String title,
+  bool value,
+  Function(bool) onChanged,
+) {
   return TactileCard(
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
     child: Row(
@@ -546,7 +754,9 @@ Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
       const SizedBox(width: 12),
       Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
     ],
   );
@@ -598,7 +808,13 @@ class _GuideTab extends StatelessWidget {
     );
   }
 
-  Widget _buildGuideCard(BuildContext context, String title, String desc, IconData icon, Color accentColor) {
+  Widget _buildGuideCard(
+    BuildContext context,
+    String title,
+    String desc,
+    IconData icon,
+    Color accentColor,
+  ) {
     return TactileCard(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -617,7 +833,9 @@ class _GuideTab extends StatelessWidget {
               const SizedBox(width: 16),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -690,7 +908,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
         children: [
           _buildTotalSummaryCard(context),
           const SizedBox(height: 24),
-          if (_isSyncing) 
+          if (_isSyncing)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: TactileCard(
@@ -699,8 +917,8 @@ class _StatisticsTabState extends State<_StatisticsTab> {
                 child: Row(
                   children: [
                     const SizedBox(
-                      width: 20, 
-                      height: 20, 
+                      width: 20,
+                      height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 12),
@@ -753,7 +971,9 @@ class _StatisticsTabState extends State<_StatisticsTab> {
               Colors.teal,
               onClear: () async {
                 final prefs = await SharedPreferences.getInstance();
-                final keys = prefs.getKeys().where((k) => k.startsWith('stream_link_'));
+                final keys = prefs.getKeys().where(
+                  (k) => k.startsWith('stream_link_'),
+                );
                 for (var key in keys) {
                   await prefs.remove(key);
                 }
@@ -785,7 +1005,8 @@ class _StatisticsTabState extends State<_StatisticsTab> {
               await downloadProvider.clearAllDownloads();
               _loadStats();
             },
-            onAction: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            onAction: () =>
+                Navigator.of(context).popUntil((route) => route.isFirst),
             actionLabel: 'Home',
             actionIcon: Icons.home_rounded,
           ),
@@ -885,7 +1106,8 @@ class _StatisticsTabState extends State<_StatisticsTab> {
                     Colors.redAccent,
                     onClear,
                   ),
-                if (onClear != null && onAction != null) const SizedBox(width: 8),
+                if (onClear != null && onAction != null)
+                  const SizedBox(width: 8),
                 if (onAction != null)
                   _buildSmallActionBtn(
                     context,
@@ -904,7 +1126,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
 
   Widget _buildTotalSummaryCard(BuildContext context) {
     if (_cacheStats == null) return const SizedBox.shrink();
-    
+
     return TactileCard(
       color: DadyTubeTheme.primary,
       padding: const EdgeInsets.all(24),
@@ -916,7 +1138,11 @@ class _StatisticsTabState extends State<_StatisticsTab> {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(

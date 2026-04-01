@@ -17,8 +17,11 @@ class VideoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isNew = DateTime.now().difference(video.publishedAt).inDays < 7;
-    final channelProvider = Provider.of<ChannelProvider>(context, listen: false);
-    
+    final channelProvider = Provider.of<ChannelProvider>(
+      context,
+      listen: false,
+    );
+
     final channel = channelProvider.channels.firstWhere(
       (c) => c.id == video.channelId,
       orElse: () => YoutubeChannel(id: '', name: 'Unknown', thumbnailUrl: ''),
@@ -32,7 +35,7 @@ class VideoCard extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => WatchScreen(
-                videoId: video.id, 
+                videoId: video.id,
                 videoTitle: video.title, // Added title
                 thumbnailUrl: video.thumbnailUrl,
                 channelName: channel.name,
@@ -51,12 +54,19 @@ class VideoCard extends StatelessWidget {
                   AspectRatio(
                     aspectRatio: 16 / 9,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
                       child: CachedNetworkImage(
                         imageUrl: video.thumbnailUrl,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(color: Theme.of(context).colorScheme.surfaceContainerLow),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
+                        placeholder: (context, url) => Container(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLow,
+                        ),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
                       ),
                     ),
                   ),
@@ -65,14 +75,21 @@ class VideoCard extends StatelessWidget {
                       top: 16,
                       left: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: DadyTubeTheme.primary,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           loc.translate('new_upload') ?? 'New',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -85,7 +102,9 @@ class VideoCard extends StatelessWidget {
                   children: [
                     Text(
                       video.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -93,7 +112,9 @@ class VideoCard extends StatelessWidget {
                     Text(
                       channel.name,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],

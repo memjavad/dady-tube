@@ -16,22 +16,20 @@ class BedtimeOverlay extends StatelessWidget {
     final usage = context.watch<UsageProvider>();
 
     return Material(
-      color: Theme.of(context).scaffoldBackgroundColor, // Fundamental opaque background for the stack
+      color: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Fundamental opaque background for the stack
       child: Stack(
         children: [
           // Standard app content
           AnimatedOpacity(
             opacity: usage.isBedtime ? 0.3 : 1.0,
             duration: const Duration(seconds: 2),
-            child: IgnorePointer(
-              ignoring: usage.isBedtime,
-              child: child,
-            ),
+            child: IgnorePointer(ignoring: usage.isBedtime, child: child),
           ),
 
           // Bedtime Screen
-          if (usage.isBedtime)
-            _buildBedtimeContent(context, usage),
+          if (usage.isBedtime) _buildBedtimeContent(context, usage),
         ],
       ),
     );
@@ -56,13 +54,13 @@ class BedtimeOverlay extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             _buildAnimatedMoon(),
+            _buildAnimatedMoon(),
             const SizedBox(height: 32),
             Text(
               loc.translate('bedtime_title'),
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.displayMedium?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 16),
             Padding(
@@ -118,7 +116,10 @@ class _ExtraTimeDialog extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(loc.translate('grant_extra_time'), style: const TextStyle(fontSize: 24)),
+            Text(
+              loc.translate('grant_extra_time'),
+              style: const TextStyle(fontSize: 24),
+            ),
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -134,7 +135,11 @@ class _ExtraTimeDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeButton(BuildContext context, int mins, AppLocalizations loc) {
+  Widget _buildTimeButton(
+    BuildContext context,
+    int mins,
+    AppLocalizations loc,
+  ) {
     return TactileButton(
       onTap: () {
         usage.grantExtraTime(mins);
@@ -146,7 +151,10 @@ class _ExtraTimeDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           child: Text(
             loc.translate('plus_mins', args: {'min': mins.toString()}),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dadytube/core/tactile_widgets.dart';
 
 void main() {
-  testWidgets('TactileButton renders with semantic label', (WidgetTester tester) async {
+  testWidgets('TactileButton renders with semantic label', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

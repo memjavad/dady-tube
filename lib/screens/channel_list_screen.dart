@@ -52,12 +52,18 @@ class ChannelListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactChannelItem(BuildContext context, YoutubeChannel channel, AppLocalizations loc) {
+  Widget _buildCompactChannelItem(
+    BuildContext context,
+    YoutubeChannel channel,
+    AppLocalizations loc,
+  ) {
     return TactileButton(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ChannelFeedScreen(channel: channel)),
+          MaterialPageRoute(
+            builder: (context) => ChannelFeedScreen(channel: channel),
+          ),
         );
       },
       child: Column(
@@ -68,9 +74,17 @@ class ChannelListScreen extends StatelessWidget {
               borderRadius: 100,
               child: CircleAvatar(
                 radius: 40,
-                backgroundImage: channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null,
+                backgroundImage: channel.thumbnailUrl.isNotEmpty
+                    ? NetworkImage(channel.thumbnailUrl)
+                    : null,
                 backgroundColor: DadyTubeTheme.primaryContainer,
-                child: channel.thumbnailUrl.isEmpty ? const Icon(Icons.tv_rounded, color: Colors.white, size: 30) : null,
+                child: channel.thumbnailUrl.isEmpty
+                    ? const Icon(
+                        Icons.tv_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      )
+                    : null,
               ),
             ),
           ),
@@ -95,7 +109,11 @@ class ChannelListScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.subscriptions_rounded, size: 80, color: DadyTubeTheme.primaryContainer),
+          const Icon(
+            Icons.subscriptions_rounded,
+            size: 80,
+            color: DadyTubeTheme.primaryContainer,
+          ),
           const SizedBox(height: 24),
           Text(
             loc.translate('no_channels'),

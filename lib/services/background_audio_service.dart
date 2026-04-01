@@ -7,8 +7,8 @@ class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
   final yt.YoutubeExplode _yt;
 
   BackgroundAudioService({AudioPlayer? player, yt.YoutubeExplode? ytExplode})
-      : _player = player ?? AudioPlayer(),
-        _yt = ytExplode ?? yt.YoutubeExplode() {
+    : _player = player ?? AudioPlayer(),
+      _yt = ytExplode ?? yt.YoutubeExplode() {
     // Broadcast playback state changes
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
   }
@@ -29,22 +29,29 @@ class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
   Future<void> seek(Duration position) => _player.seek(position);
 
   /// Starts playing the audio stream of a YouTube video.
-  Future<void> playVideo(String videoId, String title, String artist, String? thumbnailUrl) async {
+  Future<void> playVideo(
+    String videoId,
+    String title,
+    String artist,
+    String? thumbnailUrl,
+  ) async {
     try {
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
       final audioStream = manifest.audioOnly.withHighestBitrate();
-      
+
       if (audioStream == null) return;
 
       // Update MediaItem for the notification
-      mediaItem.add(MediaItem(
-        id: videoId,
-        album: "DadyTube Play",
-        title: title,
-        artist: artist,
-        artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
-        duration: null, // JustAudio will update this once loaded
-      ));
+      mediaItem.add(
+        MediaItem(
+          id: videoId,
+          album: "DadyTube Play",
+          title: title,
+          artist: artist,
+          artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
+          duration: null, // JustAudio will update this once loaded
+        ),
+      );
 
       await _player.setAudioSource(AudioSource.uri(audioStream.url));
       _player.play();

@@ -19,11 +19,7 @@ class DatabaseService {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
+    return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -56,33 +52,37 @@ CREATE TABLE videos (
 
   Future<void> insertChannel(YoutubeChannel channel, {int lastSync = 0}) async {
     final db = await instance.database;
-    await db.insert(
-      'channels',
-      {
-        'id': channel.id,
-        'name': channel.name,
-        'thumbnailUrl': channel.thumbnailUrl,
-        'lastSync': lastSync,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('channels', {
+      'id': channel.id,
+      'name': channel.name,
+      'thumbnailUrl': channel.thumbnailUrl,
+      'lastSync': lastSync,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<YoutubeChannel>> getChannels() async {
     final db = await instance.database;
     final result = await db.query('channels');
 
-    return result.map((json) => YoutubeChannel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
-    )).toList();
+    return result
+        .map(
+          (json) => YoutubeChannel(
+            id: json['id'] as String,
+            name: json['name'] as String,
+            thumbnailUrl: json['thumbnailUrl'] as String,
+          ),
+        )
+        .toList();
   }
 
   Future<void> deleteChannel(String id) async {
     final db = await instance.database;
     await db.delete('channels', where: 'id = ?', whereArgs: [id]);
-    await db.delete('videos', where: 'channelId = ?', whereArgs: [id]); // Also delete related videos
+    await db.delete(
+      'videos',
+      where: 'channelId = ?',
+      whereArgs: [id],
+    ); // Also delete related videos
   }
 
   // --- Videos ---
@@ -99,14 +99,16 @@ CREATE TABLE videos (
           'channelId': video.channelId,
           'title': video.title,
           'thumbnailUrl': video.thumbnailUrl,
-          'publishedAt': video.publishedAt.toIso8601String(), // Store as string for flexibility
+          'publishedAt': video.publishedAt
+              .toIso8601String(), // Store as string for flexibility
         },
-        conflictAlgorithm: ConflictAlgorithm.ignore, // Ignore means we keep the existing rows (no overwriting necessary if it's identical). Alternatively, replace to update thumbnail.
+        conflictAlgorithm: ConflictAlgorithm
+            .ignore, // Ignore means we keep the existing rows (no overwriting necessary if it's identical). Alternatively, replace to update thumbnail.
       );
     }
     await batch.commit(noResult: true);
   }
-  
+
   Future<void> insertOrUpdateVideos(List<YoutubeVideo> videos) async {
     final db = await instance.database;
 
@@ -136,23 +138,31 @@ CREATE TABLE videos (
       orderBy: 'publishedAt DESC', // YouTube order
     );
 
-    return result.map((json) => YoutubeVideo(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
-      channelId: json['channelId'] as String,
-      publishedAt: DateTime.tryParse(json['publishedAt'] as String) ?? DateTime.now(),
-    )).toList();
+    return result
+        .map(
+          (json) => YoutubeVideo(
+            id: json['id'] as String,
+            title: json['title'] as String,
+            thumbnailUrl: json['thumbnailUrl'] as String,
+            channelId: json['channelId'] as String,
+            publishedAt:
+                DateTime.tryParse(json['publishedAt'] as String) ??
+                DateTime.now(),
+          ),
+        )
+        .toList();
   }
-  
-  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
+
+  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(
+    List<String> channelIds,
+  ) async {
     final Map<String, List<YoutubeVideo>> map = {};
     for (var id in channelIds) {
       map[id] = await getVideosForChannel(id);
     }
     return map;
   }
-  
+
   Future<int> getTotalChannelCount() async {
     final db = await instance.database;
     final result = await db.rawQuery('SELECT COUNT(*) FROM channels');
@@ -164,7 +174,7 @@ CREATE TABLE videos (
     final result = await db.rawQuery('SELECT COUNT(*) FROM videos');
     return Sqflite.firstIntValue(result) ?? 0;
   }
-  
+
   Future<void> clearAllVideos() async {
     final db = await instance.database;
     await db.delete('videos');

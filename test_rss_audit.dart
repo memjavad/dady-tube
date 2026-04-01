@@ -21,7 +21,9 @@ void main() async {
         print('Title: $title');
         print('Entries: ${entries.length}');
         if (entries.isNotEmpty) {
-           print('First video: ${entries.first.findAllElements('title').first.innerText}');
+          print(
+            'First video: ${entries.first.findAllElements('title').first.innerText}',
+          );
         }
       } else {
         print('RSS Failed (Status ${response.statusCode})');

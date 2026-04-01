@@ -37,28 +37,32 @@ void main() {
       // Mock MethodChannel for setVolume etc.
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('com.yosemiteyss.flutter_volume_controller/method'),
-        (MethodCall methodCall) async {
-          methodLog.add(methodCall);
-          return null;
-        },
-      );
+            const MethodChannel(
+              'com.yosemiteyss.flutter_volume_controller/method',
+            ),
+            (MethodCall methodCall) async {
+              methodLog.add(methodCall);
+              return null;
+            },
+          );
 
       // Mock EventChannel for addListener
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockStreamHandler(
-        const EventChannel('com.yosemiteyss.flutter_volume_controller/event'),
-        MockStreamHandler.inline(
-          onListen: (dynamic arguments, MockStreamHandlerEventSink events) {
-            final subscription = eventController.stream.listen((event) {
-              events.success(event);
-            });
-          },
-          onCancel: (dynamic arguments) {
-            listenerCanceled = true;
-          },
-        ),
-      );
+            const EventChannel(
+              'com.yosemiteyss.flutter_volume_controller/event',
+            ),
+            MockStreamHandler.inline(
+              onListen: (dynamic arguments, MockStreamHandlerEventSink events) {
+                final subscription = eventController.stream.listen((event) {
+                  events.success(event);
+                });
+              },
+              onCancel: (dynamic arguments) {
+                listenerCanceled = true;
+              },
+            ),
+          );
     });
 
     tearDown(() {
@@ -66,28 +70,41 @@ void main() {
       eventController.close();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-              const MethodChannel('com.yosemiteyss.flutter_volume_controller/method'), null);
+            const MethodChannel(
+              'com.yosemiteyss.flutter_volume_controller/method',
+            ),
+            null,
+          );
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockStreamHandler(
-              const EventChannel('com.yosemiteyss.flutter_volume_controller/event'), null);
+            const EventChannel(
+              'com.yosemiteyss.flutter_volume_controller/event',
+            ),
+            null,
+          );
     });
 
-    test('initialize does not set volume if volume is below max limit', () async {
-      volumeService.initialize(settingsProvider);
+    test(
+      'initialize does not set volume if volume is below max limit',
+      () async {
+        volumeService.initialize(settingsProvider);
 
-      // Wait a tick for addListener to be fully processed
-      await Future.delayed(Duration.zero);
+        // Wait a tick for addListener to be fully processed
+        await Future.delayed(Duration.zero);
 
-      // Simulate a volume change that is safe
-      eventController.add('0.5'); // The flutter_volume_controller receives strings
-      await Future.delayed(const Duration(milliseconds: 50));
+        // Simulate a volume change that is safe
+        eventController.add(
+          '0.5',
+        ); // The flutter_volume_controller receives strings
+        await Future.delayed(const Duration(milliseconds: 50));
 
-      expect(
-        methodLog.where((m) => m.method == 'setVolume'),
-        isEmpty,
-        reason: 'setVolume should not be called when volume is safe',
-      );
-    });
+        expect(
+          methodLog.where((m) => m.method == 'setVolume'),
+          isEmpty,
+          reason: 'setVolume should not be called when volume is safe',
+        );
+      },
+    );
 
     test('initialize enforces safe volume by capping at max limit', () async {
       volumeService.initialize(settingsProvider);
@@ -145,7 +162,11 @@ void main() {
       volumeService.dispose();
       await Future.delayed(Duration.zero);
 
-      expect(listenerCanceled, isTrue, reason: 'Volume listener should be canceled upon dispose');
+      expect(
+        listenerCanceled,
+        isTrue,
+        reason: 'Volume listener should be canceled upon dispose',
+      );
     });
   });
 }

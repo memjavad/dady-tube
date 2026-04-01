@@ -5,8 +5,11 @@ import 'package:dadytube/services/youtube_service.dart';
 import 'package:dadytube/providers/channel_provider.dart';
 
 class MockYoutubeExplode extends Mock implements YoutubeExplode {}
+
 class MockChannelClient extends Mock implements ChannelClient {}
+
 class MockChannel extends Mock implements Channel {}
+
 class MockChannelId extends Mock implements ChannelId {}
 
 void main() {
@@ -31,11 +34,18 @@ void main() {
       when(() => mockChannelId.value).thenReturn('UC_x5XG1OV2P6uZZ5FSM9Ttw');
       when(() => mockChannel.id).thenReturn(mockChannelId);
       when(() => mockChannel.title).thenReturn('Rick Astley');
-      when(() => mockChannel.logoUrl).thenReturn('https://example.com/logo.png');
+      when(
+        () => mockChannel.logoUrl,
+      ).thenReturn('https://example.com/logo.png');
 
-      when(() => mockChannelClient.getByVideo(any())).thenAnswer((_) async => mockChannel);
+      when(
+        () => mockChannelClient.getByVideo(any()),
+      ).thenAnswer((_) async => mockChannel);
 
-      final result = await YoutubeService.getChannelInfo(url, ytClient: mockYtClient);
+      final result = await YoutubeService.getChannelInfo(
+        url,
+        ytClient: mockYtClient,
+      );
 
       expect(result, isNotNull);
       expect(result!.id, 'UC_x5XG1OV2P6uZZ5FSM9Ttw');
@@ -46,40 +56,59 @@ void main() {
       verifyNever(() => mockChannelClient.get(any()));
     });
 
-    test('Fallback to getChannelInfoById when getByVideo fails and URL contains /channel/', () async {
-      final channelId = 'UC1234567890';
-      final url = 'https://youtube.com/channel/$channelId?feature=share';
+    test(
+      'Fallback to getChannelInfoById when getByVideo fails and URL contains /channel/',
+      () async {
+        final channelId = 'UC1234567890';
+        final url = 'https://youtube.com/channel/$channelId?feature=share';
 
-      when(() => mockChannelId.value).thenReturn(channelId);
-      when(() => mockChannel.id).thenReturn(mockChannelId);
-      when(() => mockChannel.title).thenReturn('Fallback Channel');
-      when(() => mockChannel.logoUrl).thenReturn('https://example.com/fallback.png');
+        when(() => mockChannelId.value).thenReturn(channelId);
+        when(() => mockChannel.id).thenReturn(mockChannelId);
+        when(() => mockChannel.title).thenReturn('Fallback Channel');
+        when(
+          () => mockChannel.logoUrl,
+        ).thenReturn('https://example.com/fallback.png');
 
-      // Simulate failure on getByVideo
-      when(() => mockChannelClient.getByVideo(any())).thenThrow(ArgumentError('Invalid video URL'));
+        // Simulate failure on getByVideo
+        when(
+          () => mockChannelClient.getByVideo(any()),
+        ).thenThrow(ArgumentError('Invalid video URL'));
 
-      // Simulate success on fallback get()
-      when(() => mockChannelClient.get(channelId)).thenAnswer((_) async => mockChannel);
+        // Simulate success on fallback get()
+        when(
+          () => mockChannelClient.get(channelId),
+        ).thenAnswer((_) async => mockChannel);
 
-      final result = await YoutubeService.getChannelInfo(url, ytClient: mockYtClient);
+        final result = await YoutubeService.getChannelInfo(
+          url,
+          ytClient: mockYtClient,
+        );
 
-      expect(result, isNotNull);
-      expect(result!.id, channelId);
-      expect(result.name, 'Fallback Channel');
-      expect(result.thumbnailUrl, 'https://example.com/fallback.png');
+        expect(result, isNotNull);
+        expect(result!.id, channelId);
+        expect(result.name, 'Fallback Channel');
+        expect(result.thumbnailUrl, 'https://example.com/fallback.png');
 
-      verify(() => mockChannelClient.getByVideo(url)).called(1);
-      verify(() => mockChannelClient.get(channelId)).called(1);
-    });
+        verify(() => mockChannelClient.getByVideo(url)).called(1);
+        verify(() => mockChannelClient.get(channelId)).called(1);
+      },
+    );
 
     test('Returns null when both getByVideo and fallback fail', () async {
       final channelId = 'UC1234567890';
       final url = 'https://youtube.com/channel/$channelId';
 
-      when(() => mockChannelClient.getByVideo(any())).thenThrow(ArgumentError('Invalid video URL'));
-      when(() => mockChannelClient.get(any())).thenThrow(Exception('Channel not found'));
+      when(
+        () => mockChannelClient.getByVideo(any()),
+      ).thenThrow(ArgumentError('Invalid video URL'));
+      when(
+        () => mockChannelClient.get(any()),
+      ).thenThrow(Exception('Channel not found'));
 
-      final result = await YoutubeService.getChannelInfo(url, ytClient: mockYtClient);
+      final result = await YoutubeService.getChannelInfo(
+        url,
+        ytClient: mockYtClient,
+      );
 
       expect(result, isNull);
 
@@ -87,18 +116,26 @@ void main() {
       verify(() => mockChannelClient.get(channelId)).called(1);
     });
 
-    test('Returns null when getByVideo fails and URL does not contain /channel/', () async {
-      final url = 'https://youtube.com/user/SomeUser';
+    test(
+      'Returns null when getByVideo fails and URL does not contain /channel/',
+      () async {
+        final url = 'https://youtube.com/user/SomeUser';
 
-      when(() => mockChannelClient.getByVideo(any())).thenThrow(ArgumentError('Invalid video URL'));
+        when(
+          () => mockChannelClient.getByVideo(any()),
+        ).thenThrow(ArgumentError('Invalid video URL'));
 
-      final result = await YoutubeService.getChannelInfo(url, ytClient: mockYtClient);
+        final result = await YoutubeService.getChannelInfo(
+          url,
+          ytClient: mockYtClient,
+        );
 
-      expect(result, isNull);
+        expect(result, isNull);
 
-      verify(() => mockChannelClient.getByVideo(url)).called(1);
-      verifyNever(() => mockChannelClient.get(any()));
-    });
+        verify(() => mockChannelClient.getByVideo(url)).called(1);
+        verifyNever(() => mockChannelClient.get(any()));
+      },
+    );
   });
 
   group('YoutubeService.getOptimizedThumbnail Tests', () {
@@ -108,26 +145,35 @@ void main() {
       expect(result, original);
     });
 
-    test('Replaces hqdefault.jpg with mqdefault.jpg when turboMode is true', () {
-      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg';
-      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
-      final result = YoutubeService.getOptimizedThumbnail(original, true);
-      expect(result, expected);
-    });
+    test(
+      'Replaces hqdefault.jpg with mqdefault.jpg when turboMode is true',
+      () {
+        final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg';
+        final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+        final result = YoutubeService.getOptimizedThumbnail(original, true);
+        expect(result, expected);
+      },
+    );
 
-    test('Replaces sddefault.jpg with mqdefault.jpg when turboMode is true', () {
-      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/sddefault.jpg';
-      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
-      final result = YoutubeService.getOptimizedThumbnail(original, true);
-      expect(result, expected);
-    });
+    test(
+      'Replaces sddefault.jpg with mqdefault.jpg when turboMode is true',
+      () {
+        final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/sddefault.jpg';
+        final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+        final result = YoutubeService.getOptimizedThumbnail(original, true);
+        expect(result, expected);
+      },
+    );
 
-    test('Replaces maxresdefault.jpg with mqdefault.jpg when turboMode is true', () {
-      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg';
-      final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
-      final result = YoutubeService.getOptimizedThumbnail(original, true);
-      expect(result, expected);
-    });
+    test(
+      'Replaces maxresdefault.jpg with mqdefault.jpg when turboMode is true',
+      () {
+        final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg';
+        final expected = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
+        final result = YoutubeService.getOptimizedThumbnail(original, true);
+        expect(result, expected);
+      },
+    );
 
     test('Returns original URL if it already contains mqdefault.jpg', () {
       final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg';
@@ -135,11 +181,14 @@ void main() {
       expect(result, original);
     });
 
-    test('Returns original URL if it contains an unknown resolution string', () {
-      final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg';
-      final result = YoutubeService.getOptimizedThumbnail(original, true);
-      expect(result, original);
-    });
+    test(
+      'Returns original URL if it contains an unknown resolution string',
+      () {
+        final original = 'https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg';
+        final result = YoutubeService.getOptimizedThumbnail(original, true);
+        expect(result, original);
+      },
+    );
 
     test('Returns original URL if it is empty', () {
       final original = '';

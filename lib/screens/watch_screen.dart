@@ -71,7 +71,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
 
-    // ⚡ Performance Prioritization: Pause background tasks immediately 
+    // ⚡ Performance Prioritization: Pause background tasks immediately
     // to give the video player 100% of device resources.
     _cacheService.pauseBackgroundOperations();
 
@@ -87,9 +87,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   void _onPlayerStateChanged() {
-    if (_videoPlayerController != null && 
-        _videoPlayerController!.value.isInitialized && 
-        _videoPlayerController!.value.isPlaying && 
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized &&
+        _videoPlayerController!.value.isPlaying &&
         !_videoPlayerController!.value.isBuffering) {
       // 🚀 Video is playing smoothly. Resume background processes.
       _cacheService.resumeBackgroundOperations();
@@ -246,10 +246,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         // Bonus: Start caching this video in background
         _cacheService.cacheVideo(widget.videoId);
       }
-        try {
-          _videoPlayerController!.addListener(_onPlayerStateChanged);
-          await _videoPlayerController!.initialize();
-        } catch (e) {
+      try {
+        _videoPlayerController!.addListener(_onPlayerStateChanged);
+        await _videoPlayerController!.initialize();
+      } catch (e) {
         // If it was a cached URL, it might have expired. Try one more time with fresh manifest.
         final cachedUrl = await _cacheService.getCachedStreamUrl(
           widget.videoId,

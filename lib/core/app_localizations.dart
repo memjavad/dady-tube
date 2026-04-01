@@ -30,14 +30,14 @@ class AppLocalizations {
       'exploring': 'Exploring',
       'try_again': 'Try Again',
       'back': 'Back',
-      
+
       // Worlds
       'animals': 'Animals',
       'music': 'Music',
       'toys': 'Toys',
       'learning': 'Learning',
       'travel_mode': 'Travel Mode',
-      
+
       // Watch Screen
       'downloading_travel': 'Downloading to Travel Mode...',
       'added_to_travel': 'Video added to Travel Mode!',
@@ -47,21 +47,22 @@ class AppLocalizations {
       'yes_download': 'Yes, Download',
       'cancel': 'Cancel',
       'error_loading_video': 'Oops! This video is taking a nap.',
-      
+
       // Bedtime / Usage
       'bedtime_title': 'Shhh... Bedtime!',
-      'bedtime_msg': 'The toys are all asleep now. It\'s time for you to dream too!',
+      'bedtime_msg':
+          'The toys are all asleep now. It\'s time for you to dream too!',
       'daily_limit': 'Daily Playtime Limit',
       'add_playtime': 'Add Playtime',
       'minutes': 'minutes',
       'grant_extra_time': 'Grant extra time?',
       'plus_mins': '+{min} min',
-      
+
       // Parental Gate
       'parental_gate_title': 'Parents Only',
       'parental_gate_msg': 'Please ask a parent to help you with this.',
       'enter_pin': 'Enter PIN',
-      
+
       // Channels / Settings
       'add_channel': 'Add Channel',
       'remove_channel': 'Remove Channel',
@@ -71,7 +72,8 @@ class AppLocalizations {
       'loading_videos': 'Loading fresh videos...',
       'ask_parent_msg': 'Ask a parent to add some fun channels in Settings!',
       'add_channels_msg': 'Add some channels in Settings to see videos!',
-      'empty_bag': 'Your travel bag is empty! Download videos to watch them on the go.',
+      'empty_bag':
+          'Your travel bag is empty! Download videos to watch them on the go.',
       'no_videos': 'No videos found in this world yet!',
       'default_author': 'Default Post Author',
       'video_quality': 'Video Quality',
@@ -98,7 +100,8 @@ class AppLocalizations {
       'arabic': 'Arabic (Iraq)',
       'eye_protection': 'Blue Light Filter',
       'rest_reminders': 'Rest Reminders',
-      'rest_msg': 'Time to give your eyes a little break! Look at something far away for 20 seconds.',
+      'rest_msg':
+          'Time to give your eyes a little break! Look at something far away for 20 seconds.',
       'blink_break': 'Blink Break!',
       'blink_break_title': 'Time for Eye Yoga!',
       'activity_1_title': 'Look at the Mountains!',
@@ -115,10 +118,20 @@ class AppLocalizations {
       'achievements': 'My Stars!',
       'monthly_collection': 'Monthly Collection',
       'monthly_goal': 'Monthly Goal',
-      'stars_earned_desc': 'Earn stars by saving your playtime or watching learning videos!',
-      'month_1': 'January', 'month_2': 'February', 'month_3': 'March', 'month_4': 'April',
-      'month_5': 'May', 'month_6': 'June', 'month_7': 'July', 'month_8': 'August',
-      'month_9': 'September', 'month_10': 'October', 'month_11': 'November', 'month_12': 'December',
+      'stars_earned_desc':
+          'Earn stars by saving your playtime or watching learning videos!',
+      'month_1': 'January',
+      'month_2': 'February',
+      'month_3': 'March',
+      'month_4': 'April',
+      'month_5': 'May',
+      'month_6': 'June',
+      'month_7': 'July',
+      'month_8': 'August',
+      'month_9': 'September',
+      'month_10': 'October',
+      'month_11': 'November',
+      'month_12': 'December',
       'theme': 'Magic Theme',
       'theme_blush': 'Blush',
       'theme_sunset': 'Sunset',
@@ -126,20 +139,25 @@ class AppLocalizations {
       'theme_deep_space': 'Deep Space',
       'distance_protection': 'Safe Distance Protection',
       'step_back_title': 'Step Back! 🐰',
-      'step_back_desc': 'Your face is a little too close to the screen. Please move back a tiny bit to protect your eyes!',
+      'step_back_desc':
+          'Your face is a little too close to the screen. Please move back a tiny bit to protect your eyes!',
       'safety_pause': 'Move back to play',
       'splash_preparing': 'Preparing the Worlds...',
       'splash_finding': 'Finding {name}...',
       'splash_almost': 'Almost ready for fun!',
       'splash_ready': 'Ready to Play!',
       'guide_magic_stars_title': 'Magic Stars',
-      'guide_magic_stars_desc': 'Earn stars by completing educational videos or by saving playtime! For every 50 minutes of unused daily time, you get a special Magic Star.',
+      'guide_magic_stars_desc':
+          'Earn stars by completing educational videos or by saving playtime! For every 50 minutes of unused daily time, you get a special Magic Star.',
       'guide_distance_title': 'Safe Distance',
-      'guide_distance_desc': 'The "Step Back!" rabbit helps protect your eyes. If you hold the screen too close, the rabbit will appear and pause the video until you move back.',
+      'guide_distance_desc':
+          'The "Step Back!" rabbit helps protect your eyes. If you hold the screen too close, the rabbit will appear and pause the video until you move back.',
       'guide_eye_yoga_title': 'Eye Yoga',
-      'guide_eye_yoga_desc': 'Every 15 minutes, we take a short break to do eye exercises (Look Far, Squeeze, Reach). This helps prevent tired eyes.',
+      'guide_eye_yoga_desc':
+          'Every 15 minutes, we take a short break to do eye exercises (Look Far, Squeeze, Reach). This helps prevent tired eyes.',
       'guide_calm_mode_title': 'Calm Mode',
-      'guide_calm_mode_desc': 'After 7:00 PM, the app automatically shifts to warmer colors and soothing bedtime content.',
+      'guide_calm_mode_desc':
+          'After 7:00 PM, the app automatically shifts to warmer colors and soothing bedtime content.',
       'sit_up_title': 'Sit Up! 🐰',
       'safe_volume_mode': 'Safe Ears Mode',
       'safe_volume_desc': 'Protects hearing by capping maximum volume.',
@@ -176,14 +194,14 @@ class AppLocalizations {
       'exploring': 'استكشاف',
       'try_again': 'حاول مرة أخرى',
       'back': 'رجوع',
-      
+
       // Worlds
       'animals': 'حيوانات',
       'music': 'موسيقى',
       'toys': 'ألعاب',
       'learning': 'تعليم',
       'travel_mode': 'وضع السفر',
-      
+
       // Watch Screen
       'downloading_travel': 'جاري التحميل لوضع السفر...',
       'added_to_travel': 'تمت إضافة الفيديو لوضع السفر!',
@@ -193,7 +211,7 @@ class AppLocalizations {
       'yes_download': 'نعم، تحميل',
       'cancel': 'إلغاء',
       'error_loading_video': 'أوه! هذا الفيديو نائم حالياً.',
-      
+
       // Bedtime / Usage
       'bedtime_title': 'ششش... حان وقت النوم!',
       'bedtime_msg': 'كل الألعاب نائمة الآن. حان الوقت لكي تحلم أنت أيضاً!',
@@ -202,12 +220,12 @@ class AppLocalizations {
       'minutes': 'دقيقة',
       'grant_extra_time': 'منح وقت إضافي؟',
       'plus_mins': '+{min} دقيقة',
-      
+
       // Parental Gate
       'parental_gate_title': 'للأهل فقط',
       'parental_gate_msg': 'يرجى طلب المساعدة من أحد والديك.',
       'enter_pin': 'أدخل الرمز',
-      
+
       // Channels / Settings
       'add_channel': 'إضافة قناة',
       'remove_channel': 'إزالة القناة',
@@ -244,7 +262,8 @@ class AppLocalizations {
       'arabic': 'العربية (العراق)',
       'eye_protection': 'فلتر الضوء الأزرق',
       'rest_reminders': 'تذكير بالراحة',
-      'rest_msg': 'حان الوقت لإراحة عينيك قليلاً! انظر إلى شيء بعيد لمدة ٢٠ ثانية.',
+      'rest_msg':
+          'حان الوقت لإراحة عينيك قليلاً! انظر إلى شيء بعيد لمدة ٢٠ ثانية.',
       'blink_break': 'استراحة الرمش!',
       'blink_break_title': 'وقت يوغا العين!',
       'activity_1_title': 'انظر إلى الجبال!',
@@ -261,10 +280,20 @@ class AppLocalizations {
       'achievements': 'نجومي!',
       'monthly_collection': 'مجموعة الشهر',
       'monthly_goal': 'هدف الشهر',
-      'stars_earned_desc': 'اكسب النجوم من خلال توفير وقت اللعب أو مشاهدة الفيديوهات التعليمية!',
-      'month_1': 'كانون الثاني', 'month_2': 'شباط', 'month_3': 'آذار', 'month_4': 'نيسان',
-      'month_5': 'أيار', 'month_6': 'حزيران', 'month_7': 'تموز', 'month_8': 'آب',
-      'month_9': 'أيلول', 'month_10': 'تشرين الأول', 'month_11': 'تشرين الثاني', 'month_12': 'كانون الأول',
+      'stars_earned_desc':
+          'اكسب النجوم من خلال توفير وقت اللعب أو مشاهدة الفيديوهات التعليمية!',
+      'month_1': 'كانون الثاني',
+      'month_2': 'شباط',
+      'month_3': 'آذار',
+      'month_4': 'نيسان',
+      'month_5': 'أيار',
+      'month_6': 'حزيران',
+      'month_7': 'تموز',
+      'month_8': 'آب',
+      'month_9': 'أيلول',
+      'month_10': 'تشرين الأول',
+      'month_11': 'تشرين الثاني',
+      'month_12': 'كانون الأول',
       'theme': 'الثيم السحري',
       'theme_blush': 'الوردي',
       'theme_sunset': 'الغروب',
@@ -272,20 +301,25 @@ class AppLocalizations {
       'theme_deep_space': 'الفضاء العميق',
       'distance_protection': 'حماية المسافة الآمنة',
       'step_back_title': 'ابتعد قليلاً 🐰',
-      'step_back_desc': 'وجهك قريب جداً من الشاشة. يرجى الابتعاد قليلاً لحماية عينيك الجميلتين!',
+      'step_back_desc':
+          'وجهك قريب جداً من الشاشة. يرجى الابتعاد قليلاً لحماية عينيك الجميلتين!',
       'safety_pause': 'ابتعد قليلاً للمتابعة',
       'splash_preparing': 'جاري تجهيز العوالم...',
       'splash_finding': 'جاري البحث عن {name}...',
       'splash_almost': 'أوشكنا على الانتهاء!',
       'splash_ready': 'جاهز للعب!',
       'guide_magic_stars_title': 'النجوم السحرية',
-      'guide_magic_stars_desc': 'اجمع النجوم من خلال مشاهدة الفيديوهات التعليمية أو توفير وقت اللعب! مقابل كل 50 دقيقة متبقية من وقتك اليومي، ستحصل على نجمة سحرية.',
+      'guide_magic_stars_desc':
+          'اجمع النجوم من خلال مشاهدة الفيديوهات التعليمية أو توفير وقت اللعب! مقابل كل 50 دقيقة متبقية من وقتك اليومي، ستحصل على نجمة سحرية.',
       'guide_distance_title': 'المسافة الآمنة',
-      'guide_distance_desc': 'أرنوب "ابتعد قليلاً" يحمي عينيك. إذا كنت قريباً جداً من الشاشة، سيظهر الأرنوب ويوقف الفيديو حتى تبتعد لمسافة آمنة.',
+      'guide_distance_desc':
+          'أرنوب "ابتعد قليلاً" يحمي عينيك. إذا كنت قريباً جداً من الشاشة، سيظهر الأرنوب ويوقف الفيديو حتى تبتعد لمسافة آمنة.',
       'guide_eye_yoga_title': 'يوغا العين',
-      'guide_eye_yoga_desc': 'كل 15 دقيقة، نأخذ استراحة قصيرة للقيام بتمارين العين (انظر بعيداً، اغمض بقوة، تمدد). هذا يحمي عينيك من التعب.',
+      'guide_eye_yoga_desc':
+          'كل 15 دقيقة، نأخذ استراحة قصيرة للقيام بتمارين العين (انظر بعيداً، اغمض بقوة، تمدد). هذا يحمي عينيك من التعب.',
       'guide_calm_mode_title': 'النمط الهادئ',
-      'guide_calm_mode_desc': 'بعد الساعة 7:00 مساءً، يتحول التطبيق تلقائياً إلى ألوان دافئة ومحتوى هادئ يساعد على الاسترخاء قبل النوم.',
+      'guide_calm_mode_desc':
+          'بعد الساعة 7:00 مساءً، يتحول التطبيق تلقائياً إلى ألوان دافئة ومحتوى هادئ يساعد على الاسترخاء قبل النوم.',
       'sit_up_title': 'اجلس جيداً! 🐰',
       'safe_volume_mode': 'نمط الأذنين الآمنة',
       'safe_volume_desc': 'يحمي حاسة السمع من خلال تحديد مستوى الصوت الأقصى.',
@@ -321,7 +355,8 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
 
   @override
-  Future<AppLocalizations> load(Locale locale) async => AppLocalizations(locale);
+  Future<AppLocalizations> load(Locale locale) async =>
+      AppLocalizations(locale);
 
   @override
   bool shouldReload(AppLocalizationsDelegate old) => false;

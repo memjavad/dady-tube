@@ -49,7 +49,7 @@ class _WorldCarouselState extends State<WorldCarousel> {
         itemBuilder: (context, index) {
           final item = widget.items[index];
           final isSelected = widget.selectedWorld == item.name;
-          
+
           // Calculate 3D transformation
           double relativePosition = index - _currentPage;
           double scale = (1 - relativePosition.abs() * 0.2).clamp(0.8, 1.0);
@@ -69,7 +69,9 @@ class _WorldCarouselState extends State<WorldCarousel> {
                 child: TactileButton(
                   onTap: () => widget.onWorldSelected(item.name),
                   child: TactileCard(
-                    color: isSelected ? item.color.withOpacity(0.2) : Theme.of(context).cardTheme.color,
+                    color: isSelected
+                        ? item.color.withOpacity(0.2)
+                        : Theme.of(context).cardTheme.color,
                     padding: const EdgeInsets.all(24),
                     borderRadius: 40,
                     child: Column(
@@ -81,17 +83,30 @@ class _WorldCarouselState extends State<WorldCarousel> {
                             color: item.color.withOpacity(0.2),
                             shape: BoxShape.circle,
                           ),
-                          child: item.isMaterial 
-                            ? Icon(item.icon as IconData, size: 56, color: item.color)
-                            : Image.asset(item.icon as String, width: 80, height: 80),
+                          child: item.isMaterial
+                              ? Icon(
+                                  item.icon as IconData,
+                                  size: 56,
+                                  color: item.color,
+                                )
+                              : Image.asset(
+                                  item.icon as String,
+                                  width: 80,
+                                  height: 80,
+                                ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           item.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ],
                     ),
@@ -112,5 +127,10 @@ class WorldItem {
   final Color color;
   final bool isMaterial;
 
-  WorldItem({required this.name, required this.icon, required this.color, this.isMaterial = false});
+  WorldItem({
+    required this.name,
+    required this.icon,
+    required this.color,
+    this.isMaterial = false,
+  });
 }

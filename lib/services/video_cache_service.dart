@@ -133,7 +133,7 @@ class VideoCacheService {
       final cached = _manifestCache[videoId]!;
       if (!cached.isExpired) return;
     }
-    
+
     if (!_manifestFetchQueue.contains(videoId)) {
       _manifestFetchQueue.add(videoId);
       _processManifestQueue();
@@ -141,11 +141,14 @@ class VideoCacheService {
   }
 
   Future<void> _processManifestQueue() async {
-    if (_isFetchingManifest || _manifestFetchQueue.isEmpty || _isBackgroundPaused) return;
-    
+    if (_isFetchingManifest ||
+        _manifestFetchQueue.isEmpty ||
+        _isBackgroundPaused)
+      return;
+
     _isFetchingManifest = true;
     final videoId = _manifestFetchQueue.removeAt(0);
-    
+
     try {
       final cachedUrl = await getCachedStreamUrl(videoId);
       if (cachedUrl == null) {
@@ -330,8 +333,9 @@ class VideoCacheService {
     final today = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString(_keyLastCacheDate) ?? "";
 
-    int dailyCount =
-        (lastDate == today) ? (prefs.getInt(_keyDailyCacheCount) ?? 0) : 0;
+    int dailyCount = (lastDate == today)
+        ? (prefs.getInt(_keyDailyCacheCount) ?? 0)
+        : 0;
 
     if (!ignoreTimers && !deep && dailyCount >= _maxDailyCache) {
       print('Smart Cache: Daily limit of $_maxDailyCache reached.');
@@ -388,9 +392,11 @@ class VideoCacheService {
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
     // If deep sync, we fetch many more manifests (Instant Play Links)
-    final manifestLimit = deep ? 100 : 2; 
-    print('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
-    
+    final manifestLimit = deep ? 100 : 2;
+    print(
+      '🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)',
+    );
+
     for (var channelVids in allChannelVideos.values) {
       await _waitUntilResumed(); // Yield between channels
       final topVids = channelVids.take(manifestLimit);
@@ -410,7 +416,11 @@ class VideoCacheService {
       final path = await _cachePath;
       final dir = Directory(path);
       if (await dir.exists()) {
-        final files = await dir.list().where((e) => e is File).cast<File>().toList();
+        final files = await dir
+            .list()
+            .where((e) => e is File)
+            .cast<File>()
+            .toList();
         for (var file in files) {
           totalBytes += await file.length();
           if (file.path.endsWith('.mp4')) mp4Count++;

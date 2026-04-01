@@ -54,7 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedWorld == loc.translate('music')) return Colors.greenAccent;
     if (_selectedWorld == loc.translate('toys')) return Colors.yellowAccent;
     if (_selectedWorld == loc.translate('learning')) return Colors.blueAccent;
-    if (_selectedWorld == loc.translate('travel_mode')) return DadyTubeTheme.primary;
+    if (_selectedWorld == loc.translate('travel_mode'))
+      return DadyTubeTheme.primary;
     return null;
   }
 
@@ -69,15 +70,19 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.transparent,
           appBar: null,
           body: RefreshIndicator(
-            onRefresh: () => provider.loadAllVideos(autoCache: context.read<SettingsProvider>().autoCacheEnabled),
+            onRefresh: () => provider.loadAllVideos(
+              autoCache: context.read<SettingsProvider>().autoCacheEnabled,
+            ),
             child: IndexedStack(
               index: _currentIndex,
               children: [
-                Builder(builder: (context) {
-                  // Trigger availability check when showing home
-                  _checkAvailability(context);
-                  return _buildHomeContent(context, provider);
-                }),
+                Builder(
+                  builder: (context) {
+                    // Trigger availability check when showing home
+                    _checkAvailability(context);
+                    return _buildHomeContent(context, provider);
+                  },
+                ),
                 _buildSearchPlaceholder(context),
                 const ChannelListScreen(),
                 const AchievementsScreen(),
@@ -97,7 +102,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isRefreshingAvailability) return;
 
     setState(() => _isRefreshingAvailability = true);
-    final vids = await provider.getAvailableVideos(context.read<DownloadProvider>());
+    final vids = await provider.getAvailableVideos(
+      context.read<DownloadProvider>(),
+    );
     if (mounted) {
       setState(() {
         _availableVideos = vids;
@@ -127,7 +134,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         SliverPadding(
           padding: EdgeInsets.only(
-            top: provider.isOffline ? 0 : MediaQuery.of(context).padding.top + 24,
+            top: provider.isOffline
+                ? 0
+                : MediaQuery.of(context).padding.top + 24,
             left: 24,
             right: 24,
             bottom: 24,
@@ -152,7 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   loc.translate('offline_mode_active'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(
                   loc.translate('offline_mode_desc'),
@@ -166,11 +178,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBigImmersiveList(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+  Widget _buildBigImmersiveList(
+    BuildContext context,
+    ChannelProvider provider,
+    AppLocalizations loc,
+  ) {
     final provider = context.watch<ChannelProvider>();
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
-    
+
     final videos = provider.getFilteredBigList(
       isOffline: provider.isOffline,
       availableVideos: _availableVideos,
@@ -187,19 +203,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-    
+
     // ⚡ Bolt: Using SliverList instead of ListView with shrinkWrap: true.
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          return StaggeredEntryCard(
-            uniqueId: videos[index].id,
-            index: index,
-            child: VideoCard(video: videos[index]),
-          );
-        },
-        childCount: videos.length,
-      ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        return StaggeredEntryCard(
+          uniqueId: videos[index].id,
+          index: index,
+          child: VideoCard(video: videos[index]),
+        );
+      }, childCount: videos.length),
     );
   }
 
@@ -227,20 +240,31 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 // In a real app, this would trigger search
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Searching for ${bubble['query']}...')),
+                  SnackBar(
+                    content: Text('Searching for ${bubble['query']}...'),
+                  ),
                 );
               },
               child: TactileCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 borderRadius: 25,
                 color: Colors.white,
                 child: Row(
                   children: [
-                    Text(bubble['emoji']!, style: const TextStyle(fontSize: 20)),
+                    Text(
+                      bubble['emoji']!,
+                      style: const TextStyle(fontSize: 20),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       bubble['query']!,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
@@ -253,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchBox(BuildContext context, AppLocalizations loc) {
-// ... existing code
+    // ... existing code
     return TactileCard(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       borderRadius: 100,
@@ -262,7 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => setState(() => _currentIndex = 1),
         decoration: InputDecoration(
           hintText: loc.translate('search_hint'),
-          prefixIcon: const Icon(Icons.search_rounded, color: DadyTubeTheme.primary, size: 28),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: DadyTubeTheme.primary,
+            size: 28,
+          ),
           border: InputBorder.none,
           hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
@@ -280,11 +308,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPickAWorld(BuildContext context, AppLocalizations loc) {
     final worlds = [
-      WorldItem(name: loc.translate('animals'), icon: 'assets/images/animals_icon_3d.png', color: Colors.orangeAccent),
-      WorldItem(name: loc.translate('music'), icon: 'assets/images/music_icon_3d.png', color: Colors.greenAccent),
-      WorldItem(name: loc.translate('toys'), icon: 'assets/images/toys_icon_3d.png', color: Colors.yellowAccent),
-      WorldItem(name: loc.translate('learning'), icon: 'assets/images/learning_icon_3d.png', color: Colors.blueAccent),
-      WorldItem(name: loc.translate('travel_mode'), icon: Icons.card_travel_rounded, color: DadyTubeTheme.primary, isMaterial: true),
+      WorldItem(
+        name: loc.translate('animals'),
+        icon: 'assets/images/animals_icon_3d.png',
+        color: Colors.orangeAccent,
+      ),
+      WorldItem(
+        name: loc.translate('music'),
+        icon: 'assets/images/music_icon_3d.png',
+        color: Colors.greenAccent,
+      ),
+      WorldItem(
+        name: loc.translate('toys'),
+        icon: 'assets/images/toys_icon_3d.png',
+        color: Colors.yellowAccent,
+      ),
+      WorldItem(
+        name: loc.translate('learning'),
+        icon: 'assets/images/learning_icon_3d.png',
+        color: Colors.blueAccent,
+      ),
+      WorldItem(
+        name: loc.translate('travel_mode'),
+        icon: Icons.card_travel_rounded,
+        color: DadyTubeTheme.primary,
+        isMaterial: true,
+      ),
     ];
 
     return Column(
@@ -301,13 +350,19 @@ class _HomeScreenState extends State<HomeScreen> {
         WorldCarousel(
           items: worlds,
           selectedWorld: _selectedWorld,
-          onWorldSelected: (name) => setState(() => _selectedWorld = _selectedWorld == name ? 'All' : name),
+          onWorldSelected: (name) => setState(
+            () => _selectedWorld = _selectedWorld == name ? 'All' : name,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildPopularFeed(BuildContext context, ChannelProvider provider, AppLocalizations loc) {
+  Widget _buildPopularFeed(
+    BuildContext context,
+    ChannelProvider provider,
+    AppLocalizations loc,
+  ) {
     if (provider.isLoading) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,9 +389,9 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _selectedWorld == 'All' 
-                ? loc.translate('popular_now') 
-                : '${loc.translate('exploring')} $_selectedWorld',
+              _selectedWorld == 'All'
+                  ? loc.translate('popular_now')
+                  : '${loc.translate('exploring')} $_selectedWorld',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (_selectedWorld != 'All')
@@ -344,7 +399,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => setState(() => _selectedWorld = 'All'),
                 child: Text(
                   loc.translate('reset'),
-                  style: const TextStyle(color: DadyTubeTheme.primary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: DadyTubeTheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
           ],
@@ -353,36 +411,46 @@ class _HomeScreenState extends State<HomeScreen> {
         if (videos.isEmpty)
           _buildEmptyFeed(loc)
         else ...[
-          Builder(builder: (context) {
-            final firstChannel = provider.channels.firstWhere((c) => c.id == videos[0].channelId, orElse: () => YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''));
-            return StaggeredEntryCard(
-              uniqueId: videos[0].id,
-              index: 0,
-              child: _buildVideoCard(
-                context,
-                videos[0].title,
-                firstChannel.name,
-                videos[0].thumbnailUrl,
-                videoId: videos[0].id,
-                videoTitle: videos[0].title,
-                channelThumbnailUrl: firstChannel.thumbnailUrl,
-              ),
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final firstChannel = provider.channels.firstWhere(
+                (c) => c.id == videos[0].channelId,
+                orElse: () =>
+                    YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
+              );
+              return StaggeredEntryCard(
+                uniqueId: videos[0].id,
+                index: 0,
+                child: _buildVideoCard(
+                  context,
+                  videos[0].title,
+                  firstChannel.name,
+                  videos[0].thumbnailUrl,
+                  videoId: videos[0].id,
+                  videoTitle: videos[0].title,
+                  channelThumbnailUrl: firstChannel.thumbnailUrl,
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 16),
           ...videos.skip(1).take(5).toList().asMap().entries.map((entry) {
             final index = entry.key + 1;
             final video = entry.value;
-            final channel = provider.channels.firstWhere((c) => c.id == video.channelId, orElse: () => YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''));
+            final channel = provider.channels.firstWhere(
+              (c) => c.id == video.channelId,
+              orElse: () =>
+                  YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
+            );
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: StaggeredEntryCard(
                 uniqueId: video.id,
                 index: index,
                 child: _buildVideoCard(
-                  context, 
-                  video.title, 
-                  channel.name, 
+                  context,
+                  video.title,
+                  channel.name,
                   video.thumbnailUrl,
                   videoId: video.id,
                   channelThumbnailUrl: channel.thumbnailUrl,
@@ -417,12 +485,16 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.toys_outlined, size: 64, color: Theme.of(context).colorScheme.primaryContainer),
+              Icon(
+                Icons.toys_outlined,
+                size: 64,
+                color: Theme.of(context).colorScheme.primaryContainer,
+              ),
               const SizedBox(height: 24),
               Text(
-                _selectedWorld == 'Travel Mode' 
-                  ? loc.translate('empty_bag')
-                  : loc.translate('no_videos'),
+                _selectedWorld == 'Travel Mode'
+                    ? loc.translate('empty_bag')
+                    : loc.translate('no_videos'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
@@ -438,7 +510,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildVideoCard(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso', String? videoTitle, String? channelThumbnailUrl}) {
+  Widget _buildVideoCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String imageUrl, {
+    bool isAsset = false,
+    String videoId = 'L_LUpnjyPso',
+    String? videoTitle,
+    String? channelThumbnailUrl,
+  }) {
     return TactileButton(
       onTapDown: () {
         VideoCacheService().prefetchManifest(videoId);
@@ -448,16 +529,18 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
-            pageBuilder: (context, animation, secondaryAnimation) => WatchScreen(
-              videoId: videoId, 
-              videoTitle: videoTitle ?? title,
-              thumbnailUrl: isAsset ? imageUrl : null,
-              channelName: subtitle,
-              channelThumbnailUrl: channelThumbnailUrl,
-            ),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                WatchScreen(
+                  videoId: videoId,
+                  videoTitle: videoTitle ?? title,
+                  thumbnailUrl: isAsset ? imageUrl : null,
+                  channelName: subtitle,
+                  channelThumbnailUrl: channelThumbnailUrl,
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           ),
         );
       },
@@ -467,17 +550,29 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              child: isAsset 
-                ? Image.asset(imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover)
-                : CachedNetworkImage(
-                    imageUrl: YoutubeService.getOptimizedThumbnail(imageUrl, context.read<SettingsProvider>().turboModeEnabled), 
-                    height: 200, 
-                    width: double.infinity, 
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: DadyTubeTheme.surfaceContainerLow),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
-                  ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+              child: isAsset
+                  ? Image.asset(
+                      imageUrl,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: YoutubeService.getOptimizedThumbnail(
+                        imageUrl,
+                        context.read<SettingsProvider>().turboModeEnabled,
+                      ),
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: DadyTubeTheme.surfaceContainerLow),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(20.0),
@@ -494,7 +589,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -506,7 +603,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildVideoListItem(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso'}) {
+  Widget _buildVideoListItem(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String imageUrl, {
+    bool isAsset = false,
+    String videoId = 'L_LUpnjyPso',
+  }) {
     return TactileButton(
       onTapDown: () {
         VideoCacheService().prefetchManifest(videoId);
@@ -516,13 +620,15 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
-            pageBuilder: (context, animation, secondaryAnimation) => WatchScreen(
-              videoId: videoId, 
-              thumbnailUrl: isAsset ? imageUrl : null,
-            ),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                WatchScreen(
+                  videoId: videoId,
+                  thumbnailUrl: isAsset ? imageUrl : null,
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           ),
         );
       },
@@ -533,16 +639,26 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: isAsset 
-                ? Image.asset(imageUrl, height: 80, width: 120, fit: BoxFit.cover)
-                : CachedNetworkImage(
-                    imageUrl: YoutubeService.getOptimizedThumbnail(imageUrl, context.read<SettingsProvider>().turboModeEnabled), 
-                    height: 80, 
-                    width: 120, 
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: DadyTubeTheme.surfaceContainerLow),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
-                  ),
+              child: isAsset
+                  ? Image.asset(
+                      imageUrl,
+                      height: 80,
+                      width: 120,
+                      fit: BoxFit.cover,
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: YoutubeService.getOptimizedThumbnail(
+                        imageUrl,
+                        context.read<SettingsProvider>().turboModeEnabled,
+                      ),
+                      height: 80,
+                      width: 120,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: DadyTubeTheme.surfaceContainerLow),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -559,7 +675,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -582,18 +700,43 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-           children: [
-             _buildNavItem(context, Icons.play_arrow_rounded, loc.translate('play'), 0),
-             _buildNavItem(context, Icons.auto_awesome_rounded, loc.translate('magic_stars'), 3),
-             _buildNavItem(context, Icons.subscriptions_rounded, loc.translate('channels'), 2),
-             _buildNavItem(context, Icons.person_rounded, loc.translate('settings'), 4),
-           ],
+          children: [
+            _buildNavItem(
+              context,
+              Icons.play_arrow_rounded,
+              loc.translate('play'),
+              0,
+            ),
+            _buildNavItem(
+              context,
+              Icons.auto_awesome_rounded,
+              loc.translate('magic_stars'),
+              3,
+            ),
+            _buildNavItem(
+              context,
+              Icons.subscriptions_rounded,
+              loc.translate('channels'),
+              2,
+            ),
+            _buildNavItem(
+              context,
+              Icons.person_rounded,
+              loc.translate('settings'),
+              4,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, String label, int index) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    int index,
+  ) {
     final isActive = _currentIndex == index;
     return TactileButton(
       onTap: () {
@@ -602,7 +745,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ParentalGate(destination: SettingsScreen()),
+              builder: (context) =>
+                  const ParentalGate(destination: SettingsScreen()),
             ),
           );
         } else {
@@ -614,13 +758,17 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Icon(
             icon,
-            color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            color: isActive
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              color: isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -638,7 +786,8 @@ class FloatingWidget extends StatefulWidget {
   State<FloatingWidget> createState() => _FloatingWidgetState();
 }
 
-class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProviderStateMixin {
+class _FloatingWidgetState extends State<FloatingWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -649,10 +798,11 @@ class _FloatingWidgetState extends State<FloatingWidget> with SingleTickerProvid
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: true);
-    
-    _animation = Tween<double>(begin: 0, end: 10).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+
+    _animation = Tween<double>(
+      begin: 0,
+      end: 10,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -680,7 +830,12 @@ class StaggeredEntryCard extends StatefulWidget {
   final Widget child;
   final int index;
   final String? uniqueId;
-  const StaggeredEntryCard({super.key, required this.child, required this.index, this.uniqueId});
+  const StaggeredEntryCard({
+    super.key,
+    required this.child,
+    required this.index,
+    this.uniqueId,
+  });
 
   @override
   State<StaggeredEntryCard> createState() => _StaggeredEntryCardState();
@@ -714,20 +869,17 @@ class _StaggeredEntryCardState extends State<StaggeredEntryCard> {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (widget.index * 100).clamp(0, 600)),
+      duration: Duration(
+        milliseconds: 400 + (widget.index * 100).clamp(0, 600),
+      ),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
         return Transform.translate(
           offset: Offset(0, 50 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: widget.child,
     );
   }
 }
-
-

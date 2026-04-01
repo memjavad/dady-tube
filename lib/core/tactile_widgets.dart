@@ -162,7 +162,9 @@ class GlassContainer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = isDark ? Colors.black : Colors.white;
     final glassColor = baseColor.withValues(alpha: opacity);
-    final sheenColor = baseColor.withValues(alpha: 0.05); // Very subtle static reflection
+    final sheenColor = baseColor.withValues(
+      alpha: 0.05,
+    ); // Very subtle static reflection
 
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.circular(32.0),
@@ -174,7 +176,9 @@ class GlassContainer extends StatelessWidget {
             borderRadius: borderRadius ?? BorderRadius.circular(32.0),
             boxShadow: [
               BoxShadow(
-                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+                color: (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: 0.05,
+                ),
                 blurRadius: 1,
                 spreadRadius: 0,
               ),
@@ -182,11 +186,7 @@ class GlassContainer extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                sheenColor,
-                Colors.transparent,
-                sheenColor,
-              ],
+              colors: [sheenColor, Colors.transparent, sheenColor],
               stops: const [0.0, 0.5, 1.0],
             ),
           ),
