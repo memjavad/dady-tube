@@ -123,6 +123,44 @@ class ChannelProvider with ChangeNotifier {
   int _lastPopularFilterHash = 0;
   List<YoutubeVideo>? _cachedPopularFilteredVideos;
 
+  // ⚡ Bolt: Memoization Cache for Channel Feed Screen
+  // Reduces O(N log N) sorting overhead during frequent background syncs by caching
+  // the filtered and sorted list per channel. Avoids severe UI jank.
+  String? _lastChannelFeedId;
+  int _lastChannelFeedHash = 0;
+  List<YoutubeVideo>? _cachedChannelFeedVideos;
+
+  List<YoutubeVideo> getFilteredChannelVideos({
+    required String channelId,
+    required List<String> blockedKeywords,
+  }) {
+    final hash = Object.hash(channelId, _channelVideos[channelId]?.length, Object.hashAll(blockedKeywords));
+
+    // ⚡ Bolt: Return cached result if data hasn't changed.
+    if (_cachedChannelFeedVideos != null && _lastChannelFeedId == channelId && _lastChannelFeedHash == hash) {
+      return _cachedChannelFeedVideos!;
+    }
+
+    // ⚡ Bolt: Crucial to create a copy via .toList() to avoid mutating the original source
+    // data below with .sort().
+    List<YoutubeVideo> videos = _channelVideos[channelId]?.toList() ?? [];
+    if (blockedKeywords.isNotEmpty) {
+      videos = videos.where((video) {
+        final title = video.title.toLowerCase();
+        return !blockedKeywords.any((keyword) => title.contains(keyword));
+      }).toList();
+    }
+
+    // Sort by latest first
+    // ⚡ Bolt: This is an expensive O(N log N) operation, now safely memoized!
+    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+
+    _lastChannelFeedId = channelId;
+    _lastChannelFeedHash = hash;
+    _cachedChannelFeedVideos = videos;
+    return videos;
+  }
+
   List<YoutubeVideo> getFilteredBigList({
     required bool isOffline,
     required List<YoutubeVideo> availableVideos,

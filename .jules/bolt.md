@@ -5,3 +5,7 @@
 ## 2025-02-15 - Flutter Provider Expensive Getter Memoization
 **Learning:** In Flutter, `ChangeNotifier` providers with computed getters (like merging lists and sorting them) are re-evaluated *every single time* they are called during a UI `build()`. This means an O(N log N) sort operation inside a getter can execute dozens of times per frame, causing massive CPU spikes and jank.
 **Action:** Always memoize expensive operations (e.g. sorting, filtering large lists) within Provider getters. Cache the result in a private field (`_cachedData`) and introduce a `_invalidateCache()` method to clear the cache whenever the underlying data mutates.
+
+## 2025-02-15 - Flutter In-Build List Mutation and Sorting
+**Learning:** Executing `List.sort()` directly inside a `build()` method on a list obtained from a Provider is dangerous. It not only incurs a severe O(N log N) performance penalty on every render cycle (especially during background syncs when `notifyListeners()` fires frequently), but it also mutates the underlying state object directly if it isn't copied first, potentially causing side effects in other widgets sharing that state.
+**Action:** Move data transformation (filtering/sorting) to the Provider, memoize the result, and ensure the original state is never mutated directly by returning a transformed copy.
