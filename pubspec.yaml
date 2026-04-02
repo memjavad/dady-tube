@@ -77,7 +77,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   mocktail: ^1.0.4
   build_runner: ^2.13.1
-  test: ^1.30.0
+  test: ^1.29.0
 
 flutter_launcher_icons:
   android: true
