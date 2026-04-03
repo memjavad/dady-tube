@@ -62,6 +62,7 @@ class ChannelProvider with ChangeNotifier {
     _cachedShuffledVideos = null;
     _cachedBigFilteredVideos = null;
     _cachedPopularFilteredVideos = null;
+    _cachedChannelFilteredVideos = null;
   }
 
   List<YoutubeVideo> get allVideos {
@@ -123,13 +124,22 @@ class ChannelProvider with ChangeNotifier {
   int _lastPopularFilterHash = 0;
   List<YoutubeVideo>? _cachedPopularFilteredVideos;
 
+  int _lastChannelFilterHash = 0;
+  List<YoutubeVideo>? _cachedChannelFilteredVideos;
+
   List<YoutubeVideo> getFilteredBigList({
     required bool isOffline,
     required List<YoutubeVideo> availableVideos,
     required List<String> blockedKeywords,
     required bool isNightTime,
   }) {
-    final hash = Object.hash(isOffline, availableVideos.length, Object.hashAll(blockedKeywords), isNightTime, allVideos.length);
+    final hash = Object.hash(
+      isOffline,
+      availableVideos.length,
+      Object.hashAll(blockedKeywords),
+      isNightTime,
+      allVideos.length,
+    );
     if (_cachedBigFilteredVideos != null && _lastBigFilterHash == hash) {
       return _cachedBigFilteredVideos!;
     }
@@ -143,13 +153,16 @@ class ChannelProvider with ChangeNotifier {
     }
 
     if (isNightTime) {
-      final calmVideos = videos.where((v) => 
-        v.title.toLowerCase().contains('learn') || 
-        v.title.toLowerCase().contains('music') ||
-        v.title.toLowerCase().contains('lullaby') ||
-        v.title.toLowerCase().contains('story')
-      ).toList();
-      
+      final calmVideos = videos
+          .where(
+            (v) =>
+                v.title.toLowerCase().contains('learn') ||
+                v.title.toLowerCase().contains('music') ||
+                v.title.toLowerCase().contains('lullaby') ||
+                v.title.toLowerCase().contains('story'),
+          )
+          .toList();
+
       final otherVideos = videos.where((v) => !calmVideos.contains(v)).toList();
       videos = [...calmVideos, ...otherVideos];
     }
@@ -163,8 +176,13 @@ class ChannelProvider with ChangeNotifier {
     required String selectedWorld,
     required List<YoutubeVideo> downloadedVideos,
   }) {
-    final hash = Object.hash(selectedWorld, downloadedVideos.length, allVideos.length);
-    if (_cachedPopularFilteredVideos != null && _lastPopularFilterHash == hash) {
+    final hash = Object.hash(
+      selectedWorld,
+      downloadedVideos.length,
+      allVideos.length,
+    );
+    if (_cachedPopularFilteredVideos != null &&
+        _lastPopularFilterHash == hash) {
       return _cachedPopularFilteredVideos!;
     }
 
@@ -172,11 +190,50 @@ class ChannelProvider with ChangeNotifier {
     if (selectedWorld == 'Travel Mode') {
       videos = downloadedVideos;
     } else if (selectedWorld != 'All') {
-      videos = videos.where((v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase())).toList();
+      videos = videos
+          .where(
+            (v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase()),
+          )
+          .toList();
     }
 
     _cachedPopularFilteredVideos = videos;
     _lastPopularFilterHash = hash;
+    return videos;
+  }
+
+  // ⚡ Bolt: Cache for channel-specific filtered lists to prevent sorting on UI rebuilds
+  List<YoutubeVideo> getFilteredChannelVideos({
+    required String channelId,
+    required List<String> blockedKeywords,
+  }) {
+    final channelVideosList = _channelVideos[channelId] ?? [];
+    final hash = Object.hash(
+      channelId,
+      channelVideosList.length,
+      Object.hashAll(blockedKeywords),
+    );
+
+    if (_cachedChannelFilteredVideos != null &&
+        _lastChannelFilterHash == hash) {
+      return _cachedChannelFilteredVideos!;
+    }
+
+    List<YoutubeVideo> videos = List.from(channelVideosList);
+
+    // Filter videos by blocked keywords
+    if (blockedKeywords.isNotEmpty) {
+      videos = videos.where((video) {
+        final title = video.title.toLowerCase();
+        return !blockedKeywords.any((keyword) => title.contains(keyword));
+      }).toList();
+    }
+
+    // Sort by latest first
+    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+
+    _cachedChannelFilteredVideos = videos;
+    _lastChannelFilterHash = hash;
     return videos;
   }
 
@@ -196,28 +253,77 @@ class ChannelProvider with ChangeNotifier {
 
     // Curated Channel List (Version 2.5 Global Health Verified)
     final curatedChannels = [
-      YoutubeChannel(id: 'UCAfwGn6Xq-TscvdChnPrktQ', name: 'The Fixies بالعربية', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCuQKih3Ac3NABADQKQdeV6A', name: 'Spacetoon', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCOGBA-T3jCfOPey73FzsxCw', name: 'Nick Jr. Arabia', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCNbmKQcBE3Sdx2HN6KGkxKw', name: 'Hello Maestro', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCXGCkE7vRMkwQwLVHJPd8fQ', name: 'أوكتونوتس', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCXQ3-_m82KAnh-U6brMmvrA', name: 'مايا النحلة', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCBZLg-ixSGqEjh3ld7nSwLg', name: 'السنافر', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UC1ShKv0O7polu_tlhcqg4Xw', name: 'نقيب لابرادور', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCvr9YT7AwMTxKDqou3e_OUQ', name: 'زاد الحروف', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCT21_ci7c9PKYy9XZDHuJZg', name: 'Gecko\'s Garage Arabic', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCqiIbqnJB0AVTg6Z6QnZNdw', name: 'مغامرات منصور', thumbnailUrl: ''),
-      YoutubeChannel(id: 'UCpzp1_jpI3lfYy6eTW1kqhw', name: 'مدينة الأصدقاء', thumbnailUrl: ''),
+      YoutubeChannel(
+        id: 'UCAfwGn6Xq-TscvdChnPrktQ',
+        name: 'The Fixies بالعربية',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCuQKih3Ac3NABADQKQdeV6A',
+        name: 'Spacetoon',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCOGBA-T3jCfOPey73FzsxCw',
+        name: 'Nick Jr. Arabia',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCNbmKQcBE3Sdx2HN6KGkxKw',
+        name: 'Hello Maestro',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCXGCkE7vRMkwQwLVHJPd8fQ',
+        name: 'أوكتونوتس',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCXQ3-_m82KAnh-U6brMmvrA',
+        name: 'مايا النحلة',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCBZLg-ixSGqEjh3ld7nSwLg',
+        name: 'السنافر',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UC1ShKv0O7polu_tlhcqg4Xw',
+        name: 'نقيب لابرادور',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCvr9YT7AwMTxKDqou3e_OUQ',
+        name: 'زاد الحروف',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCT21_ci7c9PKYy9XZDHuJZg',
+        name: 'Gecko\'s Garage Arabic',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCqiIbqnJB0AVTg6Z6QnZNdw',
+        name: 'مغامرات منصور',
+        thumbnailUrl: '',
+      ),
+      YoutubeChannel(
+        id: 'UCpzp1_jpI3lfYy6eTW1kqhw',
+        name: 'مدينة الأصدقاء',
+        thumbnailUrl: '',
+      ),
     ];
 
-    if (_channels.isEmpty || (prefs.getBool('v2_5_migration_applied') ?? false) == false) {
+    if (_channels.isEmpty ||
+        (prefs.getBool('v2_5_migration_applied') ?? false) == false) {
       // Force reset or migrate curated list
       _channels = curatedChannels;
       await prefs.setBool('v2_5_migration_applied', true);
       for (var channel in _channels) {
         await dbService.insertChannel(channel);
       }
-      
+
       // Attempt to migrate old JSON cache if it exists
       final oldVideosCache = prefs.getString('videos_cache');
       if (oldVideosCache != null) {
@@ -234,8 +340,10 @@ class ChannelProvider with ChangeNotifier {
     _invalidateVideoCache();
 
     // Load cached videos instantly from local DB
-    _channelVideos = await dbService.getAllVideosMap(_channels.map((e) => e.id).toList());
-    
+    _channelVideos = await dbService.getAllVideosMap(
+      _channels.map((e) => e.id).toList(),
+    );
+
     // Fast Boot: If we have data, we can start immediately
     if (_channelVideos.values.any((list) => list.isNotEmpty)) {
       _isInitialized = true;
@@ -308,10 +416,14 @@ class ChannelProvider with ChangeNotifier {
               // Update the in-memory map incrementally
               final existingVids = _channelVideos[channel.id] ?? [];
               final chunkIds = chunk.map((v) => v.id).toSet();
-              
+
               // Simple way to avoid in-memory dupes before the next full reload
-              final newInChunk = chunk.where((v) => !existingVids.any((existing) => existing.id == v.id)).toList();
-              
+              final newInChunk = chunk
+                  .where(
+                    (v) => !existingVids.any((existing) => existing.id == v.id),
+                  )
+                  .toList();
+
               if (newInChunk.isNotEmpty) {
                 _channelVideos[channel.id] = [...existingVids, ...newInChunk];
                 _invalidateVideoCache();
@@ -416,11 +528,15 @@ class ChannelProvider with ChangeNotifier {
 
   Future<void> forceSyncFull() async {
     // Perform a deep metadata sync first
-    await loadAllVideos(isBackground: false); 
-    
+    await loadAllVideos(isBackground: false);
+
     if (_channelVideos.isNotEmpty) {
-       // Also perform a thorough auto-cache sync for links
-       await VideoCacheService().syncAutoCache(_channelVideos, ignoreTimers: true, deep: true);
+      // Also perform a thorough auto-cache sync for links
+      await VideoCacheService().syncAutoCache(
+        _channelVideos,
+        ignoreTimers: true,
+        deep: true,
+      );
     }
   }
 

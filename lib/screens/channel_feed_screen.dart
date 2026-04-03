@@ -20,18 +20,11 @@ class ChannelFeedScreen extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
 
-    List<YoutubeVideo> videos = provider.channelVideos[channel.id] ?? [];
-
-    // Filter videos by blocked keywords
-    if (blockedKeywords.isNotEmpty) {
-      videos = videos.where((video) {
-        final title = video.title.toLowerCase();
-        return !blockedKeywords.any((keyword) => title.contains(keyword));
-      }).toList();
-    }
-
-    // Sort by latest first
-    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    // ⚡ Bolt: Use memoized method to avoid O(N log N) sorting on every build
+    final videos = provider.getFilteredChannelVideos(
+      channelId: channel.id,
+      blockedKeywords: blockedKeywords,
+    );
 
     return ParticleBackground(
       child: Scaffold(
@@ -40,16 +33,27 @@ class ChannelFeedScreen extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: DadyTubeTheme.primary),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: DadyTubeTheme.primary,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundImage: channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null,
+                backgroundImage: channel.thumbnailUrl.isNotEmpty
+                    ? NetworkImage(channel.thumbnailUrl)
+                    : null,
                 backgroundColor: DadyTubeTheme.primaryContainer,
-                child: channel.thumbnailUrl.isEmpty ? const Icon(Icons.tv_rounded, size: 16, color: Colors.white) : null,
+                child: channel.thumbnailUrl.isEmpty
+                    ? const Icon(
+                        Icons.tv_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -83,7 +87,11 @@ class ChannelFeedScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.video_library_rounded, size: 80, color: DadyTubeTheme.primaryContainer),
+          const Icon(
+            Icons.video_library_rounded,
+            size: 80,
+            color: DadyTubeTheme.primaryContainer,
+          ),
           const SizedBox(height: 24),
           Text(
             loc.translate('no_videos'),
