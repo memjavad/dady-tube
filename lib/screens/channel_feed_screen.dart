@@ -40,6 +40,7 @@ class ChannelFeedScreen extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
+            tooltip: loc.translate('back'),
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: DadyTubeTheme.primary),
             onPressed: () => Navigator.pop(context),
           ),

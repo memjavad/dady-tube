@@ -60,6 +60,7 @@ class _ParentalGateState extends State<ParentalGate> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
+          tooltip: loc.translate('cancel'),
           icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),

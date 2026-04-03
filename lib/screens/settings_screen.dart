@@ -507,6 +507,7 @@ class _ChannelsTab extends StatelessWidget {
                   child: Text(channel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 IconButton(
+                  tooltip: loc.translate('remove_channel'),
                   icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
                   onPressed: () => provider.removeChannel(channel.id),
                 ),
