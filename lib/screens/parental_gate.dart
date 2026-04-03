@@ -62,6 +62,7 @@ class _ParentalGateState extends State<ParentalGate> {
         leading: IconButton(
           icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
+          tooltip: loc.translate('cancel'),
         ),
         title: Text(loc.translate('parental_gate_title')),
         centerTitle: true,
