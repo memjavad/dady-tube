@@ -5,3 +5,7 @@
 ## 2025-02-15 - Flutter Provider Expensive Getter Memoization
 **Learning:** In Flutter, `ChangeNotifier` providers with computed getters (like merging lists and sorting them) are re-evaluated *every single time* they are called during a UI `build()`. This means an O(N log N) sort operation inside a getter can execute dozens of times per frame, causing massive CPU spikes and jank.
 **Action:** Always memoize expensive operations (e.g. sorting, filtering large lists) within Provider getters. Cache the result in a private field (`_cachedData`) and introduce a `_invalidateCache()` method to clear the cache whenever the underlying data mutates.
+
+## 2026-03-27 - Dart Directory Stream Iteration Performance
+**Learning:** In Dart, processing directory listing streams directly using an `await for` loop to populate a collection is significantly more efficient than chaining `.toList().map().toSet()`, which creates redundant intermediate allocations.
+**Action:** Always use `await for` to iterate over streams (like `Directory.list()`) when you only need to process or calculate aggregate values (like file sizes or counting types) instead of creating expensive intermediate lists.
