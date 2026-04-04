@@ -55,7 +55,7 @@ class YoutubeService {
       // Basic scraping fallback for metadata
       try {
         final url = 'https://www.youtube.com/channel/$id';
-        final response = await http.get(Uri.parse(url));
+        final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
         return _parseChannelResponse(response);
       } catch (_) {}
     } finally {
@@ -199,7 +199,7 @@ class YoutubeService {
     try {
       final url =
           'https://www.youtube.com/feeds/videos.xml?channel_id=$channelId&hl=ar&gl=IQ';
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final document = XmlDocument.parse(response.body);
@@ -257,7 +257,7 @@ class YoutubeService {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       },
-    );
+    ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode != 200) return [];
 
