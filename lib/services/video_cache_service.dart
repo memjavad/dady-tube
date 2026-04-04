@@ -226,7 +226,7 @@ class VideoCacheService {
           try {
             final response = await client.send(
               http.Request('GET', url)..headers['Range'] = 'bytes=$start-$end',
-            );
+            ).timeout(const Duration(seconds: 10));
 
             int currentPos = start;
             await for (final chunk in response.stream) {
