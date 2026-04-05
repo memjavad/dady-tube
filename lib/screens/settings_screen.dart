@@ -470,6 +470,7 @@ class _ChannelsTab extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           TactileButton(
+            semanticLabel: loc.translate('add_channel'),
             onTap: () async {
               if (controller.text.isNotEmpty) {
                 final channel = await YoutubeService.getChannelInfo(controller.text);
@@ -510,7 +511,6 @@ class _ChannelsTab extends StatelessWidget {
                   icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
                   tooltip: AppLocalizations.of(context).translate('remove_channel'),
                   onPressed: () => provider.removeChannel(channel.id),
-                  tooltip: loc.translate('remove_channel'),
                 ),
               ],
             ),
