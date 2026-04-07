@@ -395,6 +395,7 @@ class _SafetyTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               TactileButton(
+                semanticLabel: loc.translate('add_keyword') ?? 'Add keyword',
                 onTap: () {
                   if (controller.text.isNotEmpty) {
                     settings.addBlockedKeyword(controller.text);
