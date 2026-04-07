@@ -1,4 +1,4 @@
-## 2026-03-27 - [Hardcoded PIN in Parental Gate]
-**Vulnerability:** The parental gate used a hardcoded string ('1234') for verification, allowing any user (including children) to easily bypass the gate.
-**Learning:** Hardcoded credentials on the client side are trivial to bypass and defeat the purpose of an authorization gate, especially for child-safety features.
-**Prevention:** Implement dynamic challenges (e.g., randomized math problems) or secure, user-defined PINs stored securely to ensure the gate serves its intended protective function.
+## 2024-06-18 - Prevent URL Injection in YouTube Service
+**Vulnerability:** Found multiple instances where dynamic unvalidated `id` and `channelId` variables were directly interpolated into string URLs inside `youtube_service.dart`. Malformed IDs could potentially manipulate URL paths or inject parameters.
+**Learning:** External variables originating from user input or database records should not be blindly trusted and directly interpolated into base URLs.
+**Prevention:** Always wrap variables that act as URL parameters or path segments with `Uri.encodeComponent(variable)` to properly encode special characters (e.g., `?`, `&`, `/`) and neutralize potential URL injection attacks.
