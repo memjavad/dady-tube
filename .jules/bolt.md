@@ -9,3 +9,7 @@
 ## 2026-03-27 - Dart Directory Stream Iteration Performance
 **Learning:** In Dart, processing directory listing streams directly using an `await for` loop to populate a collection is significantly more efficient than chaining `.toList().map().toSet()`, which creates redundant intermediate allocations.
 **Action:** Always use `await for` to iterate over streams (like `Directory.list()`) when you only need to process or calculate aggregate values (like file sizes or counting types) instead of creating expensive intermediate lists.
+
+## 2025-05-18 - Avoid List.sort() in Widget build()
+**Learning:** In Flutter, executing expensive operations like `List.sort()` and `List.where()` directly inside a widget's `build()` method causes the computation to re-run on every single render cycle. For large lists, this incurs a severe O(N log N) performance penalty, leading to dropped frames and jank during animations or scrolling.
+**Action:** Move expensive sorting and filtering logic out of the `build()` method. Instead, perform these operations in the state management layer (e.g., inside a Provider getter) and memoize the results to ensure they are only recomputed when the underlying data changes.

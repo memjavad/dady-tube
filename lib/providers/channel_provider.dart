@@ -62,6 +62,7 @@ class ChannelProvider with ChangeNotifier {
     _cachedShuffledVideos = null;
     _cachedBigFilteredVideos = null;
     _cachedPopularFilteredVideos = null;
+    _cachedChannelVideosList = null;
   }
 
   List<YoutubeVideo> get allVideos {
@@ -122,6 +123,36 @@ class ChannelProvider with ChangeNotifier {
 
   int _lastPopularFilterHash = 0;
   List<YoutubeVideo>? _cachedPopularFilteredVideos;
+
+  int _lastChannelVideosListHash = 0;
+  List<YoutubeVideo>? _cachedChannelVideosList;
+
+  List<YoutubeVideo> getChannelVideosList(
+      String channelId, List<String> blockedKeywords) {
+    final hash = Object.hash(channelId, Object.hashAll(blockedKeywords),
+        _channelVideos[channelId]?.length ?? 0);
+
+    if (_cachedChannelVideosList != null &&
+        _lastChannelVideosListHash == hash) {
+      return _cachedChannelVideosList!;
+    }
+
+    List<YoutubeVideo> videos = _channelVideos[channelId]?.toList() ?? [];
+
+    if (blockedKeywords.isNotEmpty) {
+      videos = videos.where((video) {
+        final title = video.title.toLowerCase();
+        return !blockedKeywords.any((keyword) => title.contains(keyword));
+      }).toList();
+    }
+
+    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+
+    _cachedChannelVideosList = videos;
+    _lastChannelVideosListHash = hash;
+
+    return videos;
+  }
 
   List<YoutubeVideo> getFilteredBigList({
     required bool isOffline,
