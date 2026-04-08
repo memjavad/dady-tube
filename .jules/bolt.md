@@ -9,3 +9,7 @@
 ## 2026-03-27 - Dart Directory Stream Iteration Performance
 **Learning:** In Dart, processing directory listing streams directly using an `await for` loop to populate a collection is significantly more efficient than chaining `.toList().map().toSet()`, which creates redundant intermediate allocations.
 **Action:** Always use `await for` to iterate over streams (like `Directory.list()`) when you only need to process or calculate aggregate values (like file sizes or counting types) instead of creating expensive intermediate lists.
+
+## 2025-06-15 - Dart List.contains inside where loop Anti-Pattern
+**Learning:** Using `!calmVideos.contains(v)` within a `videos.where((v) => ...)` loop, when both collections are Lists and relatively large, results in an O(N²) execution time. In a UI thread, this causes massive CPU spikes.
+**Action:** When splitting a list into two distinct collections based on a condition, always use a single-pass O(N) `for` loop to manually populate two separate lists rather than performing two separate passes with `where` and `contains`.

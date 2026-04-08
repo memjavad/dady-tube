@@ -149,17 +149,23 @@ class ChannelProvider with ChangeNotifier {
     }
 
     if (isNightTime) {
-      final calmVideos = videos
-          .where(
-            (v) =>
-                v.title.toLowerCase().contains('learn') ||
-                v.title.toLowerCase().contains('music') ||
-                v.title.toLowerCase().contains('lullaby') ||
-                v.title.toLowerCase().contains('story'),
-          )
-          .toList();
+      // ⚡ Bolt: Replaced O(N²) two-pass filtering (using List.contains) with a single O(N) pass.
+      // This prevents massive UI thread blocking when filtering large cached/downloaded lists.
+      final calmVideos = <YoutubeVideo>[];
+      final otherVideos = <YoutubeVideo>[];
 
-      final otherVideos = videos.where((v) => !calmVideos.contains(v)).toList();
+      for (var v in videos) {
+        final title = v.title.toLowerCase();
+        if (title.contains('learn') ||
+            title.contains('music') ||
+            title.contains('lullaby') ||
+            title.contains('story')) {
+          calmVideos.add(v);
+        } else {
+          otherVideos.add(v);
+        }
+      }
+
       videos = [...calmVideos, ...otherVideos];
     }
 
