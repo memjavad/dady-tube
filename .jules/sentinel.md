@@ -2,3 +2,8 @@
 **Vulnerability:** The parental gate used a hardcoded string ('1234') for verification, allowing any user (including children) to easily bypass the gate.
 **Learning:** Hardcoded credentials on the client side are trivial to bypass and defeat the purpose of an authorization gate, especially for child-safety features.
 **Prevention:** Implement dynamic challenges (e.g., randomized math problems) or secure, user-defined PINs stored securely to ensure the gate serves its intended protective function.
+
+## 2024-05-24 - [URL Injection Vulnerability]
+**Vulnerability:** URL string interpolation used user-controlled parameters (`channelId` and `id`) to construct HTTP request URLs directly, potentially allowing URL injection.
+**Learning:** String interpolation for URLs exposes services to injection vulnerabilities where crafted user input might add query parameters or manipulate URL paths to induce unintended requests (SSRF risk).
+**Prevention:** Always use `Uri.encodeComponent()` when building URLs manually to sanitize any external input.
