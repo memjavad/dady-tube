@@ -43,6 +43,7 @@ class ChannelProvider with ChangeNotifier {
   String _initStatusKey = "splash_preparing"; // Changed to Key
   String _initStatusArg = "";
   bool _isInitialized = false;
+  List<YoutubeVideo> _offlineReadyVideos = [];
 
   List<YoutubeChannel> get channels => _channels;
   Map<String, List<YoutubeVideo>> get channelVideos => _channelVideos;
@@ -52,6 +53,7 @@ class ChannelProvider with ChangeNotifier {
   String get initStatusKey => _initStatusKey;
   String get initStatusArg => _initStatusArg;
   bool get isInitialized => _isInitialized;
+  List<YoutubeVideo> get offlineReadyVideos => _offlineReadyVideos;
 
   // Cache for expensive getter computations
   List<YoutubeVideo>? _cachedAllVideos;
@@ -99,6 +101,37 @@ class ChannelProvider with ChangeNotifier {
     return all
         .where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id))
         .toList();
+  }
+
+  /// Updates the list of videos ready for offline play (Manual + Auto-Cache)
+  Future<void> updateOfflineVideos(DownloadProvider downloadProvider) async {
+    final all = allVideos;
+    final cachedIds = await VideoCacheService().getCachedVideoIds();
+    final downloadedIds = downloadProvider.downloadedVideos
+        .map((v) => v.id)
+        .toSet();
+
+    _offlineReadyVideos = all
+        .where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id))
+        .toList();
+    
+    // Also sort them by date (Newest first)
+    _offlineReadyVideos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    
+    notifyListeners();
+  }
+
+  /// Helper to check if a specific video is ready for offline play
+  bool isVideoOfflineReady(String videoId) {
+    return _offlineReadyVideos.any((v) => v.id == videoId);
+  }
+
+  YoutubeVideo? getVideoById(String id) {
+    for (var vids in _channelVideos.values) {
+      final index = vids.indexWhere((v) => v.id == id);
+      if (index != -1) return vids[index];
+    }
+    return null;
   }
 
   List<YoutubeVideo> get shuffledVideos {
@@ -314,6 +347,11 @@ class ChannelProvider with ChangeNotifier {
 
       // Refresh in background without blocking
       loadAllVideos(isBackground: true);
+
+      // ⚡ Fix 6: Always pre-warm previews and thumbnails from DB data, not just on network refresh
+      _cacheTopPreviews();
+      _precacheTopThumbnails();
+
       _isLoading = false;
       return;
     }
@@ -426,6 +464,9 @@ class ChannelProvider with ChangeNotifier {
       for (var video in topVideos) {
         VideoCacheService().prefetchManifest(video.id);
       }
+
+      _cacheTopPreviews();
+      _precacheTopThumbnails();
     }
 
     _isLoading = false;
@@ -436,18 +477,19 @@ class ChannelProvider with ChangeNotifier {
       _initStatusArg = "";
     }
     notifyListeners();
-
-    if (updated) {
-      _cacheTopPreviews();
-      _precacheTopThumbnails();
-    }
   }
 
   Future<void> _precacheTopThumbnails() async {
     final videos = shuffledVideos.take(12).toList();
     for (var video in videos) {
       if (video.thumbnailUrl.isNotEmpty) {
-        DefaultCacheManager().downloadFile(video.thumbnailUrl);
+        // Fire-and-forget with proper async error suppression
+        // (.catchError can't be used here — it must return FileInfo, not void)
+        () async {
+          try {
+            await DefaultCacheManager().downloadFile(video.thumbnailUrl);
+          } catch (_) {}
+        }();
       }
     }
   }

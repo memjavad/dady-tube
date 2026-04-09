@@ -10,7 +10,7 @@ class UsageProvider extends ChangeNotifier {
   static const String _keyMonthlyStars = 'monthly_stars_count';
   static const String _keyLastAwardDate = 'last_award_date';
 
-  int _dailyLimitMinutes = 30;
+  int _dailyLimitMinutes = 120;
   int _usageSeconds = 0;
   int _starsCount = 0;
   int _monthlyStars = 0;
@@ -72,7 +72,7 @@ class UsageProvider extends ChangeNotifier {
       _usageSeconds = prefs.getInt(_keyUsage) ?? 0;
     }
 
-    _dailyLimitMinutes = prefs.getInt(_keyLimit) ?? 30;
+    _dailyLimitMinutes = prefs.getInt(_keyLimit) ?? 120;
     _starsCount = prefs.getInt(_keyStars) ?? 0;
     _checkBedtime();
     notifyListeners();
@@ -80,7 +80,7 @@ class UsageProvider extends ChangeNotifier {
 
   Future<void> _checkAndAwardLeftoverStars(SharedPreferences prefs) async {
     final lastUsage = prefs.getInt(_keyUsage) ?? 0;
-    final lastLimit = prefs.getInt(_keyLimit) ?? 30;
+    final lastLimit = prefs.getInt(_keyLimit) ?? 120;
     final limitSeconds = lastLimit * 60;
     final leftoverSeconds = limitSeconds - lastUsage;
 

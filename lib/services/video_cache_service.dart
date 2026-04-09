@@ -15,21 +15,34 @@ class VideoCacheService {
   final yt.YoutubeExplode _yt = yt.YoutubeExplode();
   final Map<String, _PersistentManifest> _manifestCache = {};
   static const int _maxCacheEntries = 50;
-  static const int _manifestTTLHours =
-      5; // 5 Hours to match YouTube link expiry
+  static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
+
+  // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
+  String? _resolvedCachePath;
+
+  Future<String> get _cachePath async {
+    if (_resolvedCachePath != null) return _resolvedCachePath!;
+    final directory = await getTemporaryDirectory();
+    _resolvedCachePath = '${directory.path}/video_cache';
+    return _resolvedCachePath!;
+  }
+
+  // ⚡ Fix 2: In-memory stream URL cache — reads SharedPrefs only once per video
+  final Map<String, _CachedUrl> _streamUrlMemCache = {};
 
   String sanitizeVideoId(String id) {
     return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
   }
 
-  Future<String> get _cachePath async {
-    final directory = await getTemporaryDirectory();
-    return '${directory.path}/video_cache';
-  }
-
   /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
+      // Store in memory immediately (no async wait needed for next read)
+      _streamUrlMemCache[videoId] = _CachedUrl(
+        url: url,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
       final Map<String, dynamic> data = json.decode(jsonStr);
@@ -42,7 +55,13 @@ class VideoCacheService {
   }
 
   /// Returns a valid cached stream URL if it exists and is not expired.
+  /// ⚡ Fix 2: Checks in-memory cache first — zero disk I/O on hot path.
   Future<String?> getCachedStreamUrl(String videoId) async {
+    // 1. Check memory first (INSTANT — no I/O)
+    final mem = _streamUrlMemCache[videoId];
+    if (mem != null && !mem.isExpired) return mem.url;
+
+    // 2. Only fall through to disk if not in memory
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString('persistent_stream_urls');
@@ -57,6 +76,8 @@ class VideoCacheService {
 
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - timestamp < 1000 * 60 * 60 * _manifestTTLHours) {
+        // Populate memory cache so next access is instant
+        _streamUrlMemCache[videoId] = _CachedUrl(url: url, timestamp: timestamp);
         return url;
       }
     } catch (_) {}
@@ -91,29 +112,31 @@ class VideoCacheService {
 
       // Persistence for "Instant Play"
       final bestStream = manifest.muxed.withHighestBitrate();
-      if (bestStream != null) {
-        _persistStreamUrl(videoId, bestStream.url.toString());
-      }
+      _persistStreamUrl(videoId, bestStream.url.toString());
 
       return manifest;
     } finally {
-      // Clear the lock whether it succeeds or fails
       _activeFetches.remove(videoId);
     }
   }
 
   // ⚡ Performance Prioritization: Pause all background tasks during video startup
   bool _isBackgroundPaused = false;
+  final Set<http.Client> _activeClients = {};
 
   void pauseBackgroundOperations() {
     _isBackgroundPaused = true;
-    print('⏸️ Background operations PAUSED for video playback prioritization.');
+    
+    // Forcefully terminate all in-progress parallel downloads to instantly free bandwidth
+    for (var client in _activeClients) {
+      try { client.close(); } catch (_) {}
+    }
+    _activeClients.clear();
   }
 
   void resumeBackgroundOperations() {
     if (!_isBackgroundPaused) return;
     _isBackgroundPaused = false;
-    print('▶️ Background operations RESUMED.');
     _processManifestQueue();
   }
 
@@ -123,9 +146,10 @@ class VideoCacheService {
     }
   }
 
-  // ⚡ SyncQueue: Process one manifest at a time to prevent HTTP 429
+  // ⚡ Fix 8: Use Set for O(1) dedup instead of O(N) List.contains()
   bool _isFetchingManifest = false;
   final List<String> _manifestFetchQueue = [];
+  final Set<String> _manifestQueueSet = {};
 
   /// Background task to fetch a manifest to make future clicks instant.
   void prefetchManifest(String videoId) {
@@ -133,8 +157,10 @@ class VideoCacheService {
       final cached = _manifestCache[videoId]!;
       if (!cached.isExpired) return;
     }
-    
-    if (!_manifestFetchQueue.contains(videoId)) {
+
+    // ⚡ Fix 8: O(1) set lookup
+    if (!_manifestQueueSet.contains(videoId)) {
+      _manifestQueueSet.add(videoId);
       _manifestFetchQueue.add(videoId);
       _processManifestQueue();
     }
@@ -142,15 +168,15 @@ class VideoCacheService {
 
   Future<void> _processManifestQueue() async {
     if (_isFetchingManifest || _manifestFetchQueue.isEmpty || _isBackgroundPaused) return;
-    
+
     _isFetchingManifest = true;
     final videoId = _manifestFetchQueue.removeAt(0);
-    
+    _manifestQueueSet.remove(videoId); // ⚡ Fix 8: Keep set in sync
+
     try {
       final cachedUrl = await getCachedStreamUrl(videoId);
       if (cachedUrl == null) {
         await getManifest(videoId);
-        // Add a gentle delay to avoid triggering YouTube rate limits
         await Future.delayed(const Duration(milliseconds: 300));
       }
     } catch (_) {
@@ -176,36 +202,86 @@ class VideoCacheService {
     return _getExistingFilePath(videoId, '.mp4');
   }
 
+  // ⚡ Fix 5: In-memory cached video ID set — scans disk only once per session
+  Set<String>? _cachedVideoIdSet;
+
+  void _invalidateCachedIdSet() => _cachedVideoIdSet = null;
+
   /// Returns a set of all video IDs currently in the cache.
   Future<Set<String>> getCachedVideoIds() async {
+    // Return cached set immediately if available
+    if (_cachedVideoIdSet != null) return _cachedVideoIdSet!;
+
     final path = await _cachePath;
     final dir = Directory(path);
-    if (!(await dir.exists())) return {};
+    if (!(await dir.exists())) {
+      _cachedVideoIdSet = {};
+      return _cachedVideoIdSet!;
+    }
 
-    // ⚡ Bolt: Directory list iteration using `await for`.
-    // Replaced `.toList().map().toSet()` chain with a direct stream iteration.
-    // This avoids intermediate list allocations in memory, significantly reducing memory overhead
-    // when processing directories with a large number of cached videos.
     final Set<String> ids = {};
     await for (final entity in dir.list()) {
-      if (entity is File) {
-        ids.add(entity.path.split('/').last.split('.').first);
+      if (entity is File && entity.path.endsWith('.mp4')) {
+        final name = entity.path.split(Platform.pathSeparator).last;
+        ids.add(name.replaceAll('.mp4', ''));
       }
     }
-    return ids;
+    _cachedVideoIdSet = ids;
+    return _cachedVideoIdSet!;
+  }
+
+  // ⚡ Fix 7: Metadata sidecar — persists video info alongside the .mp4 file
+  Future<void> _writeMetaSidecar(
+    String cacheDir,
+    String sanitizedId, {
+    required String title,
+    required String thumbnailUrl,
+    required String channelId,
+  }) async {
+    try {
+      final meta = json.encode({
+        'title': title,
+        'thumbnailUrl': thumbnailUrl,
+        'channelId': channelId,
+        'cachedAt': DateTime.now().toIso8601String(),
+      });
+      await File('$cacheDir/$sanitizedId.meta').writeAsString(meta);
+    } catch (_) {}
+  }
+
+  /// Reads the metadata sidecar for a cached video.
+  Future<Map<String, dynamic>?> getMetadataForCachedVideo(String videoId) async {
+    try {
+      final path = await _cachePath;
+      final sanitizedId = sanitizeVideoId(videoId);
+      final file = File('$path/$sanitizedId.meta');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        return json.decode(content) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Starts caching a video in the background.
-  Future<void> cacheVideo(String videoId) async {
+  /// ⚡ Fix 3: Reuses in-memory manifest. Fix 7: Writes metadata sidecar.
+  Future<void> cacheVideo(
+    String videoId, {
+    String title = '',
+    String thumbnailUrl = '',
+    String channelId = '',
+  }) async {
     await _waitUntilResumed(); // Yield to prioritized playback
     final existing = await getCachedVideoPath(videoId);
     if (existing != null) return;
 
     final client = http.Client();
+    _activeClients.add(client);
+    File? file;
     try {
-      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      // ⚡ Fix 3: Use cached manifest instead of fetching a new one
+      final manifest = await getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
-      if (streamInfo == null) return;
 
       final url = streamInfo.url;
       final totalSize = streamInfo.size.totalBytes;
@@ -213,13 +289,13 @@ class VideoCacheService {
       await Directory(cacheDir).create(recursive: true);
 
       final sanitizedId = sanitizeVideoId(videoId);
-      final file = File('$cacheDir/$sanitizedId.mp4');
-      final raf = await file.open(mode: FileMode.write);
+      file = File('$cacheDir/$sanitizedId.mp4');
 
-      // Parallel Turbo Cache
+      // Parallel Turbo Cache — 4 concurrent connections
       const int segmentCount = 4;
       final int segmentSize = (totalSize / segmentCount).ceil();
       List<Future<void>> cacheTasks = [];
+      bool hasError = false;
 
       for (int i = 0; i < segmentCount; i++) {
         final start = i * segmentSize;
@@ -227,33 +303,91 @@ class VideoCacheService {
             ? totalSize - 1
             : (i + 1) * segmentSize - 1;
 
+        final partFile = File('${file.path}.part$i');
+
         cacheTasks.add(() async {
+          IOSink? sink;
           try {
             final response = await client.send(
               http.Request('GET', url)..headers['Range'] = 'bytes=$start-$end',
-            ).timeout(const Duration(seconds: 10));
+            ).timeout(const Duration(seconds: 30));
 
-            int currentPos = start;
+            sink = partFile.openWrite();
             await for (final chunk in response.stream) {
-              await raf.setPosition(currentPos);
-              await raf.writeFrom(chunk);
-              currentPos += chunk.length;
+              if (_isBackgroundPaused) {
+                // Abort chunk processing if paused
+                break;
+              }
+              sink.add(chunk);
             }
-          } catch (_) {}
+            await sink.flush();
+            await sink.close();
+          } catch (_) {
+            hasError = true;
+            if (sink != null) {
+              try { await sink.close(); } catch (_) {}
+            }
+          }
         }());
       }
 
       await Future.wait(cacheTasks);
-      await raf.close();
+
+      if (_isBackgroundPaused || hasError) {
+        // We aborted mid-download or failed. Delete the incomplete parts.
+        for (int i = 0; i < segmentCount; i++) {
+          final partFile = File('${file.path}.part$i');
+          if (await partFile.exists()) {
+            try { await partFile.delete(); } catch (_) {}
+          }
+        }
+        if (await file.exists()) {
+          try { await file.delete(); } catch (_) {}
+        }
+        return; // Exit early, do not mark as cached
+      }
+
+      // Stitch parts together sequentially
+      final raf = await file.open(mode: FileMode.write);
+      try {
+        for (int i = 0; i < segmentCount; i++) {
+          final partFile = File('${file.path}.part$i');
+          if (await partFile.exists()) {
+            final stream = partFile.openRead();
+            await for (final chunk in stream) {
+              await raf.writeFrom(chunk);
+            }
+            await partFile.delete();
+          }
+        }
+      } finally {
+        await raf.close();
+      }
+
+      // ⚡ Fix 5: Invalidate cached ID set so next read picks up this new file
+      _invalidateCachedIdSet();
+
+      // ⚡ Fix 7: Write metadata sidecar
+      if (title.isNotEmpty) {
+        await _writeMetaSidecar(
+          cacheDir,
+          sanitizedId,
+          title: title,
+          thumbnailUrl: thumbnailUrl,
+          channelId: channelId,
+        );
+      }
+
       await _manageCacheSize();
     } catch (e) {
       print('Video Cache Error (Parallel): $e');
     } finally {
       client.close();
+      _activeClients.remove(client);
     }
   }
 
-  /// Caches just the first ~5 seconds of a video for instant start.
+  /// Caches just the first ~1.5MB of a video for instant start preview.
   Future<void> cachePreview(String videoId) async {
     // If full video is already cached, no need for preview
     if (await getCachedVideoPath(videoId) != null) return;
@@ -264,27 +398,33 @@ class VideoCacheService {
     if (await previewFile.exists()) return;
 
     try {
+      // ⚡ Fix 6: Reuses in-memory manifest if available
       final manifest = await getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
-      if (streamInfo == null) return;
 
       await Directory(cacheDir).create(recursive: true);
 
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
 
-      // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
       int totalBytes = 0;
       const int maxBytes = 1524 * 1024; // ~1.5MB
 
       await for (final chunk in stream) {
+        if (_isBackgroundPaused) {
+          // Forcefully abort preview download to free bandwidth
+          await ios.close();
+          if (await previewFile.exists()) {
+            try { await previewFile.delete(); } catch (_) {}
+          }
+          return;
+        }
         ios.add(chunk);
         totalBytes += chunk.length;
         if (totalBytes >= maxBytes) break;
       }
 
       await ios.close();
-      print('Preview Cache: Saved 5s for $videoId');
     } catch (e) {
       print('Preview Cache Error: $e');
     }
@@ -303,20 +443,26 @@ class VideoCacheService {
 
     final files = await dir
         .list()
-        .where((e) => e is File)
+        .where((e) => e is File && e.path.endsWith('.mp4'))
         .cast<File>()
         .toList();
     if (files.length <= _maxCacheEntries) return;
 
-    // Sort by last modified (oldest first)
     files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
 
-    // Delete the oldest ones until we're under the limit
     for (int i = 0; i < files.length - _maxCacheEntries; i++) {
       try {
         await files[i].delete();
+        // Also delete the associated sidecar files
+        final base = files[i].path.replaceAll('.mp4', '');
+        final metaFile = File('$base.meta');
+        if (await metaFile.exists()) await metaFile.delete();
+        final previewFile = File('$base.preview');
+        if (await previewFile.exists()) await previewFile.delete();
       } catch (_) {}
     }
+    // Invalidate set after deletion
+    _invalidateCachedIdSet();
   }
 
   static const String _keyLastCacheDate = 'last_auto_cache_date';
@@ -339,32 +485,26 @@ class VideoCacheService {
         (lastDate == today) ? (prefs.getInt(_keyDailyCacheCount) ?? 0) : 0;
 
     if (!ignoreTimers && !deep && dailyCount >= _maxDailyCache) {
-      print('Smart Cache: Daily limit of $_maxDailyCache reached.');
       return;
     }
 
     final lastTimestamp = prefs.getInt(_keyLastCacheTimestamp) ?? 0;
     final timeSinceLastCache = now.millisecondsSinceEpoch - lastTimestamp;
 
-    // Night priority: 11 PM to 5 AM
     final isNightTime = now.hour >= 23 || now.hour < 5;
 
     bool shouldProceed = false;
     if (isNightTime) {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60); // 1 hour
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60);
     } else {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 6); // 6 hours
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 6);
     }
 
     if (!ignoreTimers && !deep && !shouldProceed && lastTimestamp != 0) {
-      print(
-        'Smart Cache: Too soon to cache again. (Last cache: ${DateTime.fromMillisecondsSinceEpoch(lastTimestamp)})',
-      );
       return;
     }
 
     // Step 1: Video File Caching (Heavy Downloads)
-    // We only do 1 heavy download at a time unless deep
     if (!deep) {
       List<YoutubeVideo> candidates = [];
       allChannelVideos.values.forEach((vids) => candidates.addAll(vids));
@@ -381,23 +521,26 @@ class VideoCacheService {
       }
 
       if (vToCache != null) {
-        print(
-          'Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)',
-        );
+        print('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
         await prefs.setString(_keyLastCacheDate, today);
         await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
         await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
-        cacheVideo(vToCache.id);
+        // ⚡ Fix 7: Pass metadata alongside the video ID
+        cacheVideo(
+          vToCache.id,
+          title: vToCache.title,
+          thumbnailUrl: vToCache.thumbnailUrl,
+          channelId: vToCache.channelId,
+        );
       }
     }
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    // If deep sync, we fetch many more manifests (Instant Play Links)
-    final manifestLimit = deep ? 100 : 2; 
+    final manifestLimit = deep ? 100 : 2;
     print('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
-    
+
     for (var channelVids in allChannelVideos.values) {
-      await _waitUntilResumed(); // Yield between channels
+      await _waitUntilResumed();
       final topVids = channelVids.take(manifestLimit);
       for (var v in topVids) {
         prefetchManifest(v.id);
@@ -415,10 +558,6 @@ class VideoCacheService {
       final path = await _cachePath;
       final dir = Directory(path);
       if (await dir.exists()) {
-        // ⚡ Bolt: Use `await for` to iterate over directory streams directly.
-        // Replaced `.toList()` iteration with stream processing.
-        // Impact: Eliminates a blocking O(N) allocation of the entire directory tree into memory
-        // before counting, ensuring cache statistics retrieval remains instantaneous even with 1000+ files.
         await for (final entity in dir.list()) {
           if (entity is File) {
             totalBytes += await entity.length();
@@ -441,6 +580,8 @@ class VideoCacheService {
       'mp4Count': mp4Count,
       'previewCount': previewCount,
       'urlCount': urlCount,
+      'memCacheCount': _manifestCache.length,
+      'streamUrlMemCacheCount': _streamUrlMemCache.length,
     };
   }
 
@@ -453,11 +594,28 @@ class VideoCacheService {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('persistent_stream_urls');
+      // Clear all in-memory caches
+      _streamUrlMemCache.clear();
+      _manifestCache.clear();
+      _cachedVideoIdSet = null;
+      _resolvedCachePath = null;
     } catch (_) {}
   }
 
   void dispose() {
     _yt.close();
+  }
+}
+
+class _CachedUrl {
+  final String url;
+  final int timestamp;
+
+  _CachedUrl({required this.url, required this.timestamp});
+
+  bool get isExpired {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return now - timestamp >= 1000 * 60 * 60 * 5; // 5 hours
   }
 }
 

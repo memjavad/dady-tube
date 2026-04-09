@@ -5,21 +5,21 @@ import '../core/theme.dart';
 enum VideoQuality { auto, p360, p720, p1080 }
 
 class SettingsProvider with ChangeNotifier {
-  VideoQuality _videoQuality = VideoQuality.p720;
-  bool _fullScreenByDefault = true;
+  VideoQuality _videoQuality = VideoQuality.auto;
+  bool _fullScreenByDefault = false;
   bool _showSuggestions = false;
   bool _autoCacheEnabled = true;
   bool _bedtimeMode = false;
-  bool _eyeProtectionEnabled = false;
+  bool _eyeProtectionEnabled = true;
   bool _restRemindersEnabled = true;
-  bool _distanceProtectionEnabled = false;
+  bool _distanceProtectionEnabled = true;
   List<String> _blockedKeywords = [];
-  Locale _locale = const Locale('ar', 'IQ');
+  Locale _locale = const Locale('en', 'US');
   AppThemeLevel _themeLevel = AppThemeLevel.blush;
-  bool _turboModeEnabled = false;
-  bool _postureProtectionEnabled = false;
-  bool _safeVolumeEnabled = false;
-  double _maxVolumeLevel = 0.6;
+  bool _turboModeEnabled = true;
+  bool _postureProtectionEnabled = true;
+  bool _safeVolumeEnabled = true;
+  double _maxVolumeLevel = 0.5;
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;
@@ -43,24 +43,24 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final qualityIndex = prefs.getInt('video_quality') ?? VideoQuality.p720.index;
+    final qualityIndex = prefs.getInt('video_quality') ?? VideoQuality.auto.index;
     _videoQuality = VideoQuality.values[qualityIndex];
-    _fullScreenByDefault = prefs.getBool('full_screen_by_default') ?? true;
+    _fullScreenByDefault = prefs.getBool('full_screen_by_default') ?? false;
     _showSuggestions = prefs.getBool('show_suggestions') ?? false;
     _autoCacheEnabled = prefs.getBool('auto_cache_enabled') ?? true;
     _bedtimeMode = prefs.getBool('bedtimeMode') ?? false;
-    _eyeProtectionEnabled = prefs.getBool('eyeProtectionEnabled') ?? false;
+    _eyeProtectionEnabled = prefs.getBool('eyeProtectionEnabled') ?? true;
     _restRemindersEnabled = prefs.getBool('restRemindersEnabled') ?? true;
-    _distanceProtectionEnabled = prefs.getBool('distanceProtectionEnabled') ?? false;
-    _turboModeEnabled = prefs.getBool('turbo_mode_enabled') ?? false;
+    _distanceProtectionEnabled = prefs.getBool('distanceProtectionEnabled') ?? true;
+    _turboModeEnabled = prefs.getBool('turbo_mode_enabled') ?? true;
     _blockedKeywords = prefs.getStringList('blocked_keywords') ?? [];
     
-    _postureProtectionEnabled = prefs.getBool('postureProtectionEnabled') ?? false;
-    _safeVolumeEnabled = prefs.getBool('safeVolumeEnabled') ?? false;
-    _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.6;
+    _postureProtectionEnabled = prefs.getBool('postureProtectionEnabled') ?? true;
+    _safeVolumeEnabled = prefs.getBool('safeVolumeEnabled') ?? true;
+    _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.5;
     
-    final langCode = prefs.getString('language_code') ?? 'ar';
-    final countryCode = prefs.getString('country_code') ?? 'IQ';
+    final langCode = prefs.getString('language_code') ?? 'en';
+    final countryCode = prefs.getString('country_code') ?? 'US';
     _locale = Locale(langCode, countryCode);
 
     final levelIndex = prefs.getInt('theme_level') ?? AppThemeLevel.blush.index;

@@ -22,6 +22,7 @@ import '../widgets/playtime_bucket.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/video_cache_service.dart';
+import 'offline_videos_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -82,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const ChannelListScreen(),
                 const AchievementsScreen(),
                 Container(), // Placeholder for settings (index 4)
+                const OfflineVideosScreen(), // Index 5
               ],
             ),
           ),
@@ -611,12 +613,13 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-           children: [
-             _buildNavItem(context, Icons.play_arrow_rounded, loc.translate('play'), 0),
-             _buildNavItem(context, Icons.auto_awesome_rounded, loc.translate('magic_stars'), 3),
-             _buildNavItem(context, Icons.subscriptions_rounded, loc.translate('channels'), 2),
-             _buildNavItem(context, Icons.person_rounded, loc.translate('settings'), 4),
-           ],
+            children: [
+              _buildNavItem(context, Icons.play_arrow_rounded, loc.translate('play'), 0),
+              _buildNavItem(context, Icons.download_done_rounded, loc.translate('offline'), 5),
+              _buildNavItem(context, Icons.subscriptions_rounded, loc.translate('channels'), 2),
+              _buildNavItem(context, Icons.auto_awesome_rounded, loc.translate('magic_stars'), 3),
+              _buildNavItem(context, Icons.person_rounded, loc.translate('settings'), 4),
+            ],
         ),
       ),
     );

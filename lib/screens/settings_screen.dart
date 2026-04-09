@@ -501,7 +501,12 @@ class _ChannelsTab extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: CachedNetworkImageProvider(channel.thumbnailUrl),
+                  backgroundImage: channel.thumbnailUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(channel.thumbnailUrl)
+                      : null,
+                  child: channel.thumbnailUrl.isEmpty
+                      ? const Icon(Icons.person_rounded)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(

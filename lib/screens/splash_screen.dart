@@ -78,6 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       Container(
                         width: 180,
                         height: 180,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -90,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           ],
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(30),
                           child: Image.asset('assets/images/logo.png'),
                         ),
                       ),

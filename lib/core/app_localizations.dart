@@ -30,6 +30,7 @@ class AppLocalizations {
       'exploring': 'Exploring',
       'try_again': 'Try Again',
       'back': 'Back',
+      'offline': 'Offline',
       
       // Worlds
       'animals': 'Animals',
@@ -176,6 +177,7 @@ class AppLocalizations {
       'exploring': 'استكشاف',
       'try_again': 'حاول مرة أخرى',
       'back': 'رجوع',
+      'offline': 'بدون إنترنت',
       
       // Worlds
       'animals': 'حيوانات',

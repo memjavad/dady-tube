@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
 import 'dart:io';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/channel_provider.dart';
@@ -18,7 +15,6 @@ import '../providers/download_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/youtube_service.dart';
 import '../services/download_service.dart';
-import '../providers/settings_provider.dart';
 import '../widgets/eye_protection_overlay.dart';
 import '../widgets/playtime_bucket.dart';
 import '../services/video_cache_service.dart';
@@ -99,24 +95,41 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _setupPreviewAndInitialize() async {
-    // Start initializing the main player in parallel with the preview
-    _initializePlayer();
+    // Start initializing the main player
+    final initFuture = _initializePlayer();
 
-    final previewPath = await _cacheService.getPreviewPath(widget.videoId);
-    if (previewPath != null && mounted) {
-      _previewController = VideoPlayerController.file(File(previewPath));
-      await _previewController!.initialize();
-      if (mounted && _isLoading) {
-        // Only play preview if main player isn't ready
-        _previewController!.setLooping(true);
-        if (mounted) {
-          setState(() {});
+    // Only set up preview if we are actually waiting for the network
+    final localResults = await Future.wait([
+      _downloadService.getLocalPath(widget.videoId),
+      _cacheService.getCachedVideoPath(widget.videoId),
+    ]);
+    final hasLocal = (localResults[0] ?? localResults[1]) != null;
+
+    if (!hasLocal) {
+      final previewPath = await _cacheService.getPreviewPath(widget.videoId);
+      if (previewPath != null && mounted) {
+        _previewController = VideoPlayerController.file(File(previewPath));
+        try {
+          await _previewController!.initialize().timeout(const Duration(seconds: 3));
+          if (mounted && _isLoading) {
+            // Only play preview if main player isn't ready
+            _previewController!.setLooping(true);
+            _previewController!.play();
+            if (mounted) {
+              setState(() {});
+            }
+          }
+        } catch (_) {
+           // Skip preview if codec fails
         }
+      } else if (mounted && _isLoading) {
+        // Show fallback buffer if no preview
+        _showGentleBuffer();
       }
-    } else if (mounted && _isLoading) {
-      // Show fallback buffer if no preview
-      _showGentleBuffer();
+    } else {
+       _showGentleBuffer();
     }
+    await initFuture;
   }
 
   Future<void> _showGentleBuffer() async {
@@ -179,6 +192,62 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _setupChewieAndUI() {
+    if (_videoPlayerController == null || !_videoPlayerController!.value.isInitialized) return;
+
+    _videoPlayerController!.addListener(_onVideoProgress);
+
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController!,
+      autoPlay: true,
+      looping: false,
+      fullScreenByDefault: settings.fullScreenByDefault,
+      aspectRatio: _videoPlayerController!.value.aspectRatio,
+      placeholder: (widget.thumbnailUrl != null && widget.thumbnailUrl!.isNotEmpty)
+          ? CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
+          : const Center(
+              child: CircularProgressIndicator(color: DadyTubeTheme.primary),
+            ),
+      materialProgressColors: ChewieProgressColors(
+        playedColor: Theme.of(context).colorScheme.primary,
+        handleColor: Theme.of(context).colorScheme.primaryContainer,
+        bufferedColor: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withOpacity(0.3),
+        backgroundColor: Colors.grey.withOpacity(0.2),
+      ),
+      showControls: true,
+      customControls: const MaterialControls(),
+    );
+
+    _chewieController!.addListener(() {
+      if (!_chewieController!.isFullScreen) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        );
+      }
+    });
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _isShowingBuffer = false;
+        if (_previewController != null) {
+          _previewController!.pause();
+          _previewController!.dispose();
+          _previewController = null;
+        }
+      });
+    }
+  }
+
   Future<void> _initializePlayer() async {
     try {
       setState(() {
@@ -186,37 +255,54 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _errorMessage = null;
       });
 
-      // Defer background sync until video is actually playing smoothly
-      // context.read<ChannelProvider>().triggerBackgroundSync();
+      // 1. Instant Metadata Lookup (Local-First)
+      final channelProvider = context.read<ChannelProvider>();
+      final localVideo = channelProvider.getVideoById(widget.videoId);
+      
+      if (localVideo != null && mounted) {
+        setState(() => _videoTitle = localVideo.title);
+      }
 
-      // Fetch video title for background notification
-      _yt.videos.get(widget.videoId).then((v) {
-        if (mounted) setState(() => _videoTitle = v.title);
-      });
-
-      // 1 & 2. Check local/cache sources in parallel
+      // 2. Check local/cache sources (Priority #1)
       final localResults = await Future.wait([
         _downloadService.getLocalPath(widget.videoId),
         _cacheService.getCachedVideoPath(widget.videoId),
-        _cacheService.getCachedStreamUrl(widget.videoId),
       ]);
 
       String? downloadPath = localResults[0];
       String? cachePath = localResults[1];
-      String? cachedUrl = localResults[2];
+      String? finalLocalPath = downloadPath ?? cachePath;
 
-      if (downloadPath != null || cachePath != null) {
-        print('🚀 Turbo Watch: Playing from Local/Cache File');
-        _videoPlayerController = VideoPlayerController.file(
-          File(downloadPath ?? cachePath!),
-        );
-      } else if (cachedUrl != null) {
-        print('💎 Turbo Watch: Using Persistent Link Cache (Instant Play!)');
-        _videoPlayerController = VideoPlayerController.networkUrl(
-          Uri.parse(cachedUrl),
-        );
+      if (finalLocalPath != null) {
+        print('🚀 Turbo Watch: Playing from Local/Cache File (INSTANT)');
+        _videoPlayerController = VideoPlayerController.file(File(finalLocalPath));
+        
+        await _videoPlayerController!.initialize().timeout(const Duration(seconds: 5));
+        if (mounted) {
+           setState(() {
+            _isLoading = false;
+            _isShowingBuffer = false;
+          });
+        }
+        
+        _setupChewieAndUI();
+        return; // EXIT EARLY - NO NETWORK NEEDED
+      }
+
+      // 3. Check for Persistent URL Cache (Fastest Network Hack)
+      final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
+      if (cachedUrl != null) {
+        print('💎 Turbo Watch: Using Persistent Link Cache');
+        _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(cachedUrl));
       } else {
-        // 3. Play from network (Bypass Mode)
+        // 4. Full Network Discovery (Slow Path)
+        if (_videoTitle == null) {
+          _yt.videos.get(widget.videoId).then((v) {
+            if (mounted) setState(() => _videoTitle = v.title);
+          }).catchError((_) {});
+        }
+
+        if (!mounted) return;
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         final manifest = await _cacheService.getManifest(widget.videoId);
 
@@ -227,119 +313,77 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         if (quality == VideoQuality.auto && !isTurbo) {
           streamInfo = manifest.muxed.withHighestBitrate();
         } else {
-          int targetWidth = (quality == VideoQuality.p360)
-              ? 640
-              : (quality == VideoQuality.p720 ? 1280 : 1920);
-          final compatibleStreams = manifest.muxed
-              .where((s) => s.videoResolution.width <= targetWidth)
-              .toList();
-          streamInfo = compatibleStreams.isNotEmpty
-              ? compatibleStreams.withHighestBitrate()
-              : manifest.muxed.withHighestBitrate();
+          int targetWidth = (quality == VideoQuality.p360) ? 640 : (quality == VideoQuality.p720 ? 1280 : 1920);
+          final compatibleStreams = manifest.muxed.where((s) => s.videoResolution.width <= targetWidth).toList();
+          streamInfo = compatibleStreams.isNotEmpty ? compatibleStreams.withHighestBitrate() : manifest.muxed.withHighestBitrate();
         }
 
         if (streamInfo == null) throw Exception("No playable stream found.");
-        _videoPlayerController = VideoPlayerController.networkUrl(
-          streamInfo.url,
-        );
-
-        // Bonus: Start caching this video in background
-        _cacheService.cacheVideo(widget.videoId);
-      }
-        try {
-          _videoPlayerController!.addListener(_onPlayerStateChanged);
-          await _videoPlayerController!.initialize();
-        } catch (e) {
-        // If it was a cached URL, it might have expired. Try one more time with fresh manifest.
-        final cachedUrl = await _cacheService.getCachedStreamUrl(
+        _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
+        
+        // ⚡ Fix 7: Pass metadata so the .meta sidecar is written alongside the .mp4
+        _cacheService.cacheVideo(
           widget.videoId,
+          title: _videoTitle ?? widget.videoTitle ?? '',
+          thumbnailUrl: widget.thumbnailUrl ?? '',
+          channelId: widget.channelName ?? '',
         );
-        if (cachedUrl != null) {
-          print('⚠️ V3.4: Cached URL expired or failed. Refreshing...');
-          // Invalidate cache
-          final prefs = await SharedPreferences.getInstance();
-          final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
-          final Map<String, dynamic> data = json.decode(jsonStr);
-          data.remove(widget.videoId);
-          await prefs.setString('persistent_stream_urls', json.encode(data));
-
-          // Fetch fresh and re-initialize
-          final manifest = await _cacheService.getManifest(widget.videoId);
-          final freshStream = manifest.muxed.withHighestBitrate();
-          if (freshStream != null) {
-            _videoPlayerController = VideoPlayerController.networkUrl(
-              freshStream.url,
-            );
-            _videoPlayerController!.addListener(_onPlayerStateChanged);
-            await _videoPlayerController!.initialize();
-          } else {
-            rethrow;
-          }
-        } else {
-          rethrow;
-        }
       }
 
-      _videoPlayerController!.addListener(_onVideoProgress);
+      _videoPlayerController!.addListener(_onPlayerStateChanged);
+      await _videoPlayerController!.initialize().timeout(const Duration(seconds: 10));
+      _setupChewieAndUI();
 
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController!,
-        autoPlay: true,
-        looping: false,
-        fullScreenByDefault: settings.fullScreenByDefault,
-        aspectRatio: _videoPlayerController!.value.aspectRatio,
-        placeholder: widget.thumbnailUrl != null
-            ? Image.network(widget.thumbnailUrl!, fit: BoxFit.cover)
-            : const Center(
-                child: CircularProgressIndicator(color: DadyTubeTheme.primary),
-              ),
-        materialProgressColors: ChewieProgressColors(
-          playedColor: Theme.of(context).colorScheme.primary,
-          handleColor: Theme.of(context).colorScheme.primaryContainer,
-          bufferedColor: Theme.of(
-            context,
-          ).colorScheme.primaryContainer.withOpacity(0.3),
-          backgroundColor: Colors.grey.withOpacity(0.2),
-        ),
-        // Design Sandbox rules: Customizing controls
-        showControls: true,
-        customControls: const MaterialControls(),
-      );
-
-      // Fix for Full-Screen Exit: Ensure orientation resets properly
-      _chewieController!.addListener(() {
-        if (!_chewieController!.isFullScreen) {
-          SystemChrome.setPreferredOrientations([
-            DeviceOrientation.portraitUp,
-            DeviceOrientation.portraitDown,
-          ]);
-          SystemChrome.setEnabledSystemUIMode(
-            SystemUiMode.manual,
-            overlays: SystemUiOverlay.values,
-          );
-        }
-      });
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isShowingBuffer = false; // Hide buffer once ready
-          // Clean up preview player to prevent "ghosting" or PiP overlaps
-          if (_previewController != null) {
-            _previewController!.pause();
-            _previewController!.dispose();
-            _previewController = null;
-          }
-        });
-      }
     } catch (e) {
       if (!mounted) return;
+      
+      // Attempt recovery
+      final isFile = _videoPlayerController?.dataSourceType == DataSourceType.file;
+      final isNetwork = _videoPlayerController?.dataSourceType == DataSourceType.network;
+      
+      if (isFile) {
+         try {
+           print('⚠️ Watch Error: Corrupted local file. Deleting and falling back to network...');
+           final path = _videoPlayerController!.dataSource;
+           // If the path starts with 'file://', we should strip it
+           final cleanPath = path.startsWith('file://') ? path.substring(7) : path;
+           final file = File(cleanPath);
+           if (await file.exists()) {
+             await file.delete();
+             print('🗑️ Deleted corrupted file: $cleanPath');
+           }
+           
+           // Fallback to network
+           final manifest = await _cacheService.getManifest(widget.videoId);
+           final freshStream = manifest.muxed.withHighestBitrate();
+           if (freshStream != null) {
+              _videoPlayerController = VideoPlayerController.networkUrl(freshStream.url);
+              await _videoPlayerController!.initialize().timeout(const Duration(seconds: 10));
+              _setupChewieAndUI();
+              return;
+           }
+         } catch (e2) {
+             print('⚠️ Local to Network recovery failed: $e2');
+         }
+      } else if (isNetwork) {
+         try {
+           print('⚠️ Watch Error: Network failure. Refreshing manifest...');
+           final manifest = await _cacheService.getManifest(widget.videoId);
+           final freshStream = manifest.muxed.withHighestBitrate();
+           if (freshStream != null) {
+              _videoPlayerController = VideoPlayerController.networkUrl(freshStream.url);
+              await _videoPlayerController!.initialize().timeout(const Duration(seconds: 10));
+              _setupChewieAndUI();
+              return;
+           }
+         } catch (e2) {
+           print('⚠️ Manifest recovery failed: $e2');
+         }
+      }
+
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            "Oh no! This toy is currently taking a nap. \n(Error: ${e.toString()})";
+        _errorMessage = "Oh no! This toy is currently taking a nap. \n(Error: ${e.toString()})";
       });
     }
   }
@@ -792,7 +836,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         const SizedBox(height: 24),
         Row(
           children: [
-            if (widget.channelThumbnailUrl != null)
+            if (widget.channelThumbnailUrl != null &&
+                widget.channelThumbnailUrl!.isNotEmpty)
               CircleAvatar(
                 backgroundImage: CachedNetworkImageProvider(
                   widget.channelThumbnailUrl!,
@@ -1093,17 +1138,25 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    height: 160,
-                    width: 260,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    ),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.error),
-                  ),
+                  child: imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          height: 160,
+                          width: 260,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Theme.of(context).colorScheme.surfaceContainerLow,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        )
+                      : Container(
+                          height: 160,
+                          width: 260,
+                          color: DadyTubeTheme.primaryContainer,
+                          child: const Icon(Icons.play_circle_outline_rounded,
+                              color: DadyTubeTheme.primary, size: 48),
+                        ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(12),

@@ -9,13 +9,18 @@ class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
   final yt.YoutubeExplode _yt = yt.YoutubeExplode();
 
+  // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
+  String? _resolvedLocalPath;
+
   String sanitizeVideoId(String id) {
     return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
   }
 
   Future<String> get _localPath async {
+    if (_resolvedLocalPath != null) return _resolvedLocalPath!;
     final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
+    _resolvedLocalPath = directory.path;
+    return _resolvedLocalPath!;
   }
 
   Future<File> _getLocalFile(String videoId) async {

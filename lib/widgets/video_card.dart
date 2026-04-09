@@ -24,6 +24,8 @@ class VideoCard extends StatelessWidget {
       orElse: () => YoutubeChannel(id: '', name: 'Unknown', thumbnailUrl: ''),
     );
 
+    final isOffline = channelProvider.isVideoOfflineReady(video.id);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 32),
       child: TactileButton(
@@ -73,6 +75,29 @@ class VideoCard extends StatelessWidget {
                         child: Text(
                           loc.translate('new_upload') ?? 'New',
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  if (isOffline)
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.download_done_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              loc.translate('offline'),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
                         ),
                       ),
                     ),

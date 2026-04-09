@@ -140,12 +140,12 @@ class YoutubeService {
   }) async {
     final ytExplode = yt.YoutubeExplode();
     final List<YoutubeVideo> allVideos = [];
+    List<YoutubeVideo> currentChunk = [];
     debugPrint('🔍 Fetching videos for: $channelId (Limit: $limit)');
 
     try {
       // Phase 1: High Fidelity - YoutubeExplode
       final uploads = ytExplode.channels.getUploads(channelId);
-      List<YoutubeVideo> currentChunk = [];
 
       await for (final video in uploads.take(limit)) {
         final v = YoutubeVideo(
@@ -177,6 +177,15 @@ class YoutubeService {
       }
     } catch (e) {
       debugPrint('❌ Stage 1 (Explode) Failed: $e');
+      if (allVideos.isNotEmpty) {
+        debugPrint('⚠️ Stage 1 (Explode) Salvaged: ${allVideos.length} videos before crash');
+        // If we salvaged videos before the parser crashed, we should return them
+        // to prevent the extremely slow fallback to Stage 2 scraping. 
+        if (onVideosFetched != null && currentChunk.isNotEmpty) {
+           onVideosFetched(currentChunk);
+        }
+        return allVideos;
+      }
     } finally {
       ytExplode.close();
     }
