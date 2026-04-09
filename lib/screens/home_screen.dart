@@ -426,11 +426,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
-              if (_selectedWorld == 'All')
+              if (_selectedWorld == 'All') ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(loc.translate('add_channels_msg')),
                 ),
+                const SizedBox(height: 24),
+                TactileButton(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ParentalGate(
+                          destination: SettingsScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                  child: TactileCard(
+                    color: DadyTubeTheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.settings_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          loc.translate('settings'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
