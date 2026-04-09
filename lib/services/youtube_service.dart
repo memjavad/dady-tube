@@ -54,7 +54,7 @@ class YoutubeService {
 
       // Basic scraping fallback for metadata
       try {
-        final url = 'https://www.youtube.com/channel/$id';
+        final url = 'https://www.youtube.com/channel/${Uri.encodeComponent(id)}';
         final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
         return _parseChannelResponse(response);
       } catch (_) {}
@@ -198,7 +198,7 @@ class YoutubeService {
     // Phase 3: Ultimate Fallback - RSS (Limited to ~15 vids)
     try {
       final url =
-          'https://www.youtube.com/feeds/videos.xml?channel_id=$channelId&hl=ar&gl=IQ';
+          'https://www.youtube.com/feeds/videos.xml?channel_id=${Uri.encodeComponent(channelId)}&hl=ar&gl=IQ';
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -248,7 +248,7 @@ class YoutubeService {
   ) async {
     // Try both /channel/ID and /@handle if we can find it
     // For now, use the ID-based URL as it's most reliable for scraping
-    final url = 'https://www.youtube.com/channel/$channelId/videos?hl=ar&gl=IQ';
+    final url = 'https://www.youtube.com/channel/${Uri.encodeComponent(channelId)}/videos?hl=ar&gl=IQ';
 
     final response = await http.get(
       Uri.parse(url),
