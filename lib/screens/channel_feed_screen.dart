@@ -30,9 +30,6 @@ class ChannelFeedScreen extends StatelessWidget {
       }).toList();
     }
 
-    // Sort by latest first
-    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
-
     return ParticleBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,

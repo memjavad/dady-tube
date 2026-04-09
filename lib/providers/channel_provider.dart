@@ -385,7 +385,9 @@ class ChannelProvider with ChangeNotifier {
                   .toList();
 
               if (newInChunk.isNotEmpty) {
-                _channelVideos[channel.id] = [...existingVids, ...newInChunk];
+                // ⚡ Bolt: Pre-sort data in provider to avoid expensive List.sort() in widget build methods
+                _channelVideos[channel.id] = [...existingVids, ...newInChunk]
+                  ..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
                 _invalidateVideoCache();
                 notifyListeners(); // Live update for Statistics tab
               }
