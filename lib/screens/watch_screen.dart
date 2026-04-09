@@ -650,7 +650,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TactileButton(
-                semanticLabel: 'Rewind 10 seconds',
+                semanticLabel: loc.translate('rewind_10'),
                 onTap: () {
                   final newPos = position - const Duration(seconds: 10);
                   activeController.seekTo(
@@ -667,7 +667,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 24),
               TactileButton(
-                semanticLabel: isPlaying ? 'Pause' : 'Play',
+                semanticLabel: isPlaying ? loc.translate('pause') : loc.translate('play'),
                 onTap: () {
                   if (isPlaying) {
                     activeController.pause();
@@ -689,7 +689,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 24),
               TactileButton(
-                semanticLabel: 'Fast forward 10 seconds',
+                semanticLabel: loc.translate('fast_forward_10'),
                 onTap: () {
                   final newPos = position + const Duration(seconds: 10);
                   activeController.seekTo(
@@ -706,7 +706,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 24),
               TactileButton(
-                semanticLabel: 'Enter Fullscreen',
+                semanticLabel: loc.translate('enter_fullscreen'),
                 onTap: () {
                   if (_chewieController != null) {
                     _chewieController!.enterFullScreen();

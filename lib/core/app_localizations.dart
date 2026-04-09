@@ -46,6 +46,11 @@ class AppLocalizations {
       'download_msg': 'It will be available offline in Travel Mode.',
       'yes_download': 'Yes, Download',
       'cancel': 'Cancel',
+      'backspace': 'Backspace',
+      'rewind_10': 'Rewind 10 seconds',
+      'fast_forward_10': 'Fast forward 10 seconds',
+      'enter_fullscreen': 'Enter Fullscreen',
+      'pause': 'Pause',
       'error_loading_video': 'Oops! This video is taking a nap.',
       
       // Bedtime / Usage
@@ -192,6 +197,11 @@ class AppLocalizations {
       'download_msg': 'سيكون متاحاً بدون إنترنت في وضع السفر.',
       'yes_download': 'نعم، تحميل',
       'cancel': 'إلغاء',
+      'backspace': 'مسح',
+      'rewind_10': 'إرجاع ١٠ ثوانٍ',
+      'fast_forward_10': 'تقديم ١٠ ثوانٍ',
+      'enter_fullscreen': 'ملء الشاشة',
+      'pause': 'إيقاف مؤقت',
       'error_loading_video': 'أوه! هذا الفيديو نائم حالياً.',
       
       // Bedtime / Usage
