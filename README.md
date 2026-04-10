@@ -14,8 +14,9 @@ DadyTube isn't just a video player; it's a **safe playground** designed from the
 
 ### 1. 📏 Distance Protection (Step Back!)
 Using the front camera and **ML Kit Face Detection**, DadyTube senses if a child is holding the device too close.
-- **How it works:** Real-time face proximity sensing. If the face occupies more than 55% of the frame, the "Step Back!" rabbit appears, pausing all content until a safe distance is restored.
-- **Privacy:** All processing happens on-device; no images are ever stored or transmitted.
+- **Cinematic Mascot:** A high-fidelity, friendly rabbit friend appears as a "Virtual Buddy" to remind kids to maintain a safe distance.
+- **Intuitive Interaction:** The system communicates safety through visual posture cues rather than scary text warnings, encouraging healthy ergonomic habits.
+- **Privacy First:** All processing happens on-device; no images are ever stored or transmitted.
 
 ### 2. 🌀 Progressive Dark Themes
 Four unique levels of brightness to match any environment:
@@ -38,6 +39,11 @@ A multi-stage spectrum-shifting filter that blocks harmful blue light.
 A gamified self-regulation system that rewards kids for *not* overusing the app.
 - **Earning:** 1 Magic Star for every 50 minutes of unused daily playtime.
 - **Interactive Field:** A dedicated tab where stars are scattered. Kids can tap and count them, turning self-discipline into a rewarding game.
+
+### 6. ✈️ Unified Travel Mode (Data-Free Entry)
+The ultimate offline experience for long trips or areas with no connectivity.
+- **Seamless Merging:** System-managed "Auto-Cache" and parent-initiated "Manual Downloads" are unified into a single, polished feed.
+- **Instant Playback:** Zero buffering, zero metadata loading—just tap and watch.
 
 ---
 
@@ -110,9 +116,16 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 ## 📈 Changelog
 
+### [v3.6] - 2026-04-10
+- **Added**: **Cinematic Safety Integration**. Rejuvenated the Distance Protection system with a high-fidelity cinematic mascot (Rabbit) and intuitive posture-based warnings.
+- **Added**: **Unified Offline Feed**. Rewrote the `Travel Mode` architecture to merge auto-cached content and manual downloads into a single "Safe-to-Watch" library.
+- **Optimized**: **Hyper-Optimized Footprint**. Reduced YouTube server metadata requests by 50% and implemented permanent local cache for channel profile pictures.
+- **Improved**: **Watch Screen UX**. Relocated the Download button to the player control bar (icon-only refresh) for a cleaner, cinematic viewing experience.
+- **Fixed**: Unified all `File()` operations with proper `dart:io` imports and database v2 migrations.
+
 ### [v3.5] - 2026-04-01
 - **Added**: Background Operation Latching (Resource Prioritization). The app now pauses background sync/caching during video initialization to dedicate 100% of device resources to playback.
-- **Improved**: Enforced a strict 100-video sync limit per channel to maintain high performance as the library grows.
+- **Improved**: Enforced a strict 10-video sync limit per channel to maintain high performance as the library grows.
 - **Fixed**: Resolved all "setState() after dispose" crashes in WatchScreen using standardized mounted guards.
 - **Fixed**: UI overflow in Eye Protection alerts on smaller devices.
 
