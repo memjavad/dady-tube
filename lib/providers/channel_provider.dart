@@ -182,17 +182,20 @@ class ChannelProvider with ChangeNotifier {
     }
 
     if (isNightTime) {
-      final calmVideos = videos
-          .where(
-            (v) =>
-                v.title.toLowerCase().contains('learn') ||
-                v.title.toLowerCase().contains('music') ||
-                v.title.toLowerCase().contains('lullaby') ||
-                v.title.toLowerCase().contains('story'),
-          )
-          .toList();
-
-      final otherVideos = videos.where((v) => !calmVideos.contains(v)).toList();
+      // ⚡ Bolt: Single-pass O(N) partition to avoid O(N²) .where().contains() bottleneck
+      final calmVideos = <YoutubeVideo>[];
+      final otherVideos = <YoutubeVideo>[];
+      for (final v in videos) {
+        final title = v.title.toLowerCase();
+        if (title.contains('learn') ||
+            title.contains('music') ||
+            title.contains('lullaby') ||
+            title.contains('story')) {
+          calmVideos.add(v);
+        } else {
+          otherVideos.add(v);
+        }
+      }
       videos = [...calmVideos, ...otherVideos];
     }
 
