@@ -9,6 +9,7 @@ import '../services/youtube_service.dart';
 import '../services/video_cache_service.dart';
 import '../services/database_service.dart';
 import '../core/app_localizations.dart';
+import 'dart:io';
 import '../providers/settings_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -501,10 +502,10 @@ class _ChannelsTab extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: channel.thumbnailUrl.isNotEmpty
-                      ? CachedNetworkImageProvider(channel.thumbnailUrl)
-                      : null,
-                  child: channel.thumbnailUrl.isEmpty
+                  backgroundImage: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
+                      ? FileImage(File(channel.localThumbnailPath!))
+                      : (channel.thumbnailUrl.isNotEmpty ? CachedNetworkImageProvider(channel.thumbnailUrl) : null) as ImageProvider?,
+                  child: channel.thumbnailUrl.isEmpty && channel.localThumbnailPath == null
                       ? const Icon(Icons.person_rounded)
                       : null,
                 ),

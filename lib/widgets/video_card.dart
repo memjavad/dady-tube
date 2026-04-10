@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
@@ -52,13 +53,16 @@ class VideoCard extends StatelessWidget {
                 children: [
                   AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                      child: CachedNetworkImage(
-                        imageUrl: video.thumbnailUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(color: Theme.of(context).colorScheme.surfaceContainerLow),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
+                    child: Hero(
+                      tag: 'video_thumb_${video.id}',
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                        child: CachedNetworkImage(
+                          imageUrl: video.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(color: Theme.of(context).colorScheme.surfaceContainerLow),
+                          errorWidget: (context, url, error) => const Icon(Icons.error),
+                        ),
                       ),
                     ),
                   ),
@@ -115,11 +119,34 @@ class VideoCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      channel.name,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
+                            ? Image.file(
+                                File(channel.localThumbnailPath!),
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.cover,
+                              )
+                            : channel.thumbnailUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: channel.thumbnailUrl,
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(Icons.person, size: 24),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          channel.name,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import '../services/youtube_service.dart';
 import '../services/video_cache_service.dart';
 import '../services/database_service.dart';
@@ -12,23 +15,27 @@ class YoutubeChannel {
   final String id;
   final String name;
   final String thumbnailUrl;
+  final String? localThumbnailPath;
 
   YoutubeChannel({
     required this.id,
     required this.name,
     required this.thumbnailUrl,
+    this.localThumbnailPath,
   });
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'thumbnailUrl': thumbnailUrl,
+    'localThumbnailPath': localThumbnailPath,
   };
 
   factory YoutubeChannel.fromJson(Map<String, dynamic> json) => YoutubeChannel(
     id: json['id'],
     name: json['name'],
     thumbnailUrl: json['thumbnailUrl'],
+    localThumbnailPath: json['localThumbnailPath'],
   );
 }
 
@@ -72,16 +79,32 @@ class ChannelProvider with ChangeNotifier {
     }
 
     List<YoutubeVideo> all = [];
-    final activeChannelIds = _channels.map((c) => c.id).toSet();
-
-    _channelVideos.forEach((channelId, vids) {
-      if (activeChannelIds.contains(channelId)) {
-        all.addAll(vids);
+    
+    // Interleaving Logic (Round-Robin):
+    // 1st video of each channel, then 2nd of each, and so on.
+    final activeChannelIds = _channels.map((c) => c.id).toList();
+    final List<List<YoutubeVideo>> groups = [];
+    
+    for (var id in activeChannelIds) {
+      final vids = _channelVideos[id];
+      if (vids != null && vids.isNotEmpty) {
+        groups.add(vids);
       }
-    });
+    }
 
-    // Sort all videos by publishedAt descending
-    all.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    if (groups.isEmpty) return [];
+
+    // Find the maximum number of videos in any single channel
+    int maxVideos = groups.fold(0, (max, list) => list.length > max ? list.length : max);
+
+    for (int i = 0; i < maxVideos; i++) {
+      for (var group in groups) {
+        if (i < group.length) {
+          all.add(group[i]);
+        }
+      }
+    }
+
     _cachedAllVideos = all;
     return all;
   }
@@ -105,15 +128,22 @@ class ChannelProvider with ChangeNotifier {
 
   /// Updates the list of videos ready for offline play (Manual + Auto-Cache)
   Future<void> updateOfflineVideos(DownloadProvider downloadProvider) async {
-    final all = allVideos;
     final cachedIds = await VideoCacheService().getCachedVideoIds();
-    final downloadedIds = downloadProvider.downloadedVideos
-        .map((v) => v.id)
-        .toSet();
+    final downloadedVideos = downloadProvider.downloadedVideos;
+    final all = allVideos;
 
-    _offlineReadyVideos = all
-        .where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id))
-        .toList();
+    // 1. Start with all manual downloads from the DownloadProvider
+    List<YoutubeVideo> combined = List.from(downloadedVideos);
+
+    // 2. Add all videos from the curated channel feed that have been auto-cached
+    final manualIds = downloadedVideos.map((e) => e.id).toSet();
+    for (var v in all) {
+      if (cachedIds.contains(v.id) && !manualIds.contains(v.id)) {
+        combined.add(v);
+      }
+    }
+
+    _offlineReadyVideos = combined;
     
     // Also sort them by date (Newest first)
     _offlineReadyVideos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
@@ -134,18 +164,24 @@ class ChannelProvider with ChangeNotifier {
     return null;
   }
 
+  YoutubeVideo? getNextVideo(String currentVideoId) {
+    final list = shuffledVideos;
+    final index = list.indexWhere((v) => v.id == currentVideoId);
+    if (index != -1 && index < list.length - 1) {
+      return list[index + 1];
+    }
+    return null;
+  }
+
   List<YoutubeVideo> get shuffledVideos {
     if (_cachedShuffledVideos != null) {
       return _cachedShuffledVideos!;
     }
 
+    // User requested specific ordering: "first the first video of each channal then secund video of each chanal"
+    // To honor this, we disable the random shuffle and return the interleaved 'allVideos' list.
     final all = allVideos;
-    if (all.isEmpty) return [];
-
-    // Sort logic remains the same
-    final newest = all.take(10).toList()..shuffle();
-    final remaining = all.skip(10).toList()..shuffle();
-    _cachedShuffledVideos = [...newest, ...remaining];
+    _cachedShuffledVideos = all;
     return _cachedShuffledVideos!;
   }
 
@@ -341,6 +377,9 @@ class ChannelProvider with ChangeNotifier {
       _channels.map((e) => e.id).toList(),
     );
 
+    // Initial check for missing local avatars (Persist permanently)
+    _ensureChannelAvatars();
+
     // Fast Boot: If we have data, we can start immediately
     if (_channelVideos.values.any((list) => list.isNotEmpty)) {
       _isInitialized = true;
@@ -373,6 +412,9 @@ class ChannelProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final shouldAutoCache =
         autoCache ?? prefs.getBool('auto_cache_enabled') ?? true;
+
+    // Ensure all channel avatars are cached permanently
+    _ensureChannelAvatars();
 
     // Only show shimmer if we don't have cached content
     if (_channelVideos.isEmpty) {
@@ -410,7 +452,7 @@ class ChannelProvider with ChangeNotifier {
 
           await YoutubeService.fetchVideosForChannel(
             channel.id,
-            limit: 100, // Strictly limit to 100 per channel
+            limit: 10, // Reduced from 50 to 10 to further minimize initial load
             onVideosFetched: (chunk) async {
               // Save newly fetched videos to database piece-by-piece
               await DatabaseService.instance.insertOrUpdateVideos(chunk);
@@ -462,8 +504,8 @@ class ChannelProvider with ChangeNotifier {
     _isOffline = failCount > 0 && failCount == _channels.length;
 
     if (updated) {
-      // Pre-fetch manifests for top videos
-      final topVideos = allVideos.take(5);
+      // Pre-fetch manifests for top videos (Reduced from 5 to 2)
+      final topVideos = allVideos.take(2);
       for (var video in topVideos) {
         VideoCacheService().prefetchManifest(video.id);
       }
@@ -483,7 +525,7 @@ class ChannelProvider with ChangeNotifier {
   }
 
   Future<void> _precacheTopThumbnails() async {
-    final videos = shuffledVideos.take(12).toList();
+    final videos = shuffledVideos.take(6).toList(); // Reduced from 12
     for (var video in videos) {
       if (video.thumbnailUrl.isNotEmpty) {
         // Fire-and-forget with proper async error suppression
@@ -498,7 +540,7 @@ class ChannelProvider with ChangeNotifier {
   }
 
   Future<void> _cacheTopPreviews() async {
-    final videos = shuffledVideos.take(7).toList();
+    final videos = shuffledVideos.take(3).toList(); // Reduced from 7
     for (var video in videos) {
       VideoCacheService().cachePreview(video.id);
     }
@@ -555,6 +597,48 @@ class ChannelProvider with ChangeNotifier {
       final nextVideo = list[index + 1];
       print('🚀 Predictive Pre-warming for: ${nextVideo.title}');
       VideoCacheService().prefetchManifest(nextVideo.id);
+    }
+  }
+
+  /// 🖼️ Permanent Avatar Caching: Ensures all channels have a local profile picture.
+  Future<void> _ensureChannelAvatars() async {
+    for (int i = 0; i < _channels.length; i++) {
+      final channel = _channels[i];
+      if (channel.localThumbnailPath == null && channel.thumbnailUrl.isNotEmpty) {
+        await _persistChannelAvatar(i);
+      }
+    }
+  }
+
+  Future<void> _persistChannelAvatar(int index) async {
+    final channel = _channels[index];
+    try {
+      final response = await http.get(Uri.parse(channel.thumbnailUrl)).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final directory = await getApplicationDocumentsDirectory();
+        final avatarsDir = Directory('${directory.path}/avatars');
+        if (!await avatarsDir.exists()) {
+          await avatarsDir.create(recursive: true);
+        }
+
+        final file = File('${avatarsDir.path}/${channel.id}.jpg');
+        await file.writeAsBytes(response.bodyBytes);
+
+        // Update model and DB
+        final updatedChannel = YoutubeChannel(
+          id: channel.id,
+          name: channel.name,
+          thumbnailUrl: channel.thumbnailUrl,
+          localThumbnailPath: file.path,
+        );
+
+        _channels[index] = updatedChannel;
+        await DatabaseService.instance.insertChannel(updatedChannel);
+        debugPrint('🖼️ Channel avatar persisted: ${channel.name} -> ${file.path}');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error persisting channel avatar for ${channel.name}: $e');
     }
   }
 }

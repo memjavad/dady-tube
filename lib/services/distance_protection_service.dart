@@ -64,7 +64,7 @@ class DistanceProtectionService {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.low, // Changed from medium to low for better performance
       enableAudio: false,
       imageFormatGroup: defaultTargetPlatform == TargetPlatform.android 
           ? ImageFormatGroup.nv21 
@@ -100,10 +100,9 @@ class DistanceProtectionService {
 
   Future<void> _processImage(CameraImage image) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    // Ultra-Light: Only process 1 frame every 1200ms (approx 0.8 FPS)
+    // Ultra-Light: Only process 1 frame every 1500ms (approx 0.6 FPS)
     // This dramatically reduces CPU pressure while remaining safe.
-    // Light: Process every 500ms for responsiveness (2 FPS)
-    if (_isBusy || _faceDetector == null || (now - _lastProcessedTimestamp < 500)) return;
+    if (_isBusy || _faceDetector == null || (now - _lastProcessedTimestamp < 1500)) return;
     
     _isBusy = true;
     _lastProcessedTimestamp = now;

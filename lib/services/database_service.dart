@@ -21,14 +21,16 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Upgraded from 1
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
     const idType = 'TEXT PRIMARY KEY';
     const textType = 'TEXT NOT NULL';
+    const nullableTextType = 'TEXT';
     const intType = 'INTEGER NOT NULL';
 
     await db.execute('''
@@ -36,6 +38,7 @@ CREATE TABLE channels (
   id $idType,
   name $textType,
   thumbnailUrl $textType,
+  localThumbnailPath $nullableTextType,
   lastSync $intType
 )
 ''');
@@ -52,6 +55,12 @@ CREATE TABLE videos (
 ''');
   }
 
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT');
+    }
+  }
+
   // --- Channels ---
 
   Future<void> insertChannel(YoutubeChannel channel, {int lastSync = 0}) async {
@@ -62,6 +71,7 @@ CREATE TABLE videos (
         'id': channel.id,
         'name': channel.name,
         'thumbnailUrl': channel.thumbnailUrl,
+        'localThumbnailPath': channel.localThumbnailPath,
         'lastSync': lastSync,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
@@ -76,6 +86,7 @@ CREATE TABLE videos (
       id: json['id'] as String,
       name: json['name'] as String,
       thumbnailUrl: json['thumbnailUrl'] as String,
+      localThumbnailPath: json['localThumbnailPath'] as String?,
     )).toList();
   }
 

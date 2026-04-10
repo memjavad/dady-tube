@@ -41,6 +41,20 @@ DadyTube isn't just a video player; it's a **safe playground**. Developers must 
 - **Storage**: Shared Preferences
 - **Video Player**: `youtube_player_flutter`
 
+## 🤖 MCP Intelligence
+Our AI-driven workflow leverages specialized **Model Context Protocol (MCP)** servers to maintain code quality and design fidelity:
+
+- **Dart/Flutter Specialist (`dart-mcp-server`)**: 
+    - Always run `dart analyze` via MCP before committing changes.
+    - Utilize `rip_grep_packages` to understand internal dependencies like `youtube_explode_dart`.
+    - Use `hot_reload` for instant visual feedback during UI tweaking.
+- **Design Guardian (`StitchMCP`)**:
+    - Use to verify and apply the DadyTube design system tokens across new screens.
+- **The Knowledge Vault (`google-developer-knowledge`)**:
+    - Treat as the primary source of truth for official Flutter/Android documentation.
+- **Decision Engine (`sequential-thinking`)**:
+    - Mandatory for complex architectural changes, ensuring all edge cases (like offline-mode race conditions) are considered.
+
 ## 📦 Contribution Workflow
 1. **Component First**: Build atoms in `lib/core/tactile_widgets.dart` before screens.
 2. **Style Check**: Use the `DadyTubeTheme` exclusively. No hardcoded hex values in screens.

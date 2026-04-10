@@ -22,6 +22,7 @@ import '../core/app_localizations.dart';
 import 'parental_gate.dart';
 import 'package:audio_service/audio_service.dart';
 import '../services/background_audio_service.dart';
+import '../services/youtube_client_service.dart';
 
 class WatchScreen extends StatefulWidget {
   final String videoId;
@@ -44,7 +45,7 @@ class WatchScreen extends StatefulWidget {
 }
 
 class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
-  late yt.YoutubeExplode _yt;
+  yt.YoutubeExplode get _yt => YoutubeClientService().client;
   VideoPlayerController? _videoPlayerController;
   VideoPlayerController? _previewController;
   ChewieController? _chewieController;
@@ -63,7 +64,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _yt = yt.YoutubeExplode();
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
 
@@ -108,19 +108,25 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     if (!hasLocal) {
       final previewPath = await _cacheService.getPreviewPath(widget.videoId);
       if (previewPath != null && mounted) {
-        _previewController = VideoPlayerController.file(File(previewPath));
-        try {
-          await _previewController!.initialize().timeout(const Duration(seconds: 3));
-          if (mounted && _isLoading) {
-            // Only play preview if main player isn't ready
-            _previewController!.setLooping(true);
-            _previewController!.play();
-            if (mounted) {
-              setState(() {});
+        // Double check existence one last time to avoid ENOENT race conditions
+        final file = File(previewPath);
+        if (await file.exists() && (await file.length()) > 0) {
+          _previewController = VideoPlayerController.file(file);
+          try {
+            await _previewController!.initialize().timeout(const Duration(seconds: 3));
+            if (mounted && _isLoading) {
+              // Only play preview if main player isn't ready
+              _previewController!.setLooping(true);
+              _previewController!.play();
+              if (mounted) {
+                setState(() {});
+              }
             }
+          } catch (_) {
+             // Skip preview if codec fails
           }
-        } catch (_) {
-           // Skip preview if codec fails
+        } else {
+           _showGentleBuffer();
         }
       } else if (mounted && _isLoading) {
         // Show fallback buffer if no preview
@@ -255,13 +261,18 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _errorMessage = null;
       });
 
-      // 1. Instant Metadata Lookup (Local-First)
+      // 1. Instant Metadata Lookup (Parallel)
       final channelProvider = context.read<ChannelProvider>();
-      final localVideo = channelProvider.getVideoById(widget.videoId);
       
-      if (localVideo != null && mounted) {
-        setState(() => _videoTitle = localVideo.title);
-      }
+      // Fire off metadata fetch and player init in parallel
+      final metadataLookup = Future(() {
+        final localVideo = channelProvider.getVideoById(widget.videoId);
+        if (localVideo != null && mounted) {
+          setState(() => _videoTitle = localVideo.title);
+          return true;
+        }
+        return false;
+      });
 
       // 2. Check local/cache sources (Priority #1)
       final localResults = await Future.wait([
@@ -334,6 +345,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       await _videoPlayerController!.initialize().timeout(const Duration(seconds: 10));
       _setupChewieAndUI();
 
+    } on yt.VideoUnplayableException catch (e) {
+       if (!mounted) return;
+       debugPrint('🚫 Interactive Recovery: Video unplayable - $e');
+       setState(() {
+         _isLoading = false;
+         final errorStr = e.toString().toLowerCase();
+         _errorMessage = errorStr.contains('bot') 
+           ? "Oh no! A robot blocked this toy. \nLet's try another one!"
+           : "This toy is taking a nap. \nLet's find another one!";
+       });
     } catch (e) {
       if (!mounted) return;
       
@@ -388,6 +409,26 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _skipToNextToy() {
+    final provider = context.read<ChannelProvider>();
+    final nextVideo = provider.getNextVideo(widget.videoId);
+    if (nextVideo != null) {
+       Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WatchScreen(
+              videoId: nextVideo.id,
+              videoTitle: nextVideo.title,
+              thumbnailUrl: nextVideo.thumbnailUrl,
+              channelName: "DadyTube Channel",
+            ),
+          ),
+        );
+    } else {
+       Navigator.pop(context);
+    }
+  }
+
   void _onVideoProgress() {
     if (!mounted) return;
     if (_videoPlayerController != null &&
@@ -439,7 +480,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _videoPlayerController?.removeListener(_onVideoProgress);
 
     WidgetsBinding.instance.removeObserver(this);
-    _yt.close();
+    // _yt.close(); // Shared singleton, don't close
     _downloadService.dispose();
 
     // Safety Reset for System UI
@@ -618,19 +659,19 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             _videoPlayerController!.value.isInitialized) ||
         (_previewController != null && _previewController!.value.isInitialized);
 
-    if (!hasPlayer) {
-      return const SizedBox.shrink();
-    }
+    // Instant Buttons logic: Always show the container to prevent layout shift.
+    // We'll use the activeController if it exists, or dummy values if not.
 
-    final activeController =
-        (_videoPlayerController != null &&
-            _videoPlayerController!.value.isInitialized)
-        ? _videoPlayerController!
-        : _previewController!;
+    final activeController = hasPlayer
+        ? ((_videoPlayerController != null &&
+                _videoPlayerController!.value.isInitialized)
+            ? _videoPlayerController!
+            : _previewController!)
+        : null;
 
-    final duration = activeController.value.duration;
-    final position = activeController.value.position;
-    final isPlaying = activeController.value.isPlaying;
+    final duration = activeController?.value.duration ?? Duration.zero;
+    final position = activeController?.value.position ?? Duration.zero;
+    final isPlaying = activeController?.value.isPlaying ?? false;
 
     String formatDuration(Duration d) {
       final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -673,11 +714,13 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   ),
                   child: Slider(
                     value: position.inSeconds.toDouble(),
-                    max: duration.inSeconds.toDouble(),
+                    max: duration.inSeconds.toDouble() > 0 ? duration.inSeconds.toDouble() : 1.0,
                     onChanged: (value) {
-                      _videoPlayerController!.seekTo(
-                        Duration(seconds: value.toInt()),
-                      );
+                      if (hasPlayer && _videoPlayerController != null) {
+                        _videoPlayerController!.seekTo(
+                          Duration(seconds: value.toInt()),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -695,12 +738,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             children: [
               TactileButton(
                 semanticLabel: 'Rewind 10 seconds',
-                onTap: () {
+                onTap: hasPlayer ? () {
                   final newPos = position - const Duration(seconds: 10);
-                  activeController.seekTo(
+                  activeController!.seekTo(
                     newPos < Duration.zero ? Duration.zero : newPos,
                   );
-                },
+                } : null,
                 child: const TactileCard(
                   padding: EdgeInsets.all(12),
                   child: Icon(
@@ -712,14 +755,14 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               const SizedBox(width: 24),
               TactileButton(
                 semanticLabel: isPlaying ? 'Pause' : 'Play',
-                onTap: () {
+                onTap: hasPlayer ? () {
                   if (isPlaying) {
-                    activeController.pause();
+                    activeController!.pause();
                   } else {
-                    activeController.play();
+                    activeController!.play();
                   }
                   setState(() {});
-                },
+                } : null,
                 child: TactileCard(
                   color: DadyTubeTheme.primary,
                   padding: const EdgeInsets.all(16),
@@ -734,17 +777,30 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               const SizedBox(width: 24),
               TactileButton(
                 semanticLabel: 'Fast forward 10 seconds',
-                onTap: () {
+                onTap: hasPlayer ? () {
                   final newPos = position + const Duration(seconds: 10);
-                  activeController.seekTo(
+                  activeController!.seekTo(
                     newPos > duration ? duration : newPos,
                   );
-                },
+                } : null,
                 child: const TactileCard(
                   padding: EdgeInsets.all(12),
                   child: Icon(
                     Icons.forward_10_rounded,
                     color: DadyTubeTheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Download Button (Textless icon next to Fullscreen)
+              TactileButton(
+                semanticLabel: 'Download for offline',
+                onTap: _startDownload,
+                child: const TactileCard(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.download_rounded,
+                    color: Colors.blueAccent,
                   ),
                 ),
               ),
@@ -774,45 +830,79 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   Widget _buildErrorState(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.toys_outlined,
-            size: 48,
-            color: Theme.of(context).colorScheme.primaryContainer,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.orangeAccent.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.sentiment_dissatisfied_rounded,
+              size: 80,
+              color: Colors.orangeAccent,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
           Text(
             _errorMessage ?? loc.translate('error_loading_video'),
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 24),
-          TactileButton(
-            onTap: _initializePlayer,
-            child: TactileCard(
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
               color: DadyTubeTheme.primary,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                child: Text(
-                  loc.translate('try_again'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TactileButton(
+                onTap: _initializePlayer,
+                child: TactileCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh_rounded, color: DadyTubeTheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        loc.translate('try_again'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 16),
+              TactileButton(
+                onTap: _skipToNextToy,
+                child: TactileCard(
+                  color: DadyTubeTheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.skip_next_rounded, color: Colors.white),
+                      const SizedBox(width: 8),
+                      const Text(
+                        "Try Next Toy",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -836,20 +926,38 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         const SizedBox(height: 24),
         Row(
           children: [
-            if (widget.channelThumbnailUrl != null &&
-                widget.channelThumbnailUrl!.isNotEmpty)
-              CircleAvatar(
-                backgroundImage: CachedNetworkImageProvider(
-                  widget.channelThumbnailUrl!,
-                ),
-                radius: 20,
-              )
-            else
-              const CircleAvatar(
-                backgroundColor: DadyTubeTheme.primaryContainer,
-                radius: 20,
-                child: Icon(Icons.person_rounded, color: DadyTubeTheme.primary),
-              ),
+            Builder(
+              builder: (context) {
+                final provider = Provider.of<ChannelProvider>(context, listen: false);
+                final channel = provider.channels.firstWhere(
+                  (c) => c.name == widget.channelName || c.thumbnailUrl == widget.channelThumbnailUrl,
+                  orElse: () => YoutubeChannel(id: '', name: '', thumbnailUrl: ''),
+                );
+
+                if (channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()) {
+                  return CircleAvatar(
+                    backgroundImage: FileImage(File(channel.localThumbnailPath!)),
+                    radius: 20,
+                  );
+                }
+
+                if (widget.channelThumbnailUrl != null &&
+                    widget.channelThumbnailUrl!.isNotEmpty) {
+                  return CircleAvatar(
+                    backgroundImage: CachedNetworkImageProvider(
+                      widget.channelThumbnailUrl!,
+                    ),
+                    radius: 20,
+                  );
+                }
+
+                return const CircleAvatar(
+                  backgroundColor: DadyTubeTheme.primaryContainer,
+                  radius: 20,
+                  child: Icon(Icons.person_rounded, color: DadyTubeTheme.primary),
+                );
+              },
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -924,55 +1032,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-        Row(
-          children: [
-            Expanded(
-              child: TactileButton(
-                onTap: () {},
-                child: TactileCard(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.favorite_rounded,
-                        color: Color(0xFFFF5C5C),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        loc.translate('save'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TactileButton(
-                onTap: _startDownload,
-                child: TactileCard(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.download_rounded,
-                        color: Colors.blueAccent,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        loc.translate('download'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        const SizedBox(height: 0),
         const SizedBox(height: 16),
         TactileButton(
           onTap: () => Navigator.pop(context),
@@ -1002,14 +1062,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   Future<void> _startDownload() async {
     final loc = AppLocalizations.of(context);
-    // Parent Gate
-    final authorized = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const ParentalGate(destination: _AuthorizedDownload()),
-      ),
-    );
+    // Parent Gate removed per user request
+    const authorized = true;
 
     if (authorized == true) {
       setState(() {
@@ -1180,25 +1234,67 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   Widget _buildGentleBuffer(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Container(
-      color: Colors.white.withOpacity(0.95),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const _PulseCloud(),
-            const SizedBox(height: 16),
-            Text(
-              loc.translate('breathe_in'),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: DadyTubeTheme.primary,
-              ),
-            ),
-          ],
+    if (widget.thumbnailUrl == null || widget.thumbnailUrl!.isEmpty) {
+      return Container(
+        color: Colors.white.withOpacity(0.95),
+        child: const Center(child: _PulseCloud()),
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. Blurred Background for Atmosphere
+        CachedNetworkImage(
+          imageUrl: widget.thumbnailUrl!,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(color: Colors.black),
         ),
-      ),
+        // Darken overlay
+        Container(color: Colors.black.withOpacity(0.6)),
+        
+        // 2. High-Fidelity Focused Thumbnail
+        Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Hero(
+                  tag: 'video_thumb_${widget.videoId}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.7,
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: CachedNetworkImage(
+                          imageUrl: widget.thumbnailUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Subtle loading indicator
+                const CircularProgressIndicator(
+                  color: DadyTubeTheme.primary,
+                  strokeWidth: 4,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  loc.translate('fetching_toys'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: DadyTubeTheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

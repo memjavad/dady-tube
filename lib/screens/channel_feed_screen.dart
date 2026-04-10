@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:provider/provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/settings_provider.dart';
@@ -48,9 +49,11 @@ class ChannelFeedScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundImage: channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null,
+                backgroundImage: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
+                    ? FileImage(File(channel.localThumbnailPath!))
+                    : (channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null) as ImageProvider?,
                 backgroundColor: DadyTubeTheme.primaryContainer,
-                child: channel.thumbnailUrl.isEmpty ? const Icon(Icons.tv_rounded, size: 16, color: Colors.white) : null,
+                child: (channel.thumbnailUrl.isEmpty && channel.localThumbnailPath == null) ? const Icon(Icons.tv_rounded, size: 16, color: Colors.white) : null,
               ),
               const SizedBox(width: 12),
               Expanded(

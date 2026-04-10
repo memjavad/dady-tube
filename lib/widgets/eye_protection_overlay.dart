@@ -332,65 +332,83 @@ class _DistanceWarningOverlay extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/learning_icon_3d.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.warning_amber_rounded,
+                      child: const Icon(
+                        Icons.visibility_off_rounded,
                         size: 60,
                         color: Colors.pinkAccent,
                       ),
-                    ),
                   ),
                   const SizedBox(height: 32),
-                  Image.asset(
-                    'assets/images/rabbit_posture_3d.png',
-                    height: 200,
-                    fit: BoxFit.contain,
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.15),
+                              blurRadius: 40,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/bad_posture_rabbit.png',
+                          height: 240,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const Positioned(
+                        top: 20,
+                        right: 20,
+                        child: Icon(
+                          Icons.cancel_rounded,
+                          color: Colors.redAccent,
+                          size: 80,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                      horizontal: 32,
+                      vertical: 20,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
+                      color: Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 40,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.straighten_rounded,
-                              color: DadyTubeTheme.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              loc.translate('step_back_title'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: DadyTubeTheme.primary,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          loc.translate('step_back_title'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.w800,
+                            color: DadyTubeTheme.primary,
+                            fontSize: 24,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Text(
                           loc.translate('safety_pause'),
+                          textAlign: TextAlign.center,
                           style: TextStyle(
+                            fontFamily: 'Be Vietnam Pro',
                             color: Colors.grey[600],
-                            fontSize: 12,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -434,9 +452,45 @@ class _PostureWarningOverlay extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/rabbit_posture_3d.png',
-                      fit: BoxFit.contain,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.1),
+                                blurRadius: 60,
+                                spreadRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: Image.asset(
+                            'assets/images/bad_posture_rabbit.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.2),
+                                blurRadius: 20,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.redAccent,
+                            size: 80,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

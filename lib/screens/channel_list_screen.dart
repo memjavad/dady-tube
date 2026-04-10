@@ -10,6 +10,7 @@ import 'watch_screen.dart';
 import 'parental_gate.dart';
 import 'settings_screen.dart';
 import 'channel_feed_screen.dart';
+import 'dart:io';
 
 class ChannelListScreen extends StatelessWidget {
   const ChannelListScreen({super.key});
@@ -69,9 +70,13 @@ class ChannelListScreen extends StatelessWidget {
               borderRadius: 100,
               child: CircleAvatar(
                 radius: 40,
-                backgroundImage: channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null,
+                backgroundImage: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
+                    ? FileImage(File(channel.localThumbnailPath!))
+                    : (channel.thumbnailUrl.isNotEmpty ? NetworkImage(channel.thumbnailUrl) : null) as ImageProvider?,
                 backgroundColor: DadyTubeTheme.primaryContainer,
-                child: channel.thumbnailUrl.isEmpty ? const Icon(Icons.tv_rounded, color: Colors.white, size: 30) : null,
+                child: channel.thumbnailUrl.isEmpty && channel.localThumbnailPath == null
+                    ? const Icon(Icons.tv_rounded, color: Colors.white, size: 30)
+                    : null,
               ),
             ),
           ),

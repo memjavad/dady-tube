@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:xml/xml.dart';
 import '../providers/channel_provider.dart';
+import 'youtube_client_service.dart';
 
 class YoutubeService {
   // We'll use a simple method to try and resolve channel info
@@ -12,7 +13,7 @@ class YoutubeService {
     String url, {
     yt.YoutubeExplode? ytClient,
   }) async {
-    final ytExplode = ytClient ?? yt.YoutubeExplode();
+    final ytExplode = ytClient ?? YoutubeClientService().client;
     try {
       final channel = await ytExplode.channels.getByVideo(
         url,
@@ -32,7 +33,9 @@ class YoutubeService {
       } catch (_) {}
       debugPrint('Error fetching channel info: $e');
     } finally {
-      if (ytClient == null) ytExplode.close();
+      // Don't close shared client. Only close if it was a custom provided client
+      // the original logic was: if (ytClient == null) ytExplode.close();
+      // Since we now default to a singleton if ytClient is null, we should NEVER close it here.
     }
     return null;
   }
@@ -41,7 +44,7 @@ class YoutubeService {
     String id, {
     yt.YoutubeExplode? ytClient,
   }) async {
-    final ytExplode = ytClient ?? yt.YoutubeExplode();
+    final ytExplode = ytClient ?? YoutubeClientService().client;
     try {
       final channel = await ytExplode.channels.get(id);
       return YoutubeChannel(
@@ -59,7 +62,7 @@ class YoutubeService {
         return _parseChannelResponse(response);
       } catch (_) {}
     } finally {
-      if (ytClient == null) ytExplode.close();
+      // Don't close shared client
     }
     return null;
   }
@@ -135,10 +138,10 @@ class YoutubeService {
 
   static Future<List<YoutubeVideo>> fetchVideosForChannel(
     String channelId, {
-    int limit = 50,
+    int limit = 10,
     void Function(List<YoutubeVideo>)? onVideosFetched,
   }) async {
-    final ytExplode = yt.YoutubeExplode();
+    final ytExplode = YoutubeClientService().client;
     final List<YoutubeVideo> allVideos = [];
     List<YoutubeVideo> currentChunk = [];
     debugPrint('🔍 Fetching videos for: $channelId (Limit: $limit)');
@@ -148,21 +151,48 @@ class YoutubeService {
       final uploads = ytExplode.channels.getUploads(channelId);
 
       await for (final video in uploads.take(limit)) {
-        final v = YoutubeVideo(
-          id: video.id.value,
-          title: video.title,
-          thumbnailUrl: video.thumbnails.highResUrl,
-          channelId: channelId,
-          publishedAt: video.uploadDate ?? DateTime.now(),
-        );
+        try {
+          // --- Filter: Prevent "Reels" (Shorts) from loading ---
+          // Heuristic 1: Duration check. Shorts are usually < 60s.
+          // We'll use 60s as the limit for DadyTube to ensure high-fidelity regular videos.
+          if (video.duration != null && video.duration!.inSeconds < 60) {
+            debugPrint('⏭️ Skipping Short: ${video.title} (${video.duration!.inSeconds}s)');
+            continue;
+          }
 
-        currentChunk.add(v);
-        allVideos.add(v);
+          // Heuristic 2: Keyword check in title
+          if (video.title.toLowerCase().contains('#shorts')) {
+            debugPrint('⏭️ Skipping obvious Short (Title): ${video.title}');
+            continue;
+          }
 
-        // Emit chunks of 50 to the provider for "piece by piece" saving
-        if (onVideosFetched != null && currentChunk.length >= 50) {
-          onVideosFetched(List.from(currentChunk));
-          currentChunk.clear();
+          // --- Filter: Prevent Live Streams ---
+          if (video.isLive) {
+            debugPrint('⏭️ Skipping Live Event: ${video.title}');
+            continue;
+          }
+
+          final v = YoutubeVideo(
+            id: video.id.value,
+            title: video.title,
+            thumbnailUrl: video.thumbnails.highResUrl,
+            channelId: channelId,
+            publishedAt: video.uploadDate ?? DateTime.now(),
+            isLive: video.isLive,
+          );
+
+          currentChunk.add(v);
+          allVideos.add(v);
+
+          // Emit chunks of 50 to the provider for "piece by piece" saving
+          if (onVideosFetched != null && currentChunk.length >= 50) {
+            onVideosFetched(List.from(currentChunk));
+            currentChunk.clear();
+          }
+        } catch (videoError) {
+          // Robustness: If one video (like a Live stream) fails parsing, don't crash the whole list.
+          debugPrint('⚠️ Error processing individual video in stream: $videoError');
+          continue;
         }
       }
 
@@ -187,7 +217,7 @@ class YoutubeService {
         return allVideos;
       }
     } finally {
-      ytExplode.close();
+      // Don't close shared client
     }
 
     // Phase 2: Rapid Fallback - Scraping (Limited to one page, ~30 vids)
@@ -312,6 +342,21 @@ class YoutubeService {
             item['gridVideoRenderer'];
         if (videoRenderer == null) continue;
 
+        // --- Stage 2 Filter: Prevent Reels from appearing in scraping ---
+        // Regular videos in scraping almost always have a 'lengthText'.
+        // Reels/Shorts often lack this or use a different renderer.
+        if (videoRenderer['lengthText'] == null) {
+          debugPrint('⏭️ Scraping: Skipping video with no lengthText (likely Reel/Short/Live)');
+          continue;
+        }
+
+        // --- Scraping heuristic for upcoming/live ---
+        final accessibilityLabel = videoRenderer['title']?['accessibility']?['accessibilityData']?['label']?.toString().toLowerCase() ?? '';
+        if (accessibilityLabel.contains('live') || accessibilityLabel.contains('upcoming') || accessibilityLabel.contains('مباشر')) {
+           debugPrint('⏭️ Scraping: Skipping suspected live/upcoming video');
+           continue;
+        }
+
         final videoId = videoRenderer['videoId'];
         final title =
             videoRenderer['title']?['runs']?[0]?['text'] ??
@@ -361,6 +406,7 @@ class YoutubeVideo {
   final String thumbnailUrl;
   final String channelId;
   final DateTime publishedAt;
+  final bool isLive;
 
   YoutubeVideo({
     required this.id,
@@ -368,6 +414,7 @@ class YoutubeVideo {
     required this.thumbnailUrl,
     required this.channelId,
     required this.publishedAt,
+    this.isLive = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -376,6 +423,7 @@ class YoutubeVideo {
     'thumbnailUrl': thumbnailUrl,
     'channelId': channelId,
     'publishedAt': publishedAt.toIso8601String(),
+    'isLive': isLive,
   };
 
   factory YoutubeVideo.fromJson(Map<String, dynamic> json) => YoutubeVideo(
@@ -384,6 +432,7 @@ class YoutubeVideo {
     thumbnailUrl: json['thumbnailUrl'],
     channelId: json['channelId'],
     publishedAt: DateTime.tryParse(json['publishedAt'] ?? '') ?? DateTime.now(),
+    isLive: json['isLive'] ?? false,
   );
 }
 

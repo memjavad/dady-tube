@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
@@ -6,15 +7,16 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'youtube_service.dart';
+import 'youtube_client_service.dart';
 
 class VideoCacheService {
   static final VideoCacheService _instance = VideoCacheService._internal();
   factory VideoCacheService() => _instance;
   VideoCacheService._internal();
 
-  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+  yt.YoutubeExplode get _yt => YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
-  static const int _maxCacheEntries = 50;
+  static const int _maxCacheEntries = 25; // Halved from 50
   static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
 
   // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
@@ -115,6 +117,12 @@ class VideoCacheService {
       _persistStreamUrl(videoId, bestStream.url.toString());
 
       return manifest;
+    } on yt.VideoUnplayableException catch (e) {
+      debugPrint('🚫 Video Unplayable: $videoId - $e');
+      rethrow;
+    } catch (e) {
+      debugPrint('⚠️ Manifest Fetch Error: $videoId - $e');
+      rethrow;
     } finally {
       _activeFetches.remove(videoId);
     }
@@ -176,7 +184,16 @@ class VideoCacheService {
     try {
       final cachedUrl = await getCachedStreamUrl(videoId);
       if (cachedUrl == null) {
-        await getManifest(videoId);
+        final manifest = await getManifest(videoId);
+        // ⚡ Socket Warming: Perform a tiny HEAD request to the stream server to warm TCP/TLS
+        try {
+          final bestStream = manifest.muxed.withHighestBitrate();
+          final warmUrl = bestStream.url;
+          // Trigger a HEAD request in background, don't await the body
+          YoutubeClientService().httpClient.head(warmUrl).timeout(const Duration(seconds: 3)).then((_) {
+            debugPrint('🔥 Socket Warmed for $videoId');
+          }).catchError((_) {});
+        } catch (_) {}
         await Future.delayed(const Duration(milliseconds: 300));
       }
     } catch (_) {
@@ -188,12 +205,17 @@ class VideoCacheService {
 
   /// Helper method to return an existing file path based on video ID and extension.
   Future<String?> _getExistingFilePath(String videoId, String extension) async {
-    final path = await _cachePath;
-    final sanitizedId = sanitizeVideoId(videoId);
-    final file = File('$path/$sanitizedId$extension');
-    if (await file.exists()) {
-      return file.path;
-    }
+    try {
+      final path = await _cachePath;
+      final sanitizedId = sanitizeVideoId(videoId);
+      final file = File('$path/$sanitizedId$extension');
+      if (await file.exists()) {
+        final stat = await file.stat();
+        if (stat.size > 0) {
+          return file.path;
+        }
+      }
+    } catch (_) {}
     return null;
   }
 
@@ -291,8 +313,8 @@ class VideoCacheService {
       final sanitizedId = sanitizeVideoId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
-      // Parallel Turbo Cache — 4 concurrent connections
-      const int segmentCount = 4;
+      // Parallel Turbo Cache — 2 concurrent connections (Halved from 4)
+      const int segmentCount = 2;
       final int segmentSize = (totalSize / segmentCount).ceil();
       List<Future<void>> cacheTasks = [];
       bool hasError = false;
@@ -468,7 +490,7 @@ class VideoCacheService {
   static const String _keyLastCacheDate = 'last_auto_cache_date';
   static const String _keyDailyCacheCount = 'daily_auto_cache_count';
   static const String _keyLastCacheTimestamp = 'last_auto_cache_timestamp';
-  static const int _maxDailyCache = 3;
+  static const int _maxDailyCache = 1; // Halved/Reduced from 3
 
   /// Orchestrates smart background caching with night priority.
   Future<void> syncAutoCache(
@@ -495,9 +517,9 @@ class VideoCacheService {
 
     bool shouldProceed = false;
     if (isNightTime) {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60);
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2); // 2 hours (Halved volume)
     } else {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 6);
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 12); // 12 hours (Halved volume)
     }
 
     if (!ignoreTimers && !deep && !shouldProceed && lastTimestamp != 0) {
@@ -536,7 +558,7 @@ class VideoCacheService {
     }
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    final manifestLimit = deep ? 100 : 2;
+    final manifestLimit = deep ? 50 : 1; // Halved limits
     print('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
 
     for (var channelVids in allChannelVideos.values) {
@@ -603,7 +625,7 @@ class VideoCacheService {
   }
 
   void dispose() {
-    _yt.close();
+    // No-op: client managed by YoutubeClientService
   }
 }
 
