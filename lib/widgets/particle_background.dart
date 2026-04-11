@@ -40,9 +40,11 @@ class _ParticleBackgroundState extends State<ParticleBackground> with SingleTick
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: targetColor),
         duration: const Duration(milliseconds: 800),
+        child: widget.child,
         builder: (context, color, child) {
           return AnimatedBuilder(
             animation: _controller,
+            child: child,
             builder: (context, child) {
               for (var particle in _particles) {
                 particle.update();
@@ -50,7 +52,8 @@ class _ParticleBackgroundState extends State<ParticleBackground> with SingleTick
               return RepaintBoundary(
                 child: CustomPaint(
                   painter: ParticlePainter(_particles, color ?? theme.colorScheme.primary),
-                  child: widget.child,
+                  // ⚡ Bolt: Pass down the cached child to prevent 60fps rebuilding of the Scaffold
+                  child: child,
                 ),
               );
             },

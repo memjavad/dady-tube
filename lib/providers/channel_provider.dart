@@ -258,11 +258,15 @@ class ChannelProvider with ChangeNotifier {
     if (selectedWorld == 'Travel Mode') {
       videos = downloadedVideos;
     } else if (selectedWorld != 'All') {
-      videos = videos
-          .where(
-            (v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase()),
-          )
-          .toList();
+      // ⚡ Bolt: Cache search string and use O(N) loop to avoid .where() overhead and redundant allocations
+      final searchToken = selectedWorld.toLowerCase();
+      final filteredVideos = <YoutubeVideo>[];
+      for (final v in videos) {
+        if (v.title.toLowerCase().contains(searchToken)) {
+          filteredVideos.add(v);
+        }
+      }
+      videos = filteredVideos;
     }
 
     _cachedPopularFilteredVideos = videos;
