@@ -606,6 +606,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 32),
             TactileButton(
+            semanticLabel: loc.translate('go_home'),
               onTap: () => Navigator.pop(context),
               child: TactileCard(
                 color: DadyTubeTheme.primary,
@@ -864,6 +865,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TactileButton(
+                semanticLabel: loc.translate('try_again'),
                 onTap: _initializePlayer,
                 child: TactileCard(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -882,6 +884,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 16),
               TactileButton(
+                semanticLabel: 'Try Next Toy',
                 onTap: _skipToNextToy,
                 child: TactileCard(
                   color: DadyTubeTheme.primary,
@@ -1035,6 +1038,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         const SizedBox(height: 0),
         const SizedBox(height: 16),
         TactileButton(
+          semanticLabel: loc.translate('go_home'),
           onTap: () => Navigator.pop(context),
           child: TactileCard(
             color: Theme.of(context).cardTheme.color,
@@ -1136,6 +1140,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             TactileButton(
+              semanticLabel: loc.translate('view_all'),
               onTap: () {},
               child: Text(
                 loc.translate('view_all'),
@@ -1170,6 +1175,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     String videoId = 'L_LUpnjyPso',
   }) {
     return TactileButton(
+      semanticLabel: title,
       onTap: () {
         Navigator.pushReplacement(
           context,
@@ -1328,6 +1334,7 @@ class _AuthorizedDownload extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TactileButton(
+                  semanticLabel: loc.translate('cancel'),
                   onTap: () => Navigator.pop(context, false),
                   child: TactileCard(
                     padding: const EdgeInsets.all(16),
@@ -1336,6 +1343,7 @@ class _AuthorizedDownload extends StatelessWidget {
                 ),
                 const SizedBox(width: 24),
                 TactileButton(
+                  semanticLabel: loc.translate('download'),
                   onTap: () => Navigator.pop(context, true),
                   child: TactileCard(
                     color: DadyTubeTheme.primary,

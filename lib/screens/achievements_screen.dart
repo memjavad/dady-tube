@@ -151,6 +151,9 @@ class _StarSlotState extends State<_StarSlot> with SingleTickerProviderStateMixi
   @override
   Widget build(BuildContext context) {
     return TactileButton(
+      semanticLabel: widget.achievement.isUnlocked
+          ? '${widget.achievement.title} - Unlocked'
+          : '${widget.achievement.title} - Locked',
       onTap: _onTap,
       child: ScaleTransition(
         scale: _scaleAnimation,

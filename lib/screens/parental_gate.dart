@@ -137,6 +137,7 @@ class _ParentalGateState extends State<ParentalGate> {
         if (index == 9) return const SizedBox.shrink(); // Empty slot
         if (index == 11) {
           return TactileButton(
+            semanticLabel: 'Backspace',
             onTap: () {
               if (_pinController.text.isNotEmpty) {
                 setState(() {
@@ -153,6 +154,7 @@ class _ParentalGateState extends State<ParentalGate> {
         
         final number = index == 10 ? '0' : (index + 1).toString();
         return TactileButton(
+          semanticLabel: number,
           onTap: () {
             if (_pinController.text.length < _expectedAnswer.length) {
               setState(() {

@@ -226,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 12),
             child: TactileButton(
+              semanticLabel: 'Search for ${bubble['query']}',
               onTap: () {
                 // In a real app, this would trigger search
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -343,6 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             if (_selectedWorld != 'All')
               TactileButton(
+                semanticLabel: loc.translate('reset'),
                 onTap: () => setState(() => _selectedWorld = 'All'),
                 child: Text(
                   loc.translate('reset'),
@@ -435,6 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
                 TactileButton(
+                  semanticLabel: loc.translate('settings'),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -471,6 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildVideoCard(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso', String? videoTitle, String? channelThumbnailUrl}) {
     return TactileButton(
+      semanticLabel: videoTitle ?? title,
       onTapDown: () {
         VideoCacheService().prefetchManifest(videoId);
       },
@@ -539,6 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildVideoListItem(BuildContext context, String title, String subtitle, String imageUrl, {bool isAsset = false, String videoId = 'L_LUpnjyPso'}) {
     return TactileButton(
+      semanticLabel: title,
       onTapDown: () {
         VideoCacheService().prefetchManifest(videoId);
       },
@@ -628,6 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavItem(BuildContext context, IconData icon, String label, int index) {
     final isActive = _currentIndex == index;
     return TactileButton(
+      semanticLabel: label,
       onTap: () {
         if (index == 4) {
           // Push ParentalGate as a separate route for settings

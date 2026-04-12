@@ -115,6 +115,7 @@ class _ExperienceTab extends StatelessWidget {
     final isSelected = settings.locale.languageCode == locale.languageCode;
     return Expanded(
       child: TactileButton(
+        semanticLabel: label,
         onTap: () => settings.setLocale(locale),
         child: TactileCard(
           color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
@@ -143,6 +144,7 @@ class _ExperienceTab extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: TactileButton(
+                semanticLabel: quality.name.toUpperCase().replaceAll('P', ''),
                 onTap: () => settings.setVideoQuality(quality),
                 child: TactileCard(
                   color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
@@ -196,6 +198,7 @@ class _ExperienceTab extends StatelessWidget {
     final themeData = DadyTubeTheme.getTheme(level);
     return Expanded(
       child: TactileButton(
+        semanticLabel: label,
         onTap: () => settings.setThemeLevel(level),
         child: TactileCard(
           color: isSelected ? themeData.colorScheme.primary : (themeData.brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.05)),
@@ -396,6 +399,7 @@ class _SafetyTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               TactileButton(
+                semanticLabel: loc.translate('add_keyword'),
                 onTap: () {
                   if (controller.text.isNotEmpty) {
                     settings.addBlockedKeyword(controller.text);
@@ -963,6 +967,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
     VoidCallback onTap,
   ) {
     return TactileButton(
+      semanticLabel: label,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
