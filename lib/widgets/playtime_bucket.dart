@@ -6,21 +6,26 @@ import '../core/theme.dart';
 class PlaytimeBucket extends StatefulWidget {
   final double size;
   final Axis axis;
-  const PlaytimeBucket({super.key, this.size = 80, this.axis = Axis.horizontal});
+  const PlaytimeBucket({
+    super.key,
+    this.size = 80,
+    this.axis = Axis.horizontal,
+  });
 
   @override
   State<PlaytimeBucket> createState() => _PlaytimeBucketState();
 }
 
-class _PlaytimeBucketState extends State<PlaytimeBucket> with SingleTickerProviderStateMixin {
+class _PlaytimeBucketState extends State<PlaytimeBucket>
+    with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 1),
+      vsync: this,
+      duration: const Duration(seconds: 1),
     );
   }
 
@@ -36,15 +41,16 @@ class _PlaytimeBucketState extends State<PlaytimeBucket> with SingleTickerProvid
       builder: (context, usage, child) {
         final progress = usage.progress; // 0.0 (full) to 1.0 (empty)
         final activeBars = (12 * (1.0 - progress)).ceil().clamp(0, 12);
-        
+
         // Pulse when getting low (3 or fewer bars, but not 0)
         if (activeBars > 0 && activeBars <= 3) {
-           if (!_pulseController.isAnimating) _pulseController.repeat(reverse: true);
+          if (!_pulseController.isAnimating)
+            _pulseController.repeat(reverse: true);
         } else {
-           if (_pulseController.isAnimating) {
-               _pulseController.stop();
-               _pulseController.value = 0.0;
-           }
+          if (_pulseController.isAnimating) {
+            _pulseController.stop();
+            _pulseController.value = 0.0;
+          }
         }
 
         final List<Color> barColors = [
@@ -67,7 +73,8 @@ class _PlaytimeBucketState extends State<PlaytimeBucket> with SingleTickerProvid
         return AnimatedBuilder(
           animation: _pulseController,
           builder: (context, child) {
-            final scaleStr = 1.0 + (_pulseController.value * 0.05); // Bounce up to 5% larger
+            final scaleStr =
+                1.0 + (_pulseController.value * 0.05); // Bounce up to 5% larger
             return Transform.scale(
               scale: scaleStr,
               child: SizedBox(
@@ -75,12 +82,14 @@ class _PlaytimeBucketState extends State<PlaytimeBucket> with SingleTickerProvid
                 height: isVertical ? widget.size * 2.5 : widget.size * 0.5,
                 child: Flex(
                   direction: widget.axis,
-                  mainAxisAlignment: isVertical ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  mainAxisAlignment: isVertical
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
                   children: List.generate(12, (index) {
                     final barIndex = isVertical ? (11 - index) : index;
                     final isActive = barIndex < activeBars;
                     final color = barColors[barIndex % barColors.length];
-                    
+
                     return Expanded(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
@@ -90,35 +99,54 @@ class _PlaytimeBucketState extends State<PlaytimeBucket> with SingleTickerProvid
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 600),
                           curve: Curves.elasticOut,
-                          width: isVertical ? (isActive ? (widget.size * 0.8) : 12) : double.infinity,
-                          height: !isVertical ? (widget.size * 0.4) : (isActive ? (widget.size * 0.8) : 12),
+                          width: isVertical
+                              ? (isActive ? (widget.size * 0.8) : 12)
+                              : double.infinity,
+                          height: !isVertical
+                              ? (widget.size * 0.4)
+                              : (isActive ? (widget.size * 0.8) : 12),
                           decoration: BoxDecoration(
                             color: isActive ? color : color.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(widget.size * 0.1),
-                            gradient: isActive ? LinearGradient(
-                              begin: isVertical ? Alignment.centerLeft : Alignment.topCenter,
-                              end: isVertical ? Alignment.centerRight : Alignment.bottomCenter,
-                              colors: [
-                                color.withOpacity(0.8),
-                                color,
-                                color.withOpacity(0.9),
-                              ],
-                            ) : null,
-                            boxShadow: isActive ? [
-                              BoxShadow(
-                                color: color.withOpacity(0.4 + (_pulseController.value * 0.3)), // Shadow pulses too
-                                blurRadius: 6 + (_pulseController.value * 6),
-                                offset: const Offset(1, 1),
-                              ),
-                            ] : [],
-                          ),
-                          child: isActive ? Container(
-                            margin: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(
+                              widget.size * 0.1,
                             ),
-                          ) : null,
+                            gradient: isActive
+                                ? LinearGradient(
+                                    begin: isVertical
+                                        ? Alignment.centerLeft
+                                        : Alignment.topCenter,
+                                    end: isVertical
+                                        ? Alignment.centerRight
+                                        : Alignment.bottomCenter,
+                                    colors: [
+                                      color.withOpacity(0.8),
+                                      color,
+                                      color.withOpacity(0.9),
+                                    ],
+                                  )
+                                : null,
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color: color.withOpacity(
+                                        0.4 + (_pulseController.value * 0.3),
+                                      ), // Shadow pulses too
+                                      blurRadius:
+                                          6 + (_pulseController.value * 6),
+                                      offset: const Offset(1, 1),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: isActive
+                              ? Container(
+                                  margin: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                )
+                              : null,
                         ),
                       ),
                     );

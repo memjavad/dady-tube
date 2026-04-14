@@ -37,11 +37,14 @@ class AchievementsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Divider(color: Colors.pinkAccent, thickness: 1, indent: 40, endIndent: 40),
-              const SizedBox(height: 16),
-              Expanded(
-                child: _buildStarField(context, usage.monthlyStars),
+              const Divider(
+                color: Colors.pinkAccent,
+                thickness: 1,
+                indent: 40,
+                endIndent: 40,
               ),
+              const SizedBox(height: 16),
+              Expanded(child: _buildStarField(context, usage.monthlyStars)),
             ],
           ),
         ),
@@ -49,23 +52,27 @@ class AchievementsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppLocalizations loc, String monthName) {
+  Widget _buildHeader(
+    BuildContext context,
+    AppLocalizations loc,
+    String monthName,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           loc.translate('achievements'),
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: DadyTubeTheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            color: DadyTubeTheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           '${loc.translate('monthly_collection')} - $monthName',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
         ),
       ],
     );
@@ -77,7 +84,11 @@ class AchievementsScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.auto_awesome_rounded, size: 80, color: Colors.grey.withOpacity(0.2)),
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: 80,
+              color: Colors.grey.withOpacity(0.2),
+            ),
             const SizedBox(height: 16),
             const Text(
               "No stars yet this month!\nKeep exploring and saving time!",
@@ -119,7 +130,8 @@ class _StarSlot extends StatefulWidget {
   State<_StarSlot> createState() => _StarSlotState();
 }
 
-class _StarSlotState extends State<_StarSlot> with SingleTickerProviderStateMixin {
+class _StarSlotState extends State<_StarSlot>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   bool _isTapped = false;
@@ -131,9 +143,10 @@ class _StarSlotState extends State<_StarSlot> with SingleTickerProviderStateMixi
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.3,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
   }
 
   @override
@@ -165,17 +178,13 @@ class _StarSlotState extends State<_StarSlot> with SingleTickerProviderStateMixi
                 color: Colors.amber.withOpacity(0.2),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const Icon(
-                Icons.stars_rounded,
-                color: Colors.amber,
-                size: 48,
-              ),
+              const Icon(Icons.stars_rounded, color: Colors.amber, size: 48),
               Positioned(
                 bottom: 8,
                 child: Text(

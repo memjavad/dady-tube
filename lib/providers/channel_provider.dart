@@ -71,6 +71,7 @@ class ChannelProvider with ChangeNotifier {
     _cachedShuffledVideos = null;
     _cachedBigFilteredVideos = null;
     _cachedPopularFilteredVideos = null;
+    _cachedChannelFeedVideos = null;
   }
 
   List<YoutubeVideo> get allVideos {
@@ -195,18 +196,20 @@ class ChannelProvider with ChangeNotifier {
   // ⚡ Bolt: Memoization Cache for Channel Feed Screen
   // Reduces O(N log N) sorting overhead during frequent background syncs by caching
   // the filtered and sorted list per channel. Avoids severe UI jank.
-  String? _lastChannelFeedId;
-  int _lastChannelFeedHash = 0;
+  String? _lastChannelIdForFeed;
+  int _lastBlockedKeywordsHashForFeed = 0;
   List<YoutubeVideo>? _cachedChannelFeedVideos;
 
   List<YoutubeVideo> getFilteredChannelVideos({
     required String channelId,
     required List<String> blockedKeywords,
   }) {
-    final hash = Object.hash(channelId, _channelVideos[channelId]?.length, Object.hashAll(blockedKeywords));
+    final keywordsHash = Object.hashAll(blockedKeywords);
 
     // ⚡ Bolt: Return cached result if data hasn't changed.
-    if (_cachedChannelFeedVideos != null && _lastChannelFeedId == channelId && _lastChannelFeedHash == hash) {
+    if (_cachedChannelFeedVideos != null && 
+        _lastChannelIdForFeed == channelId && 
+        _lastBlockedKeywordsHashForFeed == keywordsHash) {
       return _cachedChannelFeedVideos!;
     }
 
@@ -224,12 +227,11 @@ class ChannelProvider with ChangeNotifier {
     // ⚡ Bolt: This is an expensive O(N log N) operation, now safely memoized!
     videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
 
-    _lastChannelFeedId = channelId;
-    _lastChannelFeedHash = hash;
+    _lastChannelIdForFeed = channelId;
+    _lastBlockedKeywordsHashForFeed = keywordsHash;
     _cachedChannelFeedVideos = videos;
     return videos;
   }
-
   List<YoutubeVideo> getFilteredBigList({
     required bool isOffline,
     required List<YoutubeVideo> availableVideos,
@@ -307,6 +309,8 @@ class ChannelProvider with ChangeNotifier {
     _lastPopularFilterHash = hash;
     return videos;
   }
+
+  // (getFilteredChannelVideos consolidated above)
 
   ChannelProvider() {
     _loadChannels();
@@ -417,7 +421,6 @@ class ChannelProvider with ChangeNotifier {
 
     // Initial check for missing local avatars (Persist permanently)
     _ensureChannelAvatars();
-
     // Fast Boot: If we have data, we can start immediately
     if (_channelVideos.values.any((list) => list.isNotEmpty)) {
       _isInitialized = true;
@@ -501,8 +504,6 @@ class ChannelProvider with ChangeNotifier {
 
               // ⚡ Bolt: Replace O(N²) nested loop with O(N) Set lookup for faster deduplication
               final existingIds = existingVids.map((e) => e.id).toSet();
-              final newInChunk = chunk
-                  .where((v) => !existingIds.contains(v.id))
                   .toList();
 
               if (newInChunk.isNotEmpty) {

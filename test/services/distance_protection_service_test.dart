@@ -8,11 +8,17 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockCameraController extends Mock implements CameraController {}
+
 class MockFaceDetector extends Mock implements FaceDetector {}
+
 class MockCameraImage extends Mock implements CameraImage {}
+
 class MockPlane extends Mock implements Plane {}
+
 class MockCameraDescription extends Mock implements CameraDescription {}
+
 class MockFace extends Mock implements Face {}
+
 class MockImageFormat extends Mock implements ImageFormat {}
 
 class FakeInputImage extends Fake implements InputImage {}
@@ -41,7 +47,9 @@ void main() {
     mockCameraDescription = MockCameraDescription();
     mockImageFormat = MockImageFormat();
 
-    when(() => mockCameraController.description).thenReturn(mockCameraDescription);
+    when(
+      () => mockCameraController.description,
+    ).thenReturn(mockCameraDescription);
     when(() => mockCameraDescription.sensorOrientation).thenReturn(90);
 
     when(() => mockPlane.bytes).thenReturn(Uint8List(4));
@@ -65,7 +73,8 @@ void main() {
   });
 
   test('processImage should not process if recently processed', () async {
-    service.lastProcessedTimestampForTesting = DateTime.now().millisecondsSinceEpoch;
+    service.lastProcessedTimestampForTesting =
+        DateTime.now().millisecondsSinceEpoch;
 
     await service.processImageForTesting(mockImage);
 
@@ -82,7 +91,9 @@ void main() {
 
   group('face detection scenarios', () {
     test('emits no issues when no face detected', () async {
-      when(() => mockFaceDetector.processImage(any())).thenAnswer((_) async => []);
+      when(
+        () => mockFaceDetector.processImage(any()),
+      ).thenAnswer((_) async => []);
 
       final futureTooClose = service.isTooCloseStream.first;
       final futureSlouching = service.isSlouchingStream.first;
@@ -95,10 +106,14 @@ void main() {
 
     test('emits isTooClose=true when face width ratio > 0.65', () async {
       final mockFace = MockFace();
-      when(() => mockFace.boundingBox).thenReturn(const Rect.fromLTWH(0, 0, 70, 70)); // ratio = 70/100 = 0.7 > 0.65
+      when(() => mockFace.boundingBox).thenReturn(
+        const Rect.fromLTWH(0, 0, 70, 70),
+      ); // ratio = 70/100 = 0.7 > 0.65
       when(() => mockFace.headEulerAngleX).thenReturn(0);
 
-      when(() => mockFaceDetector.processImage(any())).thenAnswer((_) async => [mockFace]);
+      when(
+        () => mockFaceDetector.processImage(any()),
+      ).thenAnswer((_) async => [mockFace]);
 
       final futureTooClose = service.isTooCloseStream.first;
       final futureSlouching = service.isSlouchingStream.first;
@@ -111,10 +126,14 @@ void main() {
 
     test('emits isSlouching=true when face top ratio > 0.65', () async {
       final mockFace = MockFace();
-      when(() => mockFace.boundingBox).thenReturn(const Rect.fromLTWH(0, 70, 20, 20)); // top ratio = 70/100 = 0.7 > 0.65
+      when(() => mockFace.boundingBox).thenReturn(
+        const Rect.fromLTWH(0, 70, 20, 20),
+      ); // top ratio = 70/100 = 0.7 > 0.65
       when(() => mockFace.headEulerAngleX).thenReturn(0);
 
-      when(() => mockFaceDetector.processImage(any())).thenAnswer((_) async => [mockFace]);
+      when(
+        () => mockFaceDetector.processImage(any()),
+      ).thenAnswer((_) async => [mockFace]);
 
       final futureTooClose = service.isTooCloseStream.first;
       final futureSlouching = service.isSlouchingStream.first;
@@ -127,10 +146,14 @@ void main() {
 
     test('emits isSlouching=true when head tilt > 25', () async {
       final mockFace = MockFace();
-      when(() => mockFace.boundingBox).thenReturn(const Rect.fromLTWH(0, 0, 20, 20));
+      when(
+        () => mockFace.boundingBox,
+      ).thenReturn(const Rect.fromLTWH(0, 0, 20, 20));
       when(() => mockFace.headEulerAngleX).thenReturn(30); // tilt > 25
 
-      when(() => mockFaceDetector.processImage(any())).thenAnswer((_) async => [mockFace]);
+      when(
+        () => mockFaceDetector.processImage(any()),
+      ).thenAnswer((_) async => [mockFace]);
 
       final futureTooClose = service.isTooCloseStream.first;
       final futureSlouching = service.isSlouchingStream.first;

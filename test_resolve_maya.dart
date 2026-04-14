@@ -11,7 +11,7 @@ void main() async {
       final channel = await yt.channels.getByHandle(handle);
       print('Name: ${channel.title}');
       print('ID: ${channel.id.value}');
-      
+
       final videos = await yt.channels.getUploads(channel.id).take(5).toList();
       print('Found ${videos.length} videos.');
       for (final v in videos) {
@@ -24,10 +24,13 @@ void main() async {
         final search = await yt.search.searchContent(handle);
         for (final item in search) {
           if (item is SearchChannel) {
-             print('Search Found Channel: ${item.name} | ID: ${item.id.value}');
-             final videos = await yt.channels.getUploads(item.id).take(5).toList();
-             print('Search Found ${videos.length} videos.');
-             break;
+            print('Search Found Channel: ${item.name} | ID: ${item.id.value}');
+            final videos = await yt.channels
+                .getUploads(item.id)
+                .take(5)
+                .toList();
+            print('Search Found ${videos.length} videos.');
+            break;
           }
         }
       } catch (e2) {

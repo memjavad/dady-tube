@@ -6,7 +6,8 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class DistanceProtectionService {
-  static final DistanceProtectionService _instance = DistanceProtectionService._internal();
+  static final DistanceProtectionService _instance =
+      DistanceProtectionService._internal();
   factory DistanceProtectionService() => _instance;
   DistanceProtectionService._internal();
 
@@ -21,16 +22,19 @@ class DistanceProtectionService {
 
   // Visible for testing
   @visibleForTesting
-  set cameraControllerForTesting(CameraController? controller) => _cameraController = controller;
+  set cameraControllerForTesting(CameraController? controller) =>
+      _cameraController = controller;
 
   @visibleForTesting
-  set faceDetectorForTesting(FaceDetector? detector) => _faceDetector = detector;
+  set faceDetectorForTesting(FaceDetector? detector) =>
+      _faceDetector = detector;
 
   @visibleForTesting
   set isBusyForTesting(bool isBusy) => _isBusy = isBusy;
 
   @visibleForTesting
-  set lastProcessedTimestampForTesting(int timestamp) => _lastProcessedTimestamp = timestamp;
+  set lastProcessedTimestampForTesting(int timestamp) =>
+      _lastProcessedTimestamp = timestamp;
 
   @visibleForTesting
   void resetForTesting() {
@@ -66,8 +70,8 @@ class DistanceProtectionService {
       frontCamera,
       ResolutionPreset.low, // Changed from medium to low for better performance
       enableAudio: false,
-      imageFormatGroup: defaultTargetPlatform == TargetPlatform.android 
-          ? ImageFormatGroup.nv21 
+      imageFormatGroup: defaultTargetPlatform == TargetPlatform.android
+          ? ImageFormatGroup.nv21
           : ImageFormatGroup.bgra8888,
     );
 
@@ -103,7 +107,6 @@ class DistanceProtectionService {
     // Ultra-Light: Only process 1 frame every 1500ms (approx 0.6 FPS)
     // This dramatically reduces CPU pressure while remaining safe.
     if (_isBusy || _faceDetector == null || (now - _lastProcessedTimestamp < 1500)) return;
-    
     _isBusy = true;
     _lastProcessedTimestamp = now;
 
@@ -114,12 +117,16 @@ class DistanceProtectionService {
       }
       final bytes = allBytes.done().buffer.asUint8List();
 
-      final sensorOrientation = _cameraController!.description.sensorOrientation;
+      final sensorOrientation =
+          _cameraController!.description.sensorOrientation;
       InputImageRotation rotation = InputImageRotation.rotation0deg;
-      
-      if (sensorOrientation == 90) rotation = InputImageRotation.rotation90deg;
-      else if (sensorOrientation == 180) rotation = InputImageRotation.rotation180deg;
-      else if (sensorOrientation == 270) rotation = InputImageRotation.rotation270deg;
+
+      if (sensorOrientation == 90)
+        rotation = InputImageRotation.rotation90deg;
+      else if (sensorOrientation == 180)
+        rotation = InputImageRotation.rotation180deg;
+      else if (sensorOrientation == 270)
+        rotation = InputImageRotation.rotation270deg;
 
       final format = defaultTargetPlatform == TargetPlatform.android
           ? InputImageFormat.nv21
@@ -134,26 +141,34 @@ class DistanceProtectionService {
 
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
       final faces = await _faceDetector!.processImage(inputImage);
-      
+
       bool isTooClose = false;
       if (faces.isNotEmpty) {
         final face = faces.first;
-        final imageSize = (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg)
-            ? image.height 
+        final imageSize =
+            (rotation == InputImageRotation.rotation90deg ||
+                rotation == InputImageRotation.rotation270deg)
+            ? image.height
             : image.width;
-        
+
         final faceWidthRatio = face.boundingBox.width / imageSize;
-        isTooClose = faceWidthRatio > 0.65; // Slightly more lenient to reduce flickering
+        isTooClose =
+            faceWidthRatio > 0.65; // Slightly more lenient to reduce flickering
 
         // --- Posture Detection ---
         // 1. Slouching Detection (Face too low in frame)
         // Normalized Y coordinate of the face top. If > 0.65, face is too low.
-        final faceTopRatio = face.boundingBox.top / (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg ? image.width : image.height);
-        
+        final faceTopRatio =
+            face.boundingBox.top /
+            (rotation == InputImageRotation.rotation90deg ||
+                    rotation == InputImageRotation.rotation270deg
+                ? image.width
+                : image.height);
+
         // 2. Head Tilt Detection (Looking down)
         // eulerAngleX is the up/down tilt. Positive is looking down usually in MLKit.
         final headTilt = face.headEulerAngleX ?? 0;
-        
+
         bool isSlouching = faceTopRatio > 0.65 || headTilt > 25;
         _postureController.add(isSlouching);
       } else {
@@ -163,7 +178,6 @@ class DistanceProtectionService {
 
       // Quick dispatch for status change
       _statusController.add(isTooClose);
-
     } catch (e) {
       debugPrint('Error processing face image: $e');
     }

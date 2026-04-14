@@ -21,9 +21,12 @@ class ChannelFeedScreen extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
 
-    final videos = provider.getFilteredChannelVideos(
-      channelId: channel.id,
-      blockedKeywords: blockedKeywords,
+    // ⚡ Bolt: Fetch memoized sorted list from provider
+    // Avoids sorting operations (O(N log N)) directly inside the UI build frame.
+    final videos = provider.getSortedAndFilteredChannelVideos(
+      channel.id,
+      blockedKeywords,
+    );
     );
 
     return ParticleBackground(
@@ -79,7 +82,11 @@ class ChannelFeedScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.video_library_rounded, size: 80, color: DadyTubeTheme.primaryContainer),
+          const Icon(
+            Icons.video_library_rounded,
+            size: 80,
+            color: DadyTubeTheme.primaryContainer,
+          ),
           const SizedBox(height: 24),
           Text(
             loc.translate('no_videos'),

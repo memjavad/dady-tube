@@ -23,7 +23,9 @@ class ShimmerVideoCard extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.4),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
+                  ),
                 ),
               ),
             ),
@@ -32,23 +34,23 @@ class ShimmerVideoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Container(
-                     height: 20, 
-                     width: double.infinity, 
-                     decoration: BoxDecoration(
-                       color: Colors.white.withOpacity(0.4),
-                       borderRadius: BorderRadius.circular(8),
-                     ),
-                   ),
-                   const SizedBox(height: 8),
-                   Container(
-                     height: 20, 
-                     width: 150, 
-                     decoration: BoxDecoration(
-                       color: Colors.white.withOpacity(0.4),
-                       borderRadius: BorderRadius.circular(8),
-                     ),
-                   ),
+                  Container(
+                    height: 20,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 20,
+                    width: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ],
               ),
             ),

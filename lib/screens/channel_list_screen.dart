@@ -54,12 +54,18 @@ class ChannelListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactChannelItem(BuildContext context, YoutubeChannel channel, AppLocalizations loc) {
+  Widget _buildCompactChannelItem(
+    BuildContext context,
+    YoutubeChannel channel,
+    AppLocalizations loc,
+  ) {
     return TactileButton(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ChannelFeedScreen(channel: channel)),
+          MaterialPageRoute(
+            builder: (context) => ChannelFeedScreen(channel: channel),
+          ),
         );
       },
       child: Column(
@@ -101,7 +107,11 @@ class ChannelListScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.subscriptions_rounded, size: 80, color: DadyTubeTheme.primaryContainer),
+          const Icon(
+            Icons.subscriptions_rounded,
+            size: 80,
+            color: DadyTubeTheme.primaryContainer,
+          ),
           const SizedBox(height: 24),
           Text(
             loc.translate('no_channels'),

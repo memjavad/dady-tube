@@ -28,7 +28,8 @@ class UsageProvider extends ChangeNotifier {
   int get monthlyStars => _monthlyStars;
   bool get isBedtime => _isBedtime;
 
-  double get progress => (_usageSeconds / (_dailyLimitMinutes * 60)).clamp(0.0, 1.0);
+  double get progress =>
+      (_usageSeconds / (_dailyLimitMinutes * 60)).clamp(0.0, 1.0);
 
   double get sunsetIntensity {
     final limitSeconds = _dailyLimitMinutes * 60;
@@ -46,7 +47,7 @@ class UsageProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().split('T')[0];
     final lastReset = prefs.getString(_keyLastReset) ?? '';
-    
+
     // Check for monthly reset
     final lastMonth = prefs.getString('last_reset_month') ?? '';
     final currentMonth = "${DateTime.now().year}-${DateTime.now().month}";
@@ -64,7 +65,7 @@ class UsageProvider extends ChangeNotifier {
       if (lastReset.isNotEmpty) {
         await _checkAndAwardLeftoverStars(prefs);
       }
-      
+
       await prefs.setString(_keyLastReset, today);
       await prefs.setInt(_keyUsage, 0);
       _usageSeconds = 0;
@@ -106,7 +107,8 @@ class UsageProvider extends ChangeNotifier {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isBedtime) {
         _usageSeconds++;
-        if (_usageSeconds % 10 == 0) { // Save every 10 seconds
+        if (_usageSeconds % 10 == 0) {
+          // Save every 10 seconds
           _saveUsage();
         }
         _checkBedtime();

@@ -399,22 +399,11 @@ class VideoCacheService {
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
 
-<<<<<<< HEAD
-=======
-      // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
->>>>>>> origin/fix/path-traversal-video-cache-8267636985127258608
-      int totalBytes = 0;
-      const int maxBytes = 1524 * 1024; // ~1.5MB
-
-      await for (final chunk in stream) {
-        if (_isBackgroundPaused) {
-          // Forcefully abort preview download to free bandwidth
-          await ios.close();
-          if (await previewFile.exists()) {
-            try { await previewFile.delete(); } catch (_) {}
-          }
-          return;
-        }
+      await ios.close();
+      if (await previewFile.exists()) {
+        try { await previewFile.delete(); } catch (_) {}
+      }
+      return;
         ios.add(chunk);
         totalBytes += chunk.length;
         if (totalBytes >= maxBytes) break;
@@ -477,8 +466,9 @@ class VideoCacheService {
     final today = "${now.year}-${now.month}-${now.day}";
     final lastDate = prefs.getString(_keyLastCacheDate) ?? "";
 
-    int dailyCount =
-        (lastDate == today) ? (prefs.getInt(_keyDailyCacheCount) ?? 0) : 0;
+    int dailyCount = (lastDate == today)
+        ? (prefs.getInt(_keyDailyCacheCount) ?? 0)
+        : 0;
 
     if (!ignoreTimers && !deep && dailyCount >= _maxDailyCache) {
       return;
@@ -531,8 +521,12 @@ class VideoCacheService {
     }
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    final manifestLimit = deep ? 50 : 1; // Halved limits
-    print('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
+    // Step 2: Instant Play Links Pre-fetching (Manifests only)
+    // If deep sync, we fetch many more manifests (Instant Play Links)
+    final manifestLimit = deep ? 100 : 2; // Halved limits (original was 50:1, now 100:2 from Bolt)
+    print(
+      '🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)',
+    );
 
     for (var channelVids in allChannelVideos.values) {
       await _waitUntilResumed();

@@ -65,7 +65,7 @@ class SettingsProvider with ChangeNotifier {
 
     final levelIndex = prefs.getInt('theme_level') ?? AppThemeLevel.blush.index;
     _themeLevel = AppThemeLevel.values[levelIndex];
-    
+
     notifyListeners();
   }
 
@@ -83,7 +83,7 @@ class SettingsProvider with ChangeNotifier {
 
   double get blueLightIntensity {
     if (!_eyeProtectionEnabled) return 0.0;
-    
+
     final hour = DateTime.now().hour;
     if (hour >= 21 || hour < 6) {
       return 0.32; // Maximum protection late at night

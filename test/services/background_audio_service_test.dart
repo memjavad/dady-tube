@@ -7,11 +7,17 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dadytube/services/background_audio_service.dart';
 
 class MockAudioPlayer extends Mock implements AudioPlayer {}
+
 class MockYoutubeExplode extends Mock implements yt.YoutubeExplode {}
+
 class MockVideoClient extends Mock implements yt.VideoClient {}
+
 class MockStreamClient extends Mock implements yt.StreamClient {}
+
 class MockStreamManifest extends Mock implements yt.StreamManifest {}
+
 class MockAudioOnlyStreamInfo extends Mock implements yt.AudioOnlyStreamInfo {}
+
 class FakeAudioSource extends Fake implements AudioSource {}
 
 void main() {
@@ -29,8 +35,9 @@ void main() {
       mockYoutubeExplode = MockYoutubeExplode();
 
       // Mock the stream to keep the Subject from dying or causing issues.
-      when(() => mockAudioPlayer.playbackEventStream)
-          .thenAnswer((_) => const Stream.empty());
+      when(
+        () => mockAudioPlayer.playbackEventStream,
+      ).thenAnswer((_) => const Stream.empty());
 
       backgroundAudioService = BackgroundAudioService(
         player: mockAudioPlayer,
@@ -87,17 +94,28 @@ void main() {
 
       when(() => mockYoutubeExplode.videos).thenReturn(mockVideoClient);
       when(() => mockVideoClient.streamsClient).thenReturn(mockStreamClient);
-      when(() => mockStreamClient.getManifest(videoId)).thenAnswer((_) async => mockManifest);
+      when(
+        () => mockStreamClient.getManifest(videoId),
+      ).thenAnswer((_) async => mockManifest);
 
-      when(() => mockManifest.audioOnly).thenReturn(UnmodifiableListView<yt.AudioOnlyStreamInfo>([mockAudioStreamInfo]));
+      when(() => mockManifest.audioOnly).thenReturn(
+        UnmodifiableListView<yt.AudioOnlyStreamInfo>([mockAudioStreamInfo]),
+      );
 
       when(() => mockAudioStreamInfo.bitrate).thenReturn(yt.Bitrate(128000));
       when(() => mockAudioStreamInfo.url).thenReturn(audioUri);
 
-      when(() => mockAudioPlayer.setAudioSource(any())).thenAnswer((_) async => null);
+      when(
+        () => mockAudioPlayer.setAudioSource(any()),
+      ).thenAnswer((_) async => null);
       when(() => mockAudioPlayer.play()).thenAnswer((_) async {});
 
-      await backgroundAudioService.playVideo(videoId, title, artist, thumbnailUrl);
+      await backgroundAudioService.playVideo(
+        videoId,
+        title,
+        artist,
+        thumbnailUrl,
+      );
 
       verify(() => mockStreamClient.getManifest(videoId)).called(1);
       verify(() => mockAudioPlayer.setAudioSource(any())).called(1);
@@ -108,10 +126,10 @@ void main() {
       when(() => mockAudioPlayer.stop()).thenAnswer((_) async {});
 
       try {
-         await backgroundAudioService.stop();
+        await backgroundAudioService.stop();
       } catch (e) {
-         // ignore the bad state from BaseAudioHandler in tests
-         // without a full app lifecycle
+        // ignore the bad state from BaseAudioHandler in tests
+        // without a full app lifecycle
       }
 
       verify(() => mockAudioPlayer.stop()).called(1);

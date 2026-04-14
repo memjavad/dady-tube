@@ -8,7 +8,8 @@ class AnimatedBedtimeMoon extends StatefulWidget {
   State<AnimatedBedtimeMoon> createState() => _AnimatedBedtimeMoonState();
 }
 
-class _AnimatedBedtimeMoonState extends State<AnimatedBedtimeMoon> with SingleTickerProviderStateMixin {
+class _AnimatedBedtimeMoonState extends State<AnimatedBedtimeMoon>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -61,11 +62,15 @@ class MoonPainter extends CustomPainter {
 
     // The "Crescent" cut-out (animated slightly)
     final shadowPaint = Paint()
-      ..color = const Color(0xFF2D1B4E) // Matches Bedtime Background
+      ..color =
+          const Color(0xFF2D1B4E) // Matches Bedtime Background
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(
-      Offset(center.dx + radius * 0.4 + sin(animationValue * pi) * 2, center.dy - radius * 0.2),
+      Offset(
+        center.dx + radius * 0.4 + sin(animationValue * pi) * 2,
+        center.dy - radius * 0.2,
+      ),
       radius,
       shadowPaint,
     );

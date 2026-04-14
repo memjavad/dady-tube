@@ -80,44 +80,72 @@ class DadyTubeTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: background,
-      textTheme: GoogleFonts.beVietnamProTextTheme(
-        GoogleFonts.almaraiTextTheme().apply(
-          bodyColor: onBackground,
-          displayColor: onBackground,
-        ),
-      ).apply(
-        bodyColor: onBackground,
-        displayColor: onBackground,
-      ).copyWith(
-        displayLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        displayMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        displaySmall: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        headlineMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        titleLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        titleMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: onBackground),
-        labelLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: onBackground),
-      ),
+      textTheme:
+          GoogleFonts.beVietnamProTextTheme(
+                GoogleFonts.almaraiTextTheme().apply(
+                  bodyColor: onBackground,
+                  displayColor: onBackground,
+                ),
+              )
+              .apply(bodyColor: onBackground, displayColor: onBackground)
+              .copyWith(
+                displayLarge: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                displayMedium: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                displaySmall: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                headlineMedium: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                titleLarge: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                titleMedium: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: onBackground,
+                ),
+                labelLarge: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  color: onBackground,
+                ),
+              ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryContainer,
           foregroundColor: isDark ? Colors.white : primary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusFull)),
-          textStyle: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadiusFull),
+          ),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusLarge)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(borderRadiusLarge),
+        ),
       ),
     );
   }
 
   // Backwards compatibility for now
   static ThemeData get lightTheme => getTheme(AppThemeLevel.blush);
-  
+
   // Static colors for legacy/static references
   static const Color background = Color(0xFFFFF5F7);
   static const Color primary = Color(0xFFE91E63);

@@ -12,9 +12,7 @@ class DownloadService {
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   String? _resolvedLocalPath;
 
-  String sanitizeVideoId(String id) {
-    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
-  }
+
 
   Future<String> get _localPath async {
     if (_resolvedLocalPath != null) return _resolvedLocalPath!;
@@ -34,24 +32,27 @@ class DownloadService {
     return File('$path/$sanitizedId.mp4');
   }
 
-  Future<void> downloadVideo(String videoId, Function(double) onProgress) async {
+  Future<void> downloadVideo(
+    String videoId,
+    Function(double) onProgress,
+  ) async {
     final client = http.Client();
     try {
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
-      
+
       if (streamInfo == null) throw Exception("No downloadable stream found.");
 
       final url = streamInfo.url;
       final totalSize = streamInfo.size.totalBytes;
       final file = await _getLocalFile(videoId);
-      
+
       if (await file.exists()) await file.delete();
-      
+
       // Parallel Turbo: 4 concurrent connections
       const int segmentCount = 4;
       final int segmentSize = (totalSize / segmentCount).ceil();
-      
+
       List<Future<void>> downloadTasks = [];
       int downloadedBytes = 0;
 
@@ -59,7 +60,9 @@ class DownloadService {
 
       for (int i = 0; i < segmentCount; i++) {
         final start = i * segmentSize;
-        final end = (i == segmentCount - 1) ? totalSize - 1 : (i + 1) * segmentSize - 1;
+        final end = (i == segmentCount - 1)
+            ? totalSize - 1
+            : (i + 1) * segmentSize - 1;
 
         downloadTasks.add(() async {
           try {
@@ -71,7 +74,7 @@ class DownloadService {
               await raf.setPosition(currentPos);
               await raf.writeFrom(chunk);
               currentPos += chunk.length;
-              
+
               downloadedBytes += chunk.length;
               onProgress(downloadedBytes / totalSize);
             }
@@ -115,7 +118,7 @@ class DownloadService {
   Future<void> deleteVideo(String videoId) async {
     final file = await _getLocalFile(videoId);
     if (await file.exists()) await file.delete();
-    
+
     final prefs = await SharedPreferences.getInstance();
     final downloaded = prefs.getStringList(_keyDownloaded) ?? [];
     downloaded.remove(videoId);

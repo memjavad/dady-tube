@@ -72,6 +72,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     WakelockPlus.enable();
 
     // ⚡ Performance Prioritization: Pause background tasks immediately 
+    // to give the video player 100% of device resources.
     _cacheService.pauseBackgroundOperations();
 
     // Phase 2: Show Gentle Buffer before initializing player
@@ -86,9 +87,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   void _onPlayerStateChanged() {
-    if (_videoPlayerController != null && 
-        _videoPlayerController!.value.isInitialized && 
-        _videoPlayerController!.value.isPlaying && 
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized &&
+        _videoPlayerController!.value.isPlaying &&
         !_videoPlayerController!.value.isBuffering) {
       // 🚀 Video is playing smoothly. Resume background processes.
       _cacheService.resumeBackgroundOperations();

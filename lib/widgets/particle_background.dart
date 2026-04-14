@@ -5,13 +5,18 @@ import '../core/theme.dart';
 class ParticleBackground extends StatefulWidget {
   final Widget child;
   final Color? overrideColor;
-  const ParticleBackground({super.key, required this.child, this.overrideColor});
+  const ParticleBackground({
+    super.key,
+    required this.child,
+    this.overrideColor,
+  });
 
   @override
   State<ParticleBackground> createState() => _ParticleBackgroundState();
 }
 
-class _ParticleBackgroundState extends State<ParticleBackground> with SingleTickerProviderStateMixin {
+class _ParticleBackgroundState extends State<ParticleBackground>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<Particle> _particles = List.generate(6, (index) => Particle());
 
@@ -49,7 +54,10 @@ class _ParticleBackgroundState extends State<ParticleBackground> with SingleTick
               }
               return RepaintBoundary(
                 child: CustomPaint(
-                  painter: ParticlePainter(_particles, color ?? theme.colorScheme.primary),
+                  painter: ParticlePainter(
+                    _particles,
+                    color ?? theme.colorScheme.primary,
+                  ),
                   child: widget.child,
                 ),
               );
