@@ -37,9 +37,8 @@ class VideoCacheService {
     return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
   }
 
-  // Backwards compatibility for Bolt code
+  // Backwards compatibility for Bolt code and visible for testing
   String sanitizeVideoId(String id) => _sanitizeId(id);
-
   /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
@@ -282,7 +281,6 @@ class VideoCacheService {
       final totalSize = streamInfo.size.totalBytes;
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
-
       final sanitizedId = _sanitizeId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
