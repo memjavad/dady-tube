@@ -23,6 +23,7 @@ import 'parental_gate.dart';
 import 'package:audio_service/audio_service.dart';
 import '../services/background_audio_service.dart';
 import '../services/youtube_client_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class WatchScreen extends StatefulWidget {
   final String videoId;
@@ -67,8 +68,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
 
+    // Keep screen on during the watch session
+    WakelockPlus.enable();
+
     // ⚡ Performance Prioritization: Pause background tasks immediately 
-    // to give the video player 100% of device resources.
     _cacheService.pauseBackgroundOperations();
 
     // Phase 2: Show Gentle Buffer before initializing player
@@ -226,6 +229,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       ),
       showControls: true,
       customControls: const MaterialControls(),
+      allowedScreenSleep: false,
     );
 
     _chewieController!.addListener(() {
@@ -496,6 +500,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _videoPlayerController?.dispose();
     _previewController?.dispose();
     _chewieController?.dispose();
+    
+    // Release the wake lock when exiting the player
+    WakelockPlus.disable();
     super.dispose();
   }
 
