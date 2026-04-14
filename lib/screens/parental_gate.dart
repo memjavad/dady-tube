@@ -155,6 +155,7 @@ class _ParentalGateState extends State<ParentalGate> {
         if (index == 9) return const SizedBox.shrink(); // Empty slot
         if (index == 11) {
           return TactileButton(
+            semanticLabel: 'Delete',
             onTap: () {
               if (_pinController.text.isNotEmpty) {
                 setState(() {
