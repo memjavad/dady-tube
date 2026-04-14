@@ -12,3 +12,8 @@
 **Vulnerability:** URL string interpolation used user-controlled parameters (`channelId` and `id`) to construct HTTP request URLs directly, potentially allowing URL injection.
 **Learning:** String interpolation for URLs exposes services to injection vulnerabilities where crafted user input might add query parameters or manipulate URL paths to induce unintended requests (SSRF risk).
 **Prevention:** Always use `Uri.encodeComponent()` when building URLs manually to sanitize any external input.
+
+## 2026-04-10 - [Predictable Math Problem in Parental Gate]
+**Vulnerability:** The parental gate used a predictable random number generator (`Random()`), allowing potential predictability of math problems used for authorization.
+**Learning:** `Random()` in Dart generates a predictable pseudo-random sequence. For security-sensitive features like authorization gates, even simple math challenges need to be unpredictable.
+**Prevention:** Always use `Random.secure()` for generating numbers used in security challenges or authorization flows.

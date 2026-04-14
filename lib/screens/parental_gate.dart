@@ -28,6 +28,7 @@ class _ParentalGateState extends State<ParentalGate> {
   }
 
   void _generateMathProblem() {
+    // SECURITY: Use Random.secure() to prevent predictability in authorization challenges
     final random = Random.secure();
     _num1 = random.nextInt(8) + 5; // 5 to 12
     _num2 = random.nextInt(8) + 5; // 5 to 12
