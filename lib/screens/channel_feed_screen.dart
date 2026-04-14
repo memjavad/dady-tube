@@ -21,18 +21,10 @@ class ChannelFeedScreen extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
 
-    List<YoutubeVideo> videos = provider.channelVideos[channel.id] ?? [];
-
-    // Filter videos by blocked keywords
-    if (blockedKeywords.isNotEmpty) {
-      videos = videos.where((video) {
-        final title = video.title.toLowerCase();
-        return !blockedKeywords.any((keyword) => title.contains(keyword));
-      }).toList();
-    }
-
-    // Sort by latest first
-    videos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    final videos = provider.getFilteredChannelVideos(
+      channelId: channel.id,
+      blockedKeywords: blockedKeywords,
+    );
 
     return ParticleBackground(
       child: Scaffold(

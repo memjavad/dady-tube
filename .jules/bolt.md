@@ -13,3 +13,7 @@
 ## 2025-02-15 - Dart Collection Partitioning Bottleneck
 **Learning:** In Dart, partitioning a single list into two collections (e.g., separating videos by title content) using multiple `.where()` passes combined with `.contains()` creates an O(N²) execution pattern. This causes severe CPU spikes and blocks the main UI thread during build cycles, especially when called inside Provider getters or widget `build()` methods.
 **Action:** Always use a single-pass O(N) `for` loop to iterate through the collection once and append items to their respective lists based on the condition.
+
+## 2025-02-15 - Flutter In-Build List Mutation and Sorting
+**Learning:** Executing `List.sort()` directly inside a `build()` method on a list obtained from a Provider is dangerous. It not only incurs a severe O(N log N) performance penalty on every render cycle (especially during background syncs when `notifyListeners()` fires frequently), but it also mutates the underlying state object directly if it isn't copied first, potentially causing side effects in other widgets sharing that state.
+**Action:** Move data transformation (filtering/sorting) to the Provider, memoize the result, and ensure the original state is never mutated directly by returning a transformed copy.
