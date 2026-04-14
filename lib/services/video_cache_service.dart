@@ -32,9 +32,13 @@ class VideoCacheService {
   // ⚡ Fix 2: In-memory stream URL cache — reads SharedPrefs only once per video
   final Map<String, _CachedUrl> _streamUrlMemCache = {};
 
-  String sanitizeVideoId(String id) {
-    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
+  /// Sanitizes the video ID to prevent path traversal vulnerabilities.
+  String _sanitizeId(String id) {
+    return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
   }
+
+  // Backwards compatibility for Bolt code
+  String sanitizeVideoId(String id) => _sanitizeId(id);
 
   /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
@@ -114,7 +118,9 @@ class VideoCacheService {
 
       // Persistence for "Instant Play"
       final bestStream = manifest.muxed.withHighestBitrate();
-      _persistStreamUrl(videoId, bestStream.url.toString());
+      if (bestStream != null) {
+        _persistStreamUrl(videoId, bestStream.url.toString());
+      }
 
       return manifest;
     } on yt.VideoUnplayableException catch (e) {
@@ -252,39 +258,6 @@ class VideoCacheService {
     return _cachedVideoIdSet!;
   }
 
-  // ⚡ Fix 7: Metadata sidecar — persists video info alongside the .mp4 file
-  Future<void> _writeMetaSidecar(
-    String cacheDir,
-    String sanitizedId, {
-    required String title,
-    required String thumbnailUrl,
-    required String channelId,
-  }) async {
-    try {
-      final meta = json.encode({
-        'title': title,
-        'thumbnailUrl': thumbnailUrl,
-        'channelId': channelId,
-        'cachedAt': DateTime.now().toIso8601String(),
-      });
-      await File('$cacheDir/$sanitizedId.meta').writeAsString(meta);
-    } catch (_) {}
-  }
-
-  /// Reads the metadata sidecar for a cached video.
-  Future<Map<String, dynamic>?> getMetadataForCachedVideo(String videoId) async {
-    try {
-      final path = await _cachePath;
-      final sanitizedId = sanitizeVideoId(videoId);
-      final file = File('$path/$sanitizedId.meta');
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        return json.decode(content) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return null;
-  }
-
   /// Starts caching a video in the background.
   /// ⚡ Fix 3: Reuses in-memory manifest. Fix 7: Writes metadata sidecar.
   Future<void> cacheVideo(
@@ -310,7 +283,7 @@ class VideoCacheService {
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
 
-      final sanitizedId = sanitizeVideoId(videoId);
+      final sanitizedId = _sanitizeId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
       // Parallel Turbo Cache — 2 concurrent connections (Halved from 4)
@@ -324,7 +297,6 @@ class VideoCacheService {
         final end = (i == segmentCount - 1)
             ? totalSize - 1
             : (i + 1) * segmentSize - 1;
-
         final partFile = File('${file.path}.part$i');
 
         cacheTasks.add(() async {
@@ -415,7 +387,7 @@ class VideoCacheService {
     if (await getCachedVideoPath(videoId) != null) return;
 
     final cacheDir = await _cachePath;
-    final sanitizedId = sanitizeVideoId(videoId);
+    final sanitizedId = _sanitizeId(videoId);
     final previewFile = File('$cacheDir/$sanitizedId.preview');
     if (await previewFile.exists()) return;
 
@@ -429,6 +401,10 @@ class VideoCacheService {
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
 
+<<<<<<< HEAD
+=======
+      // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
+>>>>>>> origin/fix/path-traversal-video-cache-8267636985127258608
       int totalBytes = 0;
       const int maxBytes = 1524 * 1024; // ~1.5MB
 
@@ -514,7 +490,6 @@ class VideoCacheService {
     final timeSinceLastCache = now.millisecondsSinceEpoch - lastTimestamp;
 
     final isNightTime = now.hour >= 23 || now.hour < 5;
-
     bool shouldProceed = false;
     if (isNightTime) {
       shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2); // 2 hours (Halved volume)
