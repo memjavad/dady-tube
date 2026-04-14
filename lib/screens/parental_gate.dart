@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
@@ -19,6 +18,8 @@ class _ParentalGateState extends State<ParentalGate> {
   String _error = '';
   String _expectedAnswer = '';
   String _question = '';
+  int _num1 = 0;
+  int _num2 = 0;
 
   @override
   void initState() {
@@ -28,11 +29,11 @@ class _ParentalGateState extends State<ParentalGate> {
 
   void _generateMathProblem() {
     final random = Random.secure();
-    final num1 = random.nextInt(8) + 5; // 5 to 12
-    final num2 = random.nextInt(8) + 5; // 5 to 12
+    _num1 = random.nextInt(8) + 5; // 5 to 12
+    _num2 = random.nextInt(8) + 5; // 5 to 12
     setState(() {
-      _question = 'What is $num1 × $num2?';
-      _expectedAnswer = (num1 * num2).toString();
+      _question = '$_num1 × $_num2 = ?';
+      _expectedAnswer = (_num1 * _num2).toString();
       _pinController.clear();
     });
   }
@@ -84,7 +85,6 @@ class _ParentalGateState extends State<ParentalGate> {
                   color: DadyTubeTheme.primary,
                 ),
                 const SizedBox(height: 24),
-                // Removed redundant title here as it's now in AppBar
                 Text(
                   loc.translate('parental_gate_msg'),
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -93,10 +93,10 @@ class _ParentalGateState extends State<ParentalGate> {
                 const SizedBox(height: 16),
                 Text(
                   _question,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: DadyTubeTheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _buildPinField(context),
