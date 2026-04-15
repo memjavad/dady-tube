@@ -54,7 +54,7 @@ void main() {
             ),
             MockStreamHandler.inline(
               onListen: (dynamic arguments, MockStreamHandlerEventSink events) {
-                final subscription = eventController.stream.listen((event) {
+                eventController.stream.listen((event) {
                   events.success(event);
                 });
               },
