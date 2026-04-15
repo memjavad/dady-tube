@@ -21,12 +21,9 @@ class ChannelFeedScreen extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final blockedKeywords = settings.blockedKeywords;
 
-    // ⚡ Bolt: Fetch memoized sorted list from provider
-    // Avoids sorting operations (O(N log N)) directly inside the UI build frame.
     final videos = provider.getSortedAndFilteredChannelVideos(
       channel.id,
       blockedKeywords,
-    );
     );
 
     return ParticleBackground(
@@ -36,11 +33,9 @@ class ChannelFeedScreen extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            tooltip: loc.translate('back'),
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: DadyTubeTheme.primary),
             tooltip: loc.translate('back'),
             onPressed: () => Navigator.pop(context),
-            tooltip: loc.translate('back'),
           ),
           title: Row(
             children: [

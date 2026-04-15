@@ -73,6 +73,7 @@ class BedtimeOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 64),
             TactileButton(
+              semanticLabel: loc.translate('parental_gate_title'),
               onTap: () {
                 Navigator.push(
                   context,
