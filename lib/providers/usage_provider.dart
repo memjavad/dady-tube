@@ -8,7 +8,6 @@ class UsageProvider extends ChangeNotifier {
   static const String _keyLastReset = 'last_reset_date';
   static const String _keyStars = 'magic_stars_count';
   static const String _keyMonthlyStars = 'monthly_stars_count';
-  static const String _keyLastAwardDate = 'last_award_date';
 
   int _dailyLimitMinutes = 120;
   int _usageSeconds = 0;
