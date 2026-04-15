@@ -72,6 +72,7 @@ class _TactileButtonState extends State<TactileButton>
     return Semantics(
       button: true,
       label: widget.semanticLabel,
+      enabled: widget.onTap != null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: _onTapDown,
