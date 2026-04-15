@@ -126,15 +126,13 @@ class ChannelListScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.grey),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           TactileButton(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ParentalGate(
-                    destination: SettingsScreen(),
-                  ),
+                  builder: (context) => const ParentalGate(destination: SettingsScreen()),
                 ),
               );
             },
