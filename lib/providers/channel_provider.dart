@@ -65,10 +65,12 @@ class ChannelProvider with ChangeNotifier {
   // Cache for expensive getter computations
   List<YoutubeVideo>? _cachedAllVideos;
   List<YoutubeVideo>? _cachedShuffledVideos;
+  Map<String, YoutubeVideo>? _cachedVideoByIdMap;
 
   void _invalidateVideoCache() {
     _cachedAllVideos = null;
     _cachedShuffledVideos = null;
+    _cachedVideoByIdMap = null;
     _cachedBigFilteredVideos = null;
     _cachedPopularFilteredVideos = null;
     _cachedChannelFeedVideos = null;
@@ -80,12 +82,12 @@ class ChannelProvider with ChangeNotifier {
     }
 
     List<YoutubeVideo> all = [];
-    
+
     // Interleaving Logic (Round-Robin):
     // 1st video of each channel, then 2nd of each, and so on.
     final activeChannelIds = _channels.map((c) => c.id).toList();
     final List<List<YoutubeVideo>> groups = [];
-    
+
     for (var id in activeChannelIds) {
       final vids = _channelVideos[id];
       if (vids != null && vids.isNotEmpty) {
@@ -96,7 +98,10 @@ class ChannelProvider with ChangeNotifier {
     if (groups.isEmpty) return [];
 
     // Find the maximum number of videos in any single channel
-    int maxVideos = groups.fold(0, (max, list) => list.length > max ? list.length : max);
+    int maxVideos = groups.fold(
+      0,
+      (max, list) => list.length > max ? list.length : max,
+    );
 
     for (int i = 0; i < maxVideos; i++) {
       for (var group in groups) {
@@ -145,10 +150,10 @@ class ChannelProvider with ChangeNotifier {
     }
 
     _offlineReadyVideos = combined;
-    
+
     // Also sort them by date (Newest first)
     _offlineReadyVideos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
-    
+
     notifyListeners();
   }
 
@@ -158,11 +163,15 @@ class ChannelProvider with ChangeNotifier {
   }
 
   YoutubeVideo? getVideoById(String id) {
-    for (var vids in _channelVideos.values) {
-      final index = vids.indexWhere((v) => v.id == id);
-      if (index != -1) return vids[index];
+    if (_cachedVideoByIdMap == null) {
+      _cachedVideoByIdMap = {};
+      for (var vids in _channelVideos.values) {
+        for (var v in vids) {
+          _cachedVideoByIdMap![v.id] = v;
+        }
+      }
     }
-    return null;
+    return _cachedVideoByIdMap![id];
   }
 
   YoutubeVideo? getNextVideo(String currentVideoId) {
@@ -207,8 +216,8 @@ class ChannelProvider with ChangeNotifier {
     final keywordsHash = Object.hashAll(blockedKeywords);
 
     // ⚡ Bolt: Return cached result if data hasn't changed.
-    if (_cachedChannelFeedVideos != null && 
-        _lastChannelIdForFeed == channelId && 
+    if (_cachedChannelFeedVideos != null &&
+        _lastChannelIdForFeed == channelId &&
         _lastBlockedKeywordsHashForFeed == keywordsHash) {
       return _cachedChannelFeedVideos!;
     }
@@ -232,6 +241,7 @@ class ChannelProvider with ChangeNotifier {
     _cachedChannelFeedVideos = videos;
     return videos;
   }
+
   List<YoutubeVideo> getFilteredBigList({
     required bool isOffline,
     required List<YoutubeVideo> availableVideos,
@@ -503,7 +513,9 @@ class ChannelProvider with ChangeNotifier {
               final chunkIds = chunk.map((v) => v.id).toSet();
 
               final existingIds = existingVids.map((e) => e.id).toSet();
-              final newInChunk = chunk.where((v) => !existingIds.contains(v.id)).toList();
+              final newInChunk = chunk
+                  .where((v) => !existingIds.contains(v.id))
+                  .toList();
 
               if (newInChunk.isNotEmpty) {
                 _channelVideos[channel.id] = [...existingVids, ...newInChunk];
@@ -642,7 +654,8 @@ class ChannelProvider with ChangeNotifier {
   Future<void> _ensureChannelAvatars() async {
     for (int i = 0; i < _channels.length; i++) {
       final channel = _channels[i];
-      if (channel.localThumbnailPath == null && channel.thumbnailUrl.isNotEmpty) {
+      if (channel.localThumbnailPath == null &&
+          channel.thumbnailUrl.isNotEmpty) {
         await _persistChannelAvatar(i);
       }
     }
@@ -651,7 +664,9 @@ class ChannelProvider with ChangeNotifier {
   Future<void> _persistChannelAvatar(int index) async {
     final channel = _channels[index];
     try {
-      final response = await http.get(Uri.parse(channel.thumbnailUrl)).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse(channel.thumbnailUrl))
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final directory = await getApplicationDocumentsDirectory();
         final avatarsDir = Directory('${directory.path}/avatars');
@@ -672,7 +687,9 @@ class ChannelProvider with ChangeNotifier {
 
         _channels[index] = updatedChannel;
         await DatabaseService.instance.insertChannel(updatedChannel);
-        debugPrint('🖼️ Channel avatar persisted: ${channel.name} -> ${file.path}');
+        debugPrint(
+          '🖼️ Channel avatar persisted: ${channel.name} -> ${file.path}',
+        );
         notifyListeners();
       }
     } catch (e) {
