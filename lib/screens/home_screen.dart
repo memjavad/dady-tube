@@ -511,9 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ParentalGate(
-                          destination: SettingsScreen(),
-                        ),
+                        builder: (context) => const ParentalGate(destination: SettingsScreen()),
                       ),
                     );
                   },
@@ -523,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.settings_rounded, color: Colors.white, size: 20),
+                        const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
                         const SizedBox(width: 8),
                         Text(
                           loc.translate('settings'),
