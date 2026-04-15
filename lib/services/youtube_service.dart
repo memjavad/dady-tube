@@ -320,7 +320,7 @@ class YoutubeService {
       final tabs = data['contents']?['twoColumnBrowseResultsRenderer']?['tabs'];
       if (tabs == null) return [];
 
-      var videosTabContent;
+      dynamic videosTabContent;
       for (var tab in tabs) {
         final tabRenderer = tab['tabRenderer'];
         if (tabRenderer != null &&
@@ -393,12 +393,15 @@ class YoutubeService {
     if (!turboMode) return originalUrl;
 
     // Convert high-res/max-res to medium-res for data saving
-    if (originalUrl.contains('hqdefault.jpg'))
+    if (originalUrl.contains('hqdefault.jpg')) {
       return originalUrl.replaceFirst('hqdefault.jpg', 'mqdefault.jpg');
-    if (originalUrl.contains('sddefault.jpg'))
+    }
+    if (originalUrl.contains('sddefault.jpg')) {
       return originalUrl.replaceFirst('sddefault.jpg', 'mqdefault.jpg');
-    if (originalUrl.contains('maxresdefault.jpg'))
+    }
+    if (originalUrl.contains('maxresdefault.jpg')) {
       return originalUrl.replaceFirst('maxresdefault.jpg', 'mqdefault.jpg');
+    }
 
     return originalUrl;
   }
