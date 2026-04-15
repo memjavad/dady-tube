@@ -16,7 +16,7 @@ class VideoCacheService {
 
   yt.YoutubeExplode get _yt => YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
-  static const int _maxCacheEntries = 25; // Halved from 50
+  static const int _maxCacheEntries = 25; // Halved from 50 for reduced footprint
   static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
 
   // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
@@ -39,6 +39,7 @@ class VideoCacheService {
 
   // Backwards compatibility for Bolt code and visible for testing
   String sanitizeVideoId(String id) => _sanitizeId(id);
+
   /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
@@ -212,7 +213,7 @@ class VideoCacheService {
   Future<String?> _getExistingFilePath(String videoId, String extension) async {
     try {
       final path = await _cachePath;
-      final sanitizedId = sanitizeVideoId(videoId);
+      final sanitizedId = _sanitizeId(videoId);
       final file = File('$path/$sanitizedId$extension');
       if (await file.exists()) {
         final stat = await file.stat();
@@ -281,10 +282,11 @@ class VideoCacheService {
       final totalSize = streamInfo.size.totalBytes;
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
+      
       final sanitizedId = _sanitizeId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
-      // Parallel Turbo Cache — 2 concurrent connections (Halved from 4)
+      // Parallel Turbo Cache — 2 concurrent connections (Halved from 4 for footprint)
       const int segmentCount = 2;
       final int segmentSize = (totalSize / segmentCount).ceil();
       List<Future<void>> cacheTasks = [];
@@ -352,6 +354,7 @@ class VideoCacheService {
             await partFile.delete();
           }
         }
+        await raf.flush(); // Added flush before close for reliability
       } finally {
         await raf.close();
       }
@@ -372,7 +375,7 @@ class VideoCacheService {
 
       await _manageCacheSize();
     } catch (e) {
-      print('Video Cache Error (Parallel): $e');
+      debugPrint('Video Cache Error (Parallel): $e');
     } finally {
       client.close();
       _activeClients.remove(client);
@@ -399,19 +402,20 @@ class VideoCacheService {
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
 
-      await ios.close();
-      if (await previewFile.exists()) {
-        try { await previewFile.delete(); } catch (_) {}
-      }
-      return;
+      // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
+      int totalBytes = 0;
+      const int maxBytes = 1524 * 1024; // ~1.5MB
+
+      await for (final chunk in stream) {
         ios.add(chunk);
         totalBytes += chunk.length;
         if (totalBytes >= maxBytes) break;
       }
 
+      await ios.flush();
       await ios.close();
     } catch (e) {
-      print('Preview Cache Error: $e');
+      debugPrint('Preview Cache Error: $e');
     }
   }
 
@@ -453,7 +457,7 @@ class VideoCacheService {
   static const String _keyLastCacheDate = 'last_auto_cache_date';
   static const String _keyDailyCacheCount = 'daily_auto_cache_count';
   static const String _keyLastCacheTimestamp = 'last_auto_cache_timestamp';
-  static const int _maxDailyCache = 1; // Halved/Reduced from 3
+  static const int _maxDailyCache = 1; // Halved from 2 for footprint reduction
 
   /// Orchestrates smart background caching with night priority.
   Future<void> syncAutoCache(
@@ -471,21 +475,27 @@ class VideoCacheService {
         : 0;
 
     if (!ignoreTimers && !deep && dailyCount >= _maxDailyCache) {
+      debugPrint('Smart Cache: Daily limit of $_maxDailyCache reached.');
       return;
     }
 
     final lastTimestamp = prefs.getInt(_keyLastCacheTimestamp) ?? 0;
     final timeSinceLastCache = now.millisecondsSinceEpoch - lastTimestamp;
 
+    // Night priority: 11 PM to 5 AM
     final isNightTime = now.hour >= 23 || now.hour < 5;
+
     bool shouldProceed = false;
     if (isNightTime) {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2); // 2 hours (Halved volume)
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2); // 2 hours
     } else {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 12); // 12 hours (Halved volume)
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 12); // 12 hours
     }
 
     if (!ignoreTimers && !deep && !shouldProceed && lastTimestamp != 0) {
+      debugPrint(
+        'Smart Cache: Too soon to cache again. (Last cache: ${DateTime.fromMillisecondsSinceEpoch(lastTimestamp)})',
+      );
       return;
     }
 
@@ -506,11 +516,11 @@ class VideoCacheService {
       }
 
       if (vToCache != null) {
-        print('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
+        debugPrint('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
         await prefs.setString(_keyLastCacheDate, today);
         await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
         await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
-        // ⚡ Fix 7: Pass metadata alongside the video ID
+        
         cacheVideo(
           vToCache.id,
           title: vToCache.title,
@@ -521,12 +531,8 @@ class VideoCacheService {
     }
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    // If deep sync, we fetch many more manifests (Instant Play Links)
-    final manifestLimit = deep ? 100 : 2; // Halved limits (original was 50:1, now 100:2 from Bolt)
-    print(
-      '🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)',
-    );
+    final manifestLimit = deep ? 100 : 2; // Halved from Bolt (original 50:1 -> 100:2)
+    debugPrint('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
 
     for (var channelVids in allChannelVideos.values) {
       await _waitUntilResumed();
@@ -535,6 +541,26 @@ class VideoCacheService {
         prefetchManifest(v.id);
       }
     }
+  }
+
+  /// Writes metadata sidecar for cached videos.
+  Future<void> _writeMetaSidecar(
+    String cacheDir,
+    String sanitizedId, {
+    required String title,
+    required String thumbnailUrl,
+    required String channelId,
+  }) async {
+    try {
+      final metaFile = File('$cacheDir/$sanitizedId.meta');
+      final metaData = {
+        'title': title,
+        'thumbnailUrl': thumbnailUrl,
+        'channelId': channelId,
+        'cachedAt': DateTime.now().toIso8601String(),
+      };
+      await metaFile.writeAsString(json.encode(metaData));
+    } catch (_) {}
   }
 
   Future<Map<String, dynamic>> getCacheStatistics() async {
