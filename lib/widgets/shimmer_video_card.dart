@@ -12,11 +12,13 @@ class ShimmerVideoCard extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: colorScheme.surfaceContainerLow.withOpacity(0.5),
       highlightColor: colorScheme.surface.withOpacity(0.8),
-      child: TactileCard(
-        padding: EdgeInsets.zero,
-        borderRadius: 32,
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(32),
+        opacity: 0.1,
+        blur: 8.0,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             AspectRatio(
               aspectRatio: 16 / 9,
@@ -39,16 +41,16 @@ class ShimmerVideoCard extends StatelessWidget {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(32),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Container(
                     height: 20,
                     width: 150,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(32),
                     ),
                   ),
                 ],
