@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
@@ -90,10 +91,10 @@ class AchievementsScreen extends StatelessWidget {
               color: Colors.grey.withOpacity(0.2),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "No stars yet this month!\nKeep exploring and saving time!",
+            Text(
+              AppLocalizations.of(context).translate('no_stars_yet'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -158,7 +159,7 @@ class _StarSlotState extends State<_StarSlot>
   void _onTap() {
     setState(() => _isTapped = true);
     _controller.forward().then((_) => _controller.reverse());
-    // In a real app, we could trigger a "Ding" sound here
+    HapticFeedback.lightImpact();
   }
 
   @override

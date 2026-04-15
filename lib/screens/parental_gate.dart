@@ -48,7 +48,8 @@ class _ParentalGateState extends State<ParentalGate> {
     } else {
       _generateMathProblem();
       setState(() {
-        _error = 'Oops! Ask a grown-up for help.';
+        final loc = AppLocalizations.of(context);
+        _error = loc.translate('parental_gate_error');
       });
     }
   }
@@ -63,7 +64,7 @@ class _ParentalGateState extends State<ParentalGate> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
-          tooltip: loc.translate('close') ?? 'Close',
+          tooltip: loc.translate('close'),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(loc.translate('parental_gate_title')),

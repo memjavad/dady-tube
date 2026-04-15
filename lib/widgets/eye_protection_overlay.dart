@@ -22,6 +22,7 @@ class EyeProtectionOverlay extends StatefulWidget {
 class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
   Timer? _breakTimer;
   Timer? _activityTimer;
+  Timer? _filterUpdateTimer;
   bool _showOverlay = false;
   bool _isTooClose = false;
   bool _isSlouching = false;
@@ -77,6 +78,13 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         _showBreak();
       }
     });
+
+    _filterUpdateTimer?.cancel();
+    _filterUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {}); // Rebuild to update blueLightIntensity
+      }
+    });
   }
 
   void _showBreak() {
@@ -113,6 +121,7 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
   void dispose() {
     _breakTimer?.cancel();
     _activityTimer?.cancel();
+    _filterUpdateTimer?.cancel();
     _stopDistanceProtection();
     super.dispose();
   }

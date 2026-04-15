@@ -63,6 +63,7 @@ class AppLocalizations {
       'parental_gate_title': 'Parents Only',
       'parental_gate_msg': 'Please ask a parent to help you with this.',
       'enter_pin': 'Enter PIN',
+      'parental_gate_error': 'Oops! Ask a grown-up for help.',
 
       // Channels / Settings
       'add_channel': 'Add Channel',
@@ -116,6 +117,7 @@ class AppLocalizations {
       'breathe_in': 'Breathe in...',
       'get_ready_adventure': 'Let\'s get ready for the next adventure!',
       'magic_stars': 'Magic Stars',
+      'no_stars_yet': 'No stars yet this month!\nKeep exploring and saving time!',
       'achievements': 'My Stars!',
       'monthly_collection': 'Monthly Collection',
       'monthly_goal': 'Monthly Goal',
@@ -225,8 +227,9 @@ class AppLocalizations {
 
       // Parental Gate
       'parental_gate_title': 'للأهل فقط',
-      'parental_gate_msg': 'يرجى طلب المساعدة من أحد والديك.',
-      'enter_pin': 'أدخل الرمز',
+      'parental_gate_msg': 'يرجى طلب المساعدة من أحد الوالدين.',
+      'enter_pin': 'أدخل رقم التعريف الشخصي',
+      'parental_gate_error': 'عذراً! اطلب المعاونة من شخص كبير.',
 
       // Channels / Settings
       'add_channel': 'إضافة قناة',
@@ -276,9 +279,10 @@ class AppLocalizations {
       'activity_3_desc': 'مد ذراعيك عالياً جداً!',
       'back_to_fun': 'العودة للمرح في',
       'seconds': 'ثانية',
-      'breathe_in': 'تنفس بعمق...',
+      'breathe_in': 'خذ نفساً عميقاً...',
       'get_ready_adventure': 'لنستعد للمغامرة القادمة!',
-      'magic_stars': 'النجوم السحرية',
+      'magic_stars': 'نجوم سحرية',
+      'no_stars_yet': 'لا توجد نجوم هذا الشهر بعد!\nاستمر في الاكتشاف وتوفير الوقت!',
       'achievements': 'نجومي!',
       'monthly_collection': 'مجموعة الشهر',
       'monthly_goal': 'هدف الشهر',

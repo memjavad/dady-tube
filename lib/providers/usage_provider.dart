@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class UsageProvider extends ChangeNotifier {
+class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _keyLimit = 'daily_limit_minutes';
   static const String _keyUsage = 'daily_usage_seconds';
   static const String _keyLastReset = 'last_reset_date';
@@ -16,10 +16,21 @@ class UsageProvider extends ChangeNotifier {
   int _monthlyStars = 0;
   Timer? _timer;
   bool _isBedtime = false;
+  bool _isAppPaused = false;
 
   UsageProvider() {
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
     _startTimer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached || state == AppLifecycleState.hidden) {
+      _isAppPaused = true;
+    } else if (state == AppLifecycleState.resumed) {
+      _isAppPaused = false;
+    }
   }
 
   int get dailyLimitMinutes => _dailyLimitMinutes;
@@ -105,7 +116,7 @@ class UsageProvider extends ChangeNotifier {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isBedtime) {
+      if (!_isBedtime && !_isAppPaused) {
         _usageSeconds++;
         if (_usageSeconds % 10 == 0) {
           // Save every 10 seconds
@@ -140,7 +151,9 @@ class UsageProvider extends ChangeNotifier {
 
   // Parents can grant "5 more minutes"
   void grantExtraTime(int minutes) {
-    _usageSeconds = (_dailyLimitMinutes - minutes) * 60;
+    // Audit Fix: Previously set usage to (limit - minutes) which is inverted.
+    // Now correctly SUBTRACTS granted time from recorded usage.
+    _usageSeconds -= minutes * 60;
     if (_usageSeconds < 0) _usageSeconds = 0;
     _isBedtime = false;
     _saveUsage();
@@ -149,6 +162,7 @@ class UsageProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
