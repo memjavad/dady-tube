@@ -156,20 +156,16 @@ class DistanceProtectionService {
             faceWidthRatio > 0.65; // Slightly more lenient to reduce flickering
 
         // --- Posture Detection ---
-        // 1. Slouching Detection (Face too low in frame)
-        // Normalized Y coordinate of the face top. If > 0.65, face is too low.
-        final faceTopRatio =
-            face.boundingBox.top /
-            (rotation == InputImageRotation.rotation90deg ||
-                    rotation == InputImageRotation.rotation270deg
-                ? image.width
-                : image.height);
-
-        // 2. Head Tilt Detection (Looking down)
-        // eulerAngleX is the up/down tilt. Positive is looking down usually in MLKit.
+        // 1. Text Neck / Slouching Detection
+        // eulerAngleX is the pitch (up/down). Negative values mean looking DOWN.
+        // We trigger slouching if the user is excessively looking down towards the chest.
         final headTilt = face.headEulerAngleX ?? 0;
 
-        bool isSlouching = faceTopRatio > 0.65 || headTilt > 25;
+        // NOTE: We remove the `face.boundingBox.top` check because it completely breaks 
+        // and causes false positives when the user turns the device sideways into 
+        // Landscape mode for watching videos!
+        bool isSlouching = headTilt < -20;
+        
         _postureController.add(isSlouching);
       } else {
         // No face detected, assume no posture issue for now to avoid false positives
