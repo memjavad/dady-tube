@@ -59,12 +59,19 @@ class VideoCard extends StatelessWidget {
                     child: Hero(
                       tag: 'video_thumb_${video.id}',
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(32),
+                        ),
                         child: CachedNetworkImage(
                           imageUrl: video.thumbnailUrl,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: Theme.of(context).colorScheme.surfaceContainerLow),
-                          errorWidget: (context, url, error) => const Icon(Icons.error),
+                          placeholder: (context, url) => Container(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
                         ),
                       ),
                     ),
@@ -83,7 +90,7 @@ class VideoCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
-                          loc.translate('new_upload') ?? 'New',
+                          loc.translate('new_upload'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -97,7 +104,10 @@ class VideoCard extends StatelessWidget {
                       top: 16,
                       right: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.shade600,
                           borderRadius: BorderRadius.circular(16),
@@ -105,11 +115,19 @@ class VideoCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.download_done_rounded, color: Colors.white, size: 14),
+                            const Icon(
+                              Icons.download_done_rounded,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               loc.translate('offline'),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -135,14 +153,16 @@ class VideoCard extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
-                            ? Image.file(
-                                File(channel.localThumbnailPath!),
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.cover,
-                              )
-                            : channel.thumbnailUrl.isNotEmpty
+                          child:
+                              channel.localThumbnailPath != null &&
+                                  File(channel.localThumbnailPath!).existsSync()
+                              ? Image.file(
+                                  File(channel.localThumbnailPath!),
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.cover,
+                                )
+                              : channel.thumbnailUrl.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: channel.thumbnailUrl,
                                   width: 24,
@@ -154,9 +174,12 @@ class VideoCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           channel.name,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
                         ),
                       ],
                     ),
