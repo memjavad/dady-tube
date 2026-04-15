@@ -11,6 +11,7 @@
 - `Improved`: **Security (Sentinel)**: Hardened the app against path traversal and URL injection in the `VideoCacheService`.
 - `Improved`: **Performance (Bolt)**: Optimized `DatabaseService` with concurrent queries and implemented `IOSink.flush()` to prevent cache corruption during parallel downloads.
 - `Fixed`: Resolved complex resource conflicts and premature class termination bugs during the master reconciliation.
+- `Fixed`: Corrected **Posture Protection** ("Sit up straight!") logic to eliminate false positives in Landscape mode and properly detect Text Neck using semantic head pitch.
 
 ## [v3.5] - 2026-04-01
 - `Added`: Background Operation Latching system to prioritize 100% device resources for video playback.
