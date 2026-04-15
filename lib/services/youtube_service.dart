@@ -43,6 +43,7 @@ class YoutubeService {
   static Future<YoutubeChannel?> getChannelInfoById(
     String id, {
     yt.YoutubeExplode? ytClient,
+    http.Client? httpClient,
   }) async {
     final ytExplode = ytClient ?? YoutubeClientService().client;
     try {
@@ -58,7 +59,10 @@ class YoutubeService {
       // Basic scraping fallback for metadata
       try {
         final url = 'https://www.youtube.com/channel/${Uri.encodeComponent(id)}';
-        final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+        final client = httpClient ?? http.Client();
+        final response = await client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+        
+        if (httpClient == null) client.close();
         return _parseChannelResponse(response);
       } catch (_) {}
     } finally {

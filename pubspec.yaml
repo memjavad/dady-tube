@@ -21,7 +21,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 3.6.0+36
 
 environment:
+<<<<<<< HEAD
   sdk: ">=3.11.0 <4.0.0"
+=======
+  sdk: ^3.11.0
+>>>>>>> origin/add-youtubeservice-tests-12190026415819396593
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -76,9 +80,14 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.0
   flutter_launcher_icons: ^0.13.1
+<<<<<<< HEAD
   mocktail: ^1.0.4
   build_runner: ^2.13.1
   test: ^1.29.0
+=======
+  mockito: ^5.6.4
+  build_runner: ^2.13.1
+>>>>>>> origin/add-youtubeservice-tests-12190026415819396593
 
 flutter_launcher_icons:
   android: true
