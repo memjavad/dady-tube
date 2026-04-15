@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:provider/provider.dart';
 import '../core/tactile_widgets.dart';
+import '../core/file_utils.dart';
 import '../core/theme.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -114,7 +115,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       if (previewPath != null && mounted) {
         // Double check existence one last time to avoid ENOENT race conditions
         final file = File(previewPath);
-        if (await file.exists() && (await file.length()) > 0) {
+        if (await FileUtils.isFileReady(file)) {
           _previewController = VideoPlayerController.file(file);
           try {
             await _previewController!.initialize().timeout(const Duration(seconds: 3));
