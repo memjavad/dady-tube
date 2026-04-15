@@ -13,3 +13,11 @@
 ## 2025-02-15 - Dart Collection Partitioning Bottleneck
 **Learning:** In Dart, partitioning a single list into two collections (e.g., separating videos by title content) using multiple `.where()` passes combined with `.contains()` creates an O(N²) execution pattern. This causes severe CPU spikes and blocks the main UI thread during build cycles, especially when called inside Provider getters or widget `build()` methods.
 **Action:** Always use a single-pass O(N) `for` loop to iterate through the collection once and append items to their respective lists based on the condition.
+
+## 2026-04-20 - Redundant String Transformation in Filtering
+**Learning:** In Dart, calling `.toLowerCase()` or similar string transformations inside a `.where()` loop causes redundant memory allocations and CPU overhead for every item in the collection, leading to performance degradation, especially with large datasets inside a Provider's getter.
+**Action:** Always extract and cache the string transformation (e.g., `final searchTerm = input.toLowerCase();`) outside the loop or filtering operation to ensure it is only computed once.
+
+## 2026-04-20 - Inefficient Filename Extraction
+**Learning:** In Dart, extracting a filename without its extension by chaining `.split(Platform.pathSeparator).last` and `.replaceAll('.mp4', '')` creates unnecessary intermediate `List` and `String` allocations, degrading performance when processing large numbers of files (like reading cache directory contents).
+**Action:** Always use the `path` package's `basenameWithoutExtension` method (e.g., `path.basenameWithoutExtension(file.path)`), which is significantly more efficient and avoids redundant allocations.

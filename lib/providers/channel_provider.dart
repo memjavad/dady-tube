@@ -79,12 +79,12 @@ class ChannelProvider with ChangeNotifier {
     }
 
     List<YoutubeVideo> all = [];
-    
+
     // Interleaving Logic (Round-Robin):
     // 1st video of each channel, then 2nd of each, and so on.
     final activeChannelIds = _channels.map((c) => c.id).toList();
     final List<List<YoutubeVideo>> groups = [];
-    
+
     for (var id in activeChannelIds) {
       final vids = _channelVideos[id];
       if (vids != null && vids.isNotEmpty) {
@@ -95,7 +95,10 @@ class ChannelProvider with ChangeNotifier {
     if (groups.isEmpty) return [];
 
     // Find the maximum number of videos in any single channel
-    int maxVideos = groups.fold(0, (max, list) => list.length > max ? list.length : max);
+    int maxVideos = groups.fold(
+      0,
+      (max, list) => list.length > max ? list.length : max,
+    );
 
     for (int i = 0; i < maxVideos; i++) {
       for (var group in groups) {
@@ -144,10 +147,10 @@ class ChannelProvider with ChangeNotifier {
     }
 
     _offlineReadyVideos = combined;
-    
+
     // Also sort them by date (Newest first)
     _offlineReadyVideos.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
-    
+
     notifyListeners();
   }
 
@@ -258,10 +261,10 @@ class ChannelProvider with ChangeNotifier {
     if (selectedWorld == 'Travel Mode') {
       videos = downloadedVideos;
     } else if (selectedWorld != 'All') {
+      // ⚡ Bolt: Cache string transformation outside the loop to prevent redundant allocations
+      final searchTerm = selectedWorld.toLowerCase();
       videos = videos
-          .where(
-            (v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase()),
-          )
+          .where((v) => v.title.toLowerCase().contains(searchTerm))
           .toList();
     }
 
@@ -604,7 +607,8 @@ class ChannelProvider with ChangeNotifier {
   Future<void> _ensureChannelAvatars() async {
     for (int i = 0; i < _channels.length; i++) {
       final channel = _channels[i];
-      if (channel.localThumbnailPath == null && channel.thumbnailUrl.isNotEmpty) {
+      if (channel.localThumbnailPath == null &&
+          channel.thumbnailUrl.isNotEmpty) {
         await _persistChannelAvatar(i);
       }
     }
@@ -613,7 +617,9 @@ class ChannelProvider with ChangeNotifier {
   Future<void> _persistChannelAvatar(int index) async {
     final channel = _channels[index];
     try {
-      final response = await http.get(Uri.parse(channel.thumbnailUrl)).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse(channel.thumbnailUrl))
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final directory = await getApplicationDocumentsDirectory();
         final avatarsDir = Directory('${directory.path}/avatars');
@@ -634,7 +640,9 @@ class ChannelProvider with ChangeNotifier {
 
         _channels[index] = updatedChannel;
         await DatabaseService.instance.insertChannel(updatedChannel);
-        debugPrint('🖼️ Channel avatar persisted: ${channel.name} -> ${file.path}');
+        debugPrint(
+          '🖼️ Channel avatar persisted: ${channel.name} -> ${file.path}',
+        );
         notifyListeners();
       }
     } catch (e) {
