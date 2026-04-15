@@ -174,7 +174,6 @@ CREATE TABLE videos (
     );
     return Map.fromIterables(channelIds, results);
   }
-  }
 
   Future<int> getTotalChannelCount() async {
     final db = await instance.database;

@@ -502,9 +502,8 @@ class ChannelProvider with ChangeNotifier {
               final existingVids = _channelVideos[channel.id] ?? [];
               final chunkIds = chunk.map((v) => v.id).toSet();
 
-              // ⚡ Bolt: Replace O(N²) nested loop with O(N) Set lookup for faster deduplication
               final existingIds = existingVids.map((e) => e.id).toSet();
-                  .toList();
+              final newInChunk = chunk.where((v) => !existingIds.contains(v.id)).toList();
 
               if (newInChunk.isNotEmpty) {
                 _channelVideos[channel.id] = [...existingVids, ...newInChunk];

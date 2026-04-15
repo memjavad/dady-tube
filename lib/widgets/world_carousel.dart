@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../core/theme.dart';
 import '../core/tactile_widgets.dart';
 
 class WorldCarousel extends StatefulWidget {
