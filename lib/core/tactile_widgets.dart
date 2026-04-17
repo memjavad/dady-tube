@@ -144,7 +144,7 @@ class TactileCard extends StatelessWidget {
   }
 }
 
-class GlassContainer extends StatelessWidget {
+class GlassContainer extends StatefulWidget {
   final Widget child;
   final double blur;
   final double opacity;
@@ -159,39 +159,80 @@ class GlassContainer extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<GlassContainer> createState() => _GlassContainerState();
+}
+
+class _GlassContainerState extends State<GlassContainer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _sheenController;
+
+  @override
+  void initState() {
+    super.initState();
+    _sheenController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _sheenController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = isDark ? Colors.black : Colors.white;
-    final glassColor = baseColor.withValues(alpha: opacity);
+    final glassColor = baseColor.withValues(alpha: widget.opacity);
     final sheenColor = baseColor.withValues(
-      alpha: 0.05,
-    ); // Very subtle static reflection
+      alpha: 0.1,
+    ); // Increased slightly for visibility
 
     return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.circular(32.0),
+      borderRadius: widget.borderRadius ?? BorderRadius.circular(32.0),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          decoration: BoxDecoration(
-            color: glassColor,
-            borderRadius: borderRadius ?? BorderRadius.circular(32.0),
-            boxShadow: [
-              BoxShadow(
-                color: (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: 0.05,
+        filter: ImageFilter.blur(sigmaX: widget.blur, sigmaY: widget.blur),
+        child: AnimatedBuilder(
+          animation: _sheenController,
+          builder: (context, child) {
+            // Animate the alignment for the aurora sheen sweeping effect
+            final beginAlignment = AlignmentTween(
+              begin: const Alignment(-2.0, -2.0),
+              end: const Alignment(2.0, 2.0),
+            ).evaluate(_sheenController);
+
+            final endAlignment = AlignmentTween(
+              begin: const Alignment(-1.0, -1.0),
+              end: const Alignment(3.0, 3.0),
+            ).evaluate(_sheenController);
+
+            return Container(
+              decoration: BoxDecoration(
+                color: glassColor,
+                borderRadius:
+                    widget.borderRadius ?? BorderRadius.circular(32.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: 0.05,
+                    ),
+                    blurRadius: 1,
+                    spreadRadius: 0,
+                  ),
+                ],
+                gradient: LinearGradient(
+                  begin: beginAlignment,
+                  end: endAlignment,
+                  colors: [Colors.transparent, sheenColor, Colors.transparent],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
-                blurRadius: 1,
-                spreadRadius: 0,
               ),
-            ],
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [sheenColor, Colors.transparent, sheenColor],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-          child: child,
+              child: child,
+            );
+          },
+          child: widget.child,
         ),
       ),
     );
