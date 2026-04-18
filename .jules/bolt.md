@@ -21,3 +21,7 @@
 ## 2025-02-15 - Flutter In-Build List Mutation and Sorting
 **Learning:** Executing `List.sort()` directly inside a `build()` method on a list obtained from a Provider is dangerous. It not only incurs a severe O(N log N) performance penalty on every render cycle (especially during background syncs when `notifyListeners()` fires frequently), but it also mutates the underlying state object directly if it isn't copied first, potentially causing side effects in other widgets sharing that state.
 **Action:** Move data transformation (filtering/sorting) to the Provider, memoize the result, and ensure the original state is never mutated directly by returning a transformed copy.
+
+## 2025-02-18 - Dart Synchronous File System Calls in List.sort()
+**Learning:** In Dart, calling synchronous file system operations like `lastModifiedSync()` directly inside a `List.sort()` comparator causes a massive performance bottleneck. Because the comparator is executed O(N log N) times, it leads to redundant, blocking disk I/O reads that freeze the main isolate, especially when managing caches with many files.
+**Action:** Always extract synchronous file system reads out of sorting comparators. Use a Schwartzian transform to map the list to a Dart Record `(file, file.lastModifiedSync())`, run the sort on the cached properties, and then map back. This reduces disk I/O to exactly O(N).
