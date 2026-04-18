@@ -8,10 +8,9 @@ class ShimmerVideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Shimmer.fromColors(
-      baseColor: colorScheme.surfaceContainerLow.withOpacity(0.5),
-      highlightColor: colorScheme.surface.withOpacity(0.8),
+      baseColor: Colors.white.withOpacity(0.1),
+      highlightColor: Colors.white.withOpacity(0.3),
       child: GlassContainer(
         borderRadius: BorderRadius.circular(32),
         opacity: 0.1,
@@ -41,7 +40,7 @@ class ShimmerVideoCard extends StatelessWidget {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -50,7 +49,7 @@ class ShimmerVideoCard extends StatelessWidget {
                     width: 150,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ],

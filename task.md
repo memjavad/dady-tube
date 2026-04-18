@@ -10,18 +10,18 @@
 
 ## 🎨 UI Polish (GEMINI.md Adherence)
 ### Core UI Atoms (`tactile_widgets.dart`)
-- [ ] Refactor `TactileButton` for 3D tilt
-- [ ] Add Aurora Sheen to `GlassContainer`
+- [x] Refactor `TactileButton` for 3D tilt
+- [x] Add Aurora Sheen to `GlassContainer`
 
 ### Home Screen Staggered Entry (`home_screen.dart`, `shimmer_video_card.dart`)
-- [ ] Create `StaggeredEntryCard` wrapper
-- [ ] Update `HomeScreen` lists to use staggered entry
-- [ ] Update `ShimmerVideoCard` for Geometry Softness and glass look
+- [x] Create `StaggeredEntryCard` wrapper
+- [x] Update `HomeScreen` lists to use staggered entry
+- [x] Update `ShimmerVideoCard` for Geometry Softness and glass look
 
 ### Playful Micro-Interactions
-- [ ] Enhance `particle_background.dart` to support color transitions
-- [ ] Connect `HomeScreen` world selection to `ParticleBackground` color
-- [ ] Add pulsing logic to `PlaytimeBucket` on low time
+- [x] Enhance `particle_background.dart` to support color transitions
+- [x] Connect `HomeScreen` world selection to `ParticleBackground` color
+- [x] Add pulsing logic to `PlaytimeBucket` on low time
 
 ## 🕸️ Network Footprint Reduction
 - [x] Halve Cache Limits & Sync Frequencies (`video_cache_service.dart`)
