@@ -360,185 +360,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPopularFeed(
-    BuildContext context,
-    ChannelProvider provider,
-    AppLocalizations loc,
-  ) {
-    if (provider.isLoading) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildShimmerHeader(),
-          const SizedBox(height: 24),
-          const StaggeredEntryCard(index: 0, child: ShimmerVideoCard()),
-          const SizedBox(height: 16),
-          const StaggeredEntryCard(index: 1, child: ShimmerVideoCard()),
-        ],
-      );
-    }
-
-    final downloadProvider = context.watch<DownloadProvider>();
-    final videos = provider.getFilteredPopularList(
-      selectedWorld: _selectedWorld,
-      downloadedVideos: downloadProvider.downloadedVideos,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _selectedWorld == 'All'
-                  ? loc.translate('popular_now')
-                  : '${loc.translate('exploring')} $_selectedWorld',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            if (_selectedWorld != 'All')
-              TactileButton(
-                onTap: () => setState(() => _selectedWorld = 'All'),
-                child: Text(
-                  loc.translate('reset'),
-                  style: const TextStyle(
-                    color: DadyTubeTheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (videos.isEmpty)
-          _buildEmptyFeed(loc)
-        else ...[
-          Builder(
-            builder: (context) {
-              final firstChannel = provider.channels.firstWhere(
-                (c) => c.id == videos[0].channelId,
-                orElse: () =>
-                    YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
-              );
-              return StaggeredEntryCard(
-                uniqueId: videos[0].id,
-                index: 0,
-                child: _buildVideoCard(
-                  context,
-                  videos[0].title,
-                  firstChannel.name,
-                  videos[0].thumbnailUrl,
-                  videoId: videos[0].id,
-                  videoTitle: videos[0].title,
-                  channelThumbnailUrl: firstChannel.thumbnailUrl,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          ...videos.skip(1).take(5).toList().asMap().entries.map((entry) {
-            final index = entry.key + 1;
-            final video = entry.value;
-            final channel = provider.channels.firstWhere(
-              (c) => c.id == video.channelId,
-              orElse: () =>
-                  YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
-            );
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: StaggeredEntryCard(
-                uniqueId: video.id,
-                index: index,
-                child: _buildVideoCard(
-                  context,
-                  video.title,
-                  channel.name,
-                  video.thumbnailUrl,
-                  videoId: video.id,
-                  channelThumbnailUrl: channel.thumbnailUrl,
-                ),
-              ),
-            );
-          }),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildShimmerHeader() {
-    return Shimmer.fromColors(
-      baseColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      highlightColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-      child: Container(
-        height: 32,
-        width: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyFeed(AppLocalizations loc) {
-    return TactileCard(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(
-                Icons.toys_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.primaryContainer,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                _selectedWorld == 'Travel Mode'
-                    ? loc.translate('empty_bag')
-                    : loc.translate('no_videos'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-              if (_selectedWorld == 'All') ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(loc.translate('add_channels_msg')),
-                ),
-                const SizedBox(height: 24),
-                TactileButton(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ParentalGate(destination: SettingsScreen()),
-                      ),
-                    );
-                  },
-                  child: TactileCard(
-                    color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(
-                          loc.translate('settings'),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildVideoCard(
     BuildContext context,
     String title,
@@ -730,11 +551,36 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, Icons.play_arrow_rounded, loc.translate('play'), 0),
-            _buildNavItem(context, Icons.download_done_rounded, loc.translate('offline'), 5),
-            _buildNavItem(context, Icons.subscriptions_rounded, loc.translate('channels'), 2),
-            _buildNavItem(context, Icons.auto_awesome_rounded, loc.translate('magic_stars'), 3),
-            _buildNavItem(context, Icons.person_rounded, loc.translate('settings'), 4),
+            _buildNavItem(
+              context,
+              Icons.play_arrow_rounded,
+              loc.translate('play'),
+              0,
+            ),
+            _buildNavItem(
+              context,
+              Icons.download_done_rounded,
+              loc.translate('offline'),
+              5,
+            ),
+            _buildNavItem(
+              context,
+              Icons.subscriptions_rounded,
+              loc.translate('channels'),
+              2,
+            ),
+            _buildNavItem(
+              context,
+              Icons.auto_awesome_rounded,
+              loc.translate('magic_stars'),
+              3,
+            ),
+            _buildNavItem(
+              context,
+              Icons.person_rounded,
+              loc.translate('settings'),
+              4,
+            ),
           ],
         ),
       ),
