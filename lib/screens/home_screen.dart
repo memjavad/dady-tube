@@ -278,31 +278,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchBox(BuildContext context, AppLocalizations loc) {
-    // ... existing code
-    return TactileCard(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      borderRadius: 100,
-      color: Theme.of(context).cardTheme.color,
-      child: TextField(
-        onTap: () => setState(() => _currentIndex = 1),
-        decoration: InputDecoration(
-          hintText: loc.translate('search_hint'),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: DadyTubeTheme.primary,
-            size: 28,
-          ),
-          border: InputBorder.none,
-          hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchPlaceholder(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Center(child: Text(loc.translate('search_hint')));
@@ -511,21 +486,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ParentalGate(destination: SettingsScreen()),
+                        builder: (context) =>
+                            const ParentalGate(destination: SettingsScreen()),
                       ),
                     );
                   },
                   child: TactileCard(
                     color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+                        const Icon(
+                          Icons.add_circle_outline_rounded,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           loc.translate('settings'),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -730,11 +715,36 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, Icons.play_arrow_rounded, loc.translate('play'), 0),
-            _buildNavItem(context, Icons.download_done_rounded, loc.translate('offline'), 5),
-            _buildNavItem(context, Icons.subscriptions_rounded, loc.translate('channels'), 2),
-            _buildNavItem(context, Icons.auto_awesome_rounded, loc.translate('magic_stars'), 3),
-            _buildNavItem(context, Icons.person_rounded, loc.translate('settings'), 4),
+            _buildNavItem(
+              context,
+              Icons.play_arrow_rounded,
+              loc.translate('play'),
+              0,
+            ),
+            _buildNavItem(
+              context,
+              Icons.download_done_rounded,
+              loc.translate('offline'),
+              5,
+            ),
+            _buildNavItem(
+              context,
+              Icons.subscriptions_rounded,
+              loc.translate('channels'),
+              2,
+            ),
+            _buildNavItem(
+              context,
+              Icons.auto_awesome_rounded,
+              loc.translate('magic_stars'),
+              3,
+            ),
+            _buildNavItem(
+              context,
+              Icons.person_rounded,
+              loc.translate('settings'),
+              4,
+            ),
           ],
         ),
       ),
