@@ -21,3 +21,6 @@
 ## 2025-02-15 - Flutter In-Build List Mutation and Sorting
 **Learning:** Executing `List.sort()` directly inside a `build()` method on a list obtained from a Provider is dangerous. It not only incurs a severe O(N log N) performance penalty on every render cycle (especially during background syncs when `notifyListeners()` fires frequently), but it also mutates the underlying state object directly if it isn't copied first, potentially causing side effects in other widgets sharing that state.
 **Action:** Move data transformation (filtering/sorting) to the Provider, memoize the result, and ensure the original state is never mutated directly by returning a transformed copy.
+## 2024-05-18 - Optimize sequential file merging with addStream
+**Learning:** `IOSink.addStream` is significantly faster than manually awaiting and writing chunks inside an `await for` loop with a `RandomAccessFile`. This avoids the loop overhead per chunk and streams natively into the write buffer. (An isolated concurrent write via multiple `RandomAccessFile` handlers is even faster but prone to race conditions or incorrect padding on some Dart implementations).
+**Action:** Use `addStream` when stitching streams or files sequentially into an `IOSink` instead of manual `writeFrom` chunk loops.

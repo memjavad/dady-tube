@@ -16,8 +16,10 @@ class VideoCacheService {
 
   yt.YoutubeExplode get _yt => YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
-  static const int _maxCacheEntries = 25; // Halved from 50 for reduced footprint
-  static const int _manifestTTLHours = 5; // 5 Hours to match YouTube link expiry
+  static const int _maxCacheEntries =
+      25; // Halved from 50 for reduced footprint
+  static const int _manifestTTLHours =
+      5; // 5 Hours to match YouTube link expiry
 
   // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
   String? _resolvedCachePath;
@@ -83,7 +85,10 @@ class VideoCacheService {
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - timestamp < 1000 * 60 * 60 * _manifestTTLHours) {
         // Populate memory cache so next access is instant
-        _streamUrlMemCache[videoId] = _CachedUrl(url: url, timestamp: timestamp);
+        _streamUrlMemCache[videoId] = _CachedUrl(
+          url: url,
+          timestamp: timestamp,
+        );
         return url;
       }
     } catch (_) {}
@@ -140,10 +145,12 @@ class VideoCacheService {
 
   void pauseBackgroundOperations() {
     _isBackgroundPaused = true;
-    
+
     // Forcefully terminate all in-progress parallel downloads to instantly free bandwidth
     for (var client in _activeClients) {
-      try { client.close(); } catch (_) {}
+      try {
+        client.close();
+      } catch (_) {}
     }
     _activeClients.clear();
   }
@@ -181,7 +188,10 @@ class VideoCacheService {
   }
 
   Future<void> _processManifestQueue() async {
-    if (_isFetchingManifest || _manifestFetchQueue.isEmpty || _isBackgroundPaused) return;
+    if (_isFetchingManifest ||
+        _manifestFetchQueue.isEmpty ||
+        _isBackgroundPaused)
+      return;
 
     _isFetchingManifest = true;
     final videoId = _manifestFetchQueue.removeAt(0);
@@ -196,9 +206,13 @@ class VideoCacheService {
           final bestStream = manifest.muxed.withHighestBitrate();
           final warmUrl = bestStream.url;
           // Trigger a HEAD request in background, don't await the body
-          YoutubeClientService().httpClient.head(warmUrl).timeout(const Duration(seconds: 3)).then((_) {
-            debugPrint('🔥 Socket Warmed for $videoId');
-          }).catchError((_) {});
+          YoutubeClientService().httpClient
+              .head(warmUrl)
+              .timeout(const Duration(seconds: 3))
+              .then((_) {
+                debugPrint('🔥 Socket Warmed for $videoId');
+              })
+              .catchError((_) {});
         } catch (_) {}
         await Future.delayed(const Duration(milliseconds: 300));
       }
@@ -282,7 +296,7 @@ class VideoCacheService {
       final totalSize = streamInfo.size.totalBytes;
       final cacheDir = await _cachePath;
       await Directory(cacheDir).create(recursive: true);
-      
+
       final sanitizedId = _sanitizeId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
@@ -302,9 +316,12 @@ class VideoCacheService {
         cacheTasks.add(() async {
           IOSink? sink;
           try {
-            final response = await client.send(
-              http.Request('GET', url)..headers['Range'] = 'bytes=$start-$end',
-            ).timeout(const Duration(seconds: 30));
+            final response = await client
+                .send(
+                  http.Request('GET', url)
+                    ..headers['Range'] = 'bytes=$start-$end',
+                )
+                .timeout(const Duration(seconds: 30));
 
             sink = partFile.openWrite();
             await for (final chunk in response.stream) {
@@ -319,7 +336,9 @@ class VideoCacheService {
           } catch (_) {
             hasError = true;
             if (sink != null) {
-              try { await sink.close(); } catch (_) {}
+              try {
+                await sink.close();
+              } catch (_) {}
             }
           }
         }());
@@ -332,31 +351,31 @@ class VideoCacheService {
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
-            try { await partFile.delete(); } catch (_) {}
+            try {
+              await partFile.delete();
+            } catch (_) {}
           }
         }
         if (await file.exists()) {
-          try { await file.delete(); } catch (_) {}
+          try {
+            await file.delete();
+          } catch (_) {}
         }
         return; // Exit early, do not mark as cached
       }
 
       // Stitch parts together sequentially
-      final raf = await file.open(mode: FileMode.write);
+      final sink = file.openWrite(mode: FileMode.write);
       try {
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
-            final stream = partFile.openRead();
-            await for (final chunk in stream) {
-              await raf.writeFrom(chunk);
-            }
+            await sink.addStream(partFile.openRead());
             await partFile.delete();
           }
         }
-        await raf.flush(); // Added flush before close for reliability
       } finally {
-        await raf.close();
+        await sink.close();
       }
 
       // ⚡ Fix 5: Invalidate cached ID set so next read picks up this new file
@@ -516,11 +535,13 @@ class VideoCacheService {
       }
 
       if (vToCache != null) {
-        debugPrint('Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)');
+        debugPrint(
+          'Smart Cache: Starting download for ${vToCache.title} (Night: $isNightTime)',
+        );
         await prefs.setString(_keyLastCacheDate, today);
         await prefs.setInt(_keyDailyCacheCount, dailyCount + 1);
         await prefs.setInt(_keyLastCacheTimestamp, now.millisecondsSinceEpoch);
-        
+
         cacheVideo(
           vToCache.id,
           title: vToCache.title,
@@ -531,8 +552,12 @@ class VideoCacheService {
     }
 
     // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    final manifestLimit = deep ? 100 : 2; // Halved from Bolt (original 50:1 -> 100:2)
-    debugPrint('🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)');
+    final manifestLimit = deep
+        ? 100
+        : 2; // Halved from Bolt (original 50:1 -> 100:2)
+    debugPrint(
+      '🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)',
+    );
 
     for (var channelVids in allChannelVideos.values) {
       await _waitUntilResumed();
