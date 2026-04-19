@@ -21,3 +21,7 @@
 ## 2025-02-15 - Flutter In-Build List Mutation and Sorting
 **Learning:** Executing `List.sort()` directly inside a `build()` method on a list obtained from a Provider is dangerous. It not only incurs a severe O(N log N) performance penalty on every render cycle (especially during background syncs when `notifyListeners()` fires frequently), but it also mutates the underlying state object directly if it isn't copied first, potentially causing side effects in other widgets sharing that state.
 **Action:** Move data transformation (filtering/sorting) to the Provider, memoize the result, and ensure the original state is never mutated directly by returning a transformed copy.
+
+## 2024-04-19 - Concurrent Parallel Chunk Downloading Race Condition
+**Learning:** In Dart/Flutter, executing concurrent parallel chunk downloading using a single shared `RandomAccessFile` instance causes race conditions during `setPosition` and `writeFrom`. The async stream chunks from multiple HTTP responses overlap while writing to the same file descriptor.
+**Action:** Always wrap concurrent file write operations (like `setPosition` followed by `writeFrom` on a shared file) inside a mutex lock. The `synchronized` package using a `Lock()` instance correctly serializes parallel chunks from different isolates or streams safely into a single file descriptor without corruption.

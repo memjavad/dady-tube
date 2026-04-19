@@ -4,15 +4,23 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:synchronized/synchronized.dart';
 
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
-  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+
+  // Make these overridable for testing
+  final yt.YoutubeExplode _yt;
+  final http.Client Function() _httpClientFactory;
+
+  DownloadService({
+    yt.YoutubeExplode? ytClient,
+    http.Client Function()? httpClientFactory,
+  }) : _yt = ytClient ?? yt.YoutubeExplode(),
+       _httpClientFactory = httpClientFactory ?? (() => http.Client());
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   String? _resolvedLocalPath;
-
-
 
   Future<String> get _localPath async {
     if (_resolvedLocalPath != null) return _resolvedLocalPath!;
@@ -36,12 +44,10 @@ class DownloadService {
     String videoId,
     Function(double) onProgress,
   ) async {
-    final client = http.Client();
+    final client = _httpClientFactory();
     try {
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
-
-      if (streamInfo == null) throw Exception("No downloadable stream found.");
 
       final url = streamInfo.url;
       final totalSize = streamInfo.size.totalBytes;
@@ -57,6 +63,7 @@ class DownloadService {
       int downloadedBytes = 0;
 
       final raf = await file.open(mode: FileMode.write);
+      final lock = Lock();
 
       for (int i = 0; i < segmentCount; i++) {
         final start = i * segmentSize;
@@ -66,13 +73,19 @@ class DownloadService {
 
         downloadTasks.add(() async {
           try {
-            final response = await client.send(http.Request('GET', url)
-              ..headers['Range'] = 'bytes=$start-$end').timeout(const Duration(seconds: 10));
+            final response = await client
+                .send(
+                  http.Request('GET', url)
+                    ..headers['Range'] = 'bytes=$start-$end',
+                )
+                .timeout(const Duration(seconds: 10));
 
             int currentPos = start;
             await for (final chunk in response.stream) {
-              await raf.setPosition(currentPos);
-              await raf.writeFrom(chunk);
+              await lock.synchronized(() async {
+                await raf.setPosition(currentPos);
+                await raf.writeFrom(chunk);
+              });
               currentPos += chunk.length;
 
               downloadedBytes += chunk.length;
