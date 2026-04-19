@@ -7,12 +7,20 @@ import 'package:flutter/foundation.dart';
 
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
-  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+  yt.YoutubeExplode _yt = yt.YoutubeExplode();
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   String? _resolvedLocalPath;
 
+  // Injectable client for testing
+  http.Client? _client;
+  void setHttpClient(http.Client client) {
+    _client = client;
+  }
 
+  void setYoutubeExplode(yt.YoutubeExplode client) {
+    _yt = client;
+  }
 
   Future<String> get _localPath async {
     if (_resolvedLocalPath != null) return _resolvedLocalPath!;
@@ -36,7 +44,7 @@ class DownloadService {
     String videoId,
     Function(double) onProgress,
   ) async {
-    final client = http.Client();
+    final client = _client ?? http.Client();
     try {
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
@@ -66,8 +74,12 @@ class DownloadService {
 
         downloadTasks.add(() async {
           try {
-            final response = await client.send(http.Request('GET', url)
-              ..headers['Range'] = 'bytes=$start-$end').timeout(const Duration(seconds: 10));
+            final response = await client
+                .send(
+                  http.Request('GET', url)
+                    ..headers['Range'] = 'bytes=$start-$end',
+                )
+                .timeout(const Duration(seconds: 10));
 
             int currentPos = start;
             await for (final chunk in response.stream) {
@@ -80,6 +92,8 @@ class DownloadService {
             }
           } catch (e) {
             debugPrint('Segment Download Error: $e');
+            // Re-throw to be caught by the outer catch
+            rethrow;
           }
         }());
       }
@@ -91,7 +105,9 @@ class DownloadService {
       debugPrint('Parallel Download Error: $e');
       rethrow;
     } finally {
-      client.close();
+      if (_client == null) {
+        client.close();
+      }
     }
   }
 
