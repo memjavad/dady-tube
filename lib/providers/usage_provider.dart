@@ -8,7 +8,6 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _keyLastReset = 'last_reset_date';
   static const String _keyStars = 'magic_stars_count';
   static const String _keyMonthlyStars = 'monthly_stars_count';
-  static const String _keyLastAwardDate = 'last_award_date';
 
   int _dailyLimitMinutes = 120;
   int _usageSeconds = 0;
@@ -29,7 +28,9 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached || state == AppLifecycleState.hidden) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
       _isAppPaused = true;
     } else if (state == AppLifecycleState.resumed) {
       _isAppPaused = false;
