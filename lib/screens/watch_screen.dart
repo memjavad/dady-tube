@@ -24,6 +24,7 @@ import 'package:audio_service/audio_service.dart';
 import '../services/background_audio_service.dart';
 import '../services/youtube_client_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../widgets/dadytube_controls.dart';
 
 class WatchScreen extends StatefulWidget {
   final String videoId;
@@ -61,6 +62,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   bool _isPlaying = false;
   bool _isBackgroundPlaying = false;
   String? _videoTitle;
+  Orientation? _lastOrientation;
+  bool _wasPlayingBeforeBreak = false;
+  bool _isBreakCurrentlyActive = false;
 
   @override
   void initState() {
@@ -70,6 +74,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
     // Keep screen on during the watch session
     WakelockPlus.enable();
+
+    // ✅ Enable all orientations while watching to allow sensor-based full-screen
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 
     // ⚡ Performance Prioritization: Pause background tasks immediately 
     // to give the video player 100% of device resources.
@@ -214,7 +221,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       autoPlay: true,
       looping: false,
       fullScreenByDefault: settings.fullScreenByDefault,
+      // Optimized aspect ratio: Use video ratio for portrait/standard, 
+      // but allow more fill in landscape to reduce black bars.
       aspectRatio: _videoPlayerController!.value.aspectRatio,
+      // Reduce black bars by attempting to fill screen in full screen mode
+      optionsTranslation: OptionsTranslation(
+        playbackSpeedButtonText: 'Speed',
+        subtitlesButtonText: 'Subtitles',
+        cancelButtonText: 'Cancel',
+      ),
       placeholder: (widget.thumbnailUrl != null && widget.thumbnailUrl!.isNotEmpty)
           ? CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
           : const Center(
@@ -229,8 +244,29 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         backgroundColor: Colors.grey.withOpacity(0.2),
       ),
       showControls: true,
-      customControls: const MaterialControls(),
+      customControls: const DadyTubeControls(),
       allowedScreenSleep: false,
+      // ⚡ Reduced Black Bars: Apply custom scaling to the full-screen route
+      routePageBuilder: (context, animation, secondaryAnimation, controllerProvider) {
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            return Scaffold(
+              backgroundColor: Colors.black,
+              body: SizedBox.expand(
+                child: Center(
+                  child: Transform.scale(
+                    scale: 1.1, // Zoom strictly at 1.1x as requested
+                    alignment: Alignment.center,
+                    child: controllerProvider,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+
     );
 
     _chewieController!.addListener(() {
@@ -509,9 +545,48 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final usage = Provider.of<UsageProvider>(context);
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
     final showImmersive = isLandscape || (_isPlaying && !_isShowingBuffer);
+
+    // ✅ Auto-trigger Full-Screen & Breaks based on Orientation and Usage
+    if (_chewieController != null && 
+        _videoPlayerController != null && 
+        _videoPlayerController!.value.isInitialized) {
+      
+      // Only trigger on ACTUAL orientation change to avoid loop issues
+      if (_lastOrientation != orientation) {
+        debugPrint('🔄 Orientation changed: $_lastOrientation -> $orientation');
+        if (isLandscape && !_chewieController!.isFullScreen) {
+          debugPrint('📺 Entering Full Screen (Auto)');
+          Future.microtask(() => _chewieController!.enterFullScreen());
+        } else if (!isLandscape && _chewieController!.isFullScreen) {
+          debugPrint('📱 Exiting Full Screen (Auto)');
+          Future.microtask(() => _chewieController!.exitFullScreen());
+        }
+        _lastOrientation = orientation;
+      }
+
+      // 🧘 Mandatory Periodic Breaks (Eye Yoga)
+      // We use a transition-based approach to ensure manual pauses are respected.
+      if (usage.isBreakActive && !_isBreakCurrentlyActive) {
+        // BREAK STARTED: Record state and pause
+        debugPrint('🧘 Break Started: Pausing video');
+        _isBreakCurrentlyActive = true;
+        _wasPlayingBeforeBreak = _videoPlayerController?.value.isPlaying ?? false;
+        if (_wasPlayingBeforeBreak) {
+          _chewieController!.pause();
+        }
+      } else if (!usage.isBreakActive && _isBreakCurrentlyActive) {
+        // BREAK ENDED: Auto-resume IF it was playing before
+        debugPrint('🧘 Break Ended: Auto-resuming? $_wasPlayingBeforeBreak');
+        _isBreakCurrentlyActive = false;
+        if (_wasPlayingBeforeBreak) {
+          _chewieController!.play();
+        }
+      }
+    }
 
     return BedtimeOverlay(
       child: Container(

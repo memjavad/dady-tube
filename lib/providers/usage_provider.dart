@@ -17,6 +17,9 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
   bool _isBedtime = false;
   bool _isAppPaused = false;
+  bool _isBreakActive = false;
+  int _breakCountdown = 30;
+  int _lastBreakUsageSeconds = 0;
 
   UsageProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -38,6 +41,8 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get starsCount => _starsCount;
   int get monthlyStars => _monthlyStars;
   bool get isBedtime => _isBedtime;
+  bool get isBreakActive => _isBreakActive;
+  int get breakCountdown => _breakCountdown;
 
   double get progress =>
       (_usageSeconds / (_dailyLimitMinutes * 60)).clamp(0.0, 1.0);
@@ -86,6 +91,10 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _dailyLimitMinutes = prefs.getInt(_keyLimit) ?? 120;
     _starsCount = prefs.getInt(_keyStars) ?? 0;
+
+    // Initialize last break to the closest previous 15-m interval to avoid immediate break on restart
+    _lastBreakUsageSeconds = (_usageSeconds ~/ 900) * 900;
+
     _checkBedtime();
     notifyListeners();
   }
@@ -116,13 +125,33 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isBedtime && !_isAppPaused) {
+      if (_isAppPaused) return;
+
+      if (_isBreakActive) {
+        _breakCountdown--;
+        if (_breakCountdown <= 0) {
+          _isBreakActive = false;
+        }
+        notifyListeners();
+        return;
+      }
+
+      if (!_isBedtime) {
         _usageSeconds++;
+
+        // Trigger break every 15 minutes (900 seconds)
+        if (_usageSeconds - _lastBreakUsageSeconds >= 900) {
+          _isBreakActive = true;
+          _breakCountdown = 30;
+          _lastBreakUsageSeconds = (_usageSeconds ~/ 900) * 900;
+        }
+
         if (_usageSeconds % 10 == 0) {
           // Save every 10 seconds
           _saveUsage();
         }
         _checkBedtime();
+        notifyListeners();
       }
     });
   }

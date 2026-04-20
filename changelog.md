@@ -1,5 +1,12 @@
 # DadyTube Changelog
 
+## [v3.7.0] - 2026-04-20
+- `Added`: **Mandatory Periodic Breaks (Eye Yoga)**. Implemented 30-second eye-health breaks every 15 minutes to encourage healthy viewing habits.
+- `Added`: **Auto-Orientation Control**. The app now automatically enters full-screen mode when the device is rotated to landscape and exits when returned to portrait.
+- `Improved`: **Interactive Posture Layering**. Re-engineered playback controls to ensure touch responsiveness while maintaining the tap-to-show/hide gesture system.
+- `Improved`: **Visual Polish**. Refined typography tracking and button hit targets for better ergonomics in both landscape and portrait modes.
+- `Fixed`: Resolved playback control conflict where the "auto-resume" feature for breaks was causing manual pauses to fail.
+
 ## [v3.6.0] - 2026-04-15
 - `Added`: Full reconciliation and unification of over 40 feature, security, and performance branches into the main codebase.
 - `Added`: Modernized GitHub Wiki with a flattened, language-aware navigation system (En/Ar supporting).

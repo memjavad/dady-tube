@@ -10,6 +10,7 @@ import 'providers/settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/eye_protection_overlay.dart';
+import 'widgets/break_timer_overlay.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'services/background_audio_service.dart';
@@ -76,8 +77,14 @@ class DadyTubeApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           builder: (context, child) {
-            return EyeProtectionOverlay(
-              child: child ?? const SizedBox.shrink(),
+            return Stack(
+              children: [
+                EyeProtectionOverlay(
+                  child: child ?? const SizedBox.shrink(),
+                ),
+                // Mandatory Periodic Break Overlay (highest priority)
+                const BreakTimerOverlay(),
+              ],
             );
           },
           home: const SplashScreen(),

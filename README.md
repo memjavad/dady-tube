@@ -116,7 +116,13 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 ## 📈 Changelog
 
-### [v3.6] - 2026-04-10
+### [v3.7.0] - 2026-04-20
+- **Added**: **Eye Protection & Breaks**. Integrated a mandatory 30-second break every 15 minutes. The system now records previous state to auto-resume intelligently only if the video was playing beforehand.
+- **Added**: **Intelligent Orientation**. The playback experience now supports seamless, sensor-driven full-screen transitions without manual button toggles.
+- **Improved**: **Interactive Gesture Engine**. Optimized the tactile controls layer to eliminate tap conflicts between playback buttons and the visibility toggle.
+- **Fixed**: Corrected the "Auto-Play" bug where the break system was overriding manual user pauses.
+
+### [v3.6.0] - 2026-04-10
 - **Added**: **Cinematic Safety Integration**. Rejuvenated the Distance Protection system with a high-fidelity cinematic mascot (Rabbit) and intuitive posture-based warnings.
 - **Added**: **Unified Offline Feed**. Rewrote the `Travel Mode` architecture to merge auto-cached content and manual downloads into a single "Safe-to-Watch" library.
 - **Optimized**: **Hyper-Optimized Footprint**. Reduced YouTube server metadata requests by 50% and implemented permanent local cache for channel profile pictures.

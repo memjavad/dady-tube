@@ -71,14 +71,6 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
   }
 
   void _startTimer() {
-    _breakTimer?.cancel();
-    _breakTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (settings.restRemindersEnabled && !settings.bedtimeMode) {
-        _showBreak();
-      }
-    });
-
     _filterUpdateTimer?.cancel();
     _filterUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
