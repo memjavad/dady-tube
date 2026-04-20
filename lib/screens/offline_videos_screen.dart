@@ -6,6 +6,9 @@ import '../core/app_localizations.dart';
 import '../widgets/video_card.dart';
 import '../widgets/particle_background.dart';
 import '../core/theme.dart';
+import '../core/tactile_widgets.dart';
+import 'settings_screen.dart';
+import 'parental_gate.dart';
 
 class OfflineVideosScreen extends StatefulWidget {
   const OfflineVideosScreen({super.key});
@@ -65,19 +68,17 @@ class _OfflineVideosScreenState extends State<OfflineVideosScreen> {
                 ),
               ),
               if (videos.isEmpty)
-                SliverFillRemaining(
-                  child: _buildEmptyState(context, loc),
-                )
+                SliverFillRemaining(child: _buildEmptyState(context, loc))
               else
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        return VideoCard(video: videos[index]);
-                      },
-                      childCount: videos.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      return VideoCard(video: videos[index]);
+                    }, childCount: videos.length),
                   ),
                 ),
             ],
@@ -106,6 +107,43 @@ class _OfflineVideosScreenState extends State<OfflineVideosScreen> {
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            TactileButton(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const ParentalGate(destination: SettingsScreen()),
+                  ),
+                );
+              },
+              child: TactileCard(
+                color: DadyTubeTheme.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.settings_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.translate('settings'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
