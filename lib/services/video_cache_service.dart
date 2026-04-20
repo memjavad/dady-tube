@@ -488,13 +488,20 @@ class VideoCacheService {
         .toList();
     if (files.length <= _maxCacheEntries) return;
 
-    files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
+    // ⚡ Bolt: Use Schwartzian transform to avoid O(N log N) blocking disk I/O
+    // lastModifiedSync() reads the disk. Doing it inside .sort() calls it multiple times per element.
+    final filesWithStats = files
+        .map((f) => (file: f, modified: f.lastModifiedSync()))
+        .toList();
+    filesWithStats.sort((a, b) => a.modified.compareTo(b.modified));
 
-    for (int i = 0; i < files.length - _maxCacheEntries; i++) {
+    final sortedFiles = filesWithStats.map((e) => e.file).toList();
+
+    for (int i = 0; i < sortedFiles.length - _maxCacheEntries; i++) {
       try {
-        await files[i].delete();
+        await sortedFiles[i].delete();
         // Also delete the associated sidecar files
-        final base = files[i].path.replaceAll('.mp4', '');
+        final base = sortedFiles[i].path.replaceAll('.mp4', '');
         final metaFile = File('$base.meta');
         if (await metaFile.exists()) await metaFile.delete();
         final previewFile = File('$base.preview');
