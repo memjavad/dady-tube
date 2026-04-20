@@ -65,10 +65,12 @@ class ChannelProvider with ChangeNotifier {
   // Cache for expensive getter computations
   List<YoutubeVideo>? _cachedAllVideos;
   List<YoutubeVideo>? _cachedShuffledVideos;
+  Map<String, YoutubeVideo>? _cachedVideoByIdMap;
 
   void _invalidateVideoCache() {
     _cachedAllVideos = null;
     _cachedShuffledVideos = null;
+    _cachedVideoByIdMap = null;
     _cachedBigFilteredVideos = null;
     _cachedPopularFilteredVideos = null;
     _cachedChannelFeedVideos = null;
@@ -161,11 +163,15 @@ class ChannelProvider with ChangeNotifier {
   }
 
   YoutubeVideo? getVideoById(String id) {
-    for (var vids in _channelVideos.values) {
-      final index = vids.indexWhere((v) => v.id == id);
-      if (index != -1) return vids[index];
+    if (_cachedVideoByIdMap == null) {
+      _cachedVideoByIdMap = {};
+      for (var vids in _channelVideos.values) {
+        for (var v in vids) {
+          _cachedVideoByIdMap![v.id] = v;
+        }
+      }
     }
-    return null;
+    return _cachedVideoByIdMap![id];
   }
 
   YoutubeVideo? getNextVideo(String currentVideoId) {
