@@ -7,12 +7,16 @@ import 'package:flutter/foundation.dart';
 
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
-  final yt.YoutubeExplode _yt = yt.YoutubeExplode();
+  final yt.YoutubeExplode _yt;
+  final http.Client _client;
+
+  // Dependency injection constructor
+  DownloadService({yt.YoutubeExplode? ytClient, http.Client? httpClient})
+    : _yt = ytClient ?? yt.YoutubeExplode(),
+      _client = httpClient ?? http.Client();
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   String? _resolvedLocalPath;
-
-
 
   Future<String> get _localPath async {
     if (_resolvedLocalPath != null) return _resolvedLocalPath!;
@@ -36,7 +40,6 @@ class DownloadService {
     String videoId,
     Function(double) onProgress,
   ) async {
-    final client = http.Client();
     try {
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
@@ -56,8 +59,8 @@ class DownloadService {
       List<Future<void>> downloadTasks = [];
       int downloadedBytes = 0;
 
-      final raf = await file.open(mode: FileMode.write);
-
+      // ⚡ Fix: Use a dedicated RandomAccessFile for each concurrent chunk download to avoid
+      // 'An async operation is currently pending' during parallel write and setPosition operations.
       for (int i = 0; i < segmentCount; i++) {
         final start = i * segmentSize;
         final end = (i == segmentCount - 1)
@@ -65,9 +68,14 @@ class DownloadService {
             : (i + 1) * segmentSize - 1;
 
         downloadTasks.add(() async {
+          final raf = await file.open(mode: FileMode.append);
           try {
-            final response = await client.send(http.Request('GET', url)
-              ..headers['Range'] = 'bytes=$start-$end').timeout(const Duration(seconds: 10));
+            final response = await _client
+                .send(
+                  http.Request('GET', url)
+                    ..headers['Range'] = 'bytes=$start-$end',
+                )
+                .timeout(const Duration(seconds: 10));
 
             int currentPos = start;
             await for (final chunk in response.stream) {
@@ -80,18 +88,17 @@ class DownloadService {
             }
           } catch (e) {
             debugPrint('Segment Download Error: $e');
+          } finally {
+            await raf.close();
           }
         }());
       }
 
       await Future.wait(downloadTasks);
-      await raf.close();
       await _markAsDownloaded(videoId);
     } catch (e) {
       debugPrint('Parallel Download Error: $e');
       rethrow;
-    } finally {
-      client.close();
     }
   }
 
@@ -127,5 +134,6 @@ class DownloadService {
 
   void dispose() {
     _yt.close();
+    _client.close();
   }
 }
