@@ -452,14 +452,7 @@ class ChannelProvider with ChangeNotifier {
     loadAllVideos();
   }
 
-  Future<void> loadAllVideos({
-    bool? autoCache,
-    bool isBackground = false,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final shouldAutoCache =
-        autoCache ?? prefs.getBool('auto_cache_enabled') ?? true;
-
+  Future<void> loadAllVideos({bool isBackground = false}) async {
     // Ensure all channel avatars are cached permanently
     _ensureChannelAvatars();
 
