@@ -83,7 +83,7 @@ class VideoCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
-                          loc.translate('new_upload') ?? 'New',
+                          loc.translate('new_upload'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -155,7 +155,7 @@ class VideoCard extends StatelessWidget {
                         Text(
                           channel.name,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],

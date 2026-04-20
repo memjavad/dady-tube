@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../core/theme.dart';
 
 class ParticleBackground extends StatefulWidget {
   final Widget child;
