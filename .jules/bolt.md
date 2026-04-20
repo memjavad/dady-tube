@@ -30,6 +30,10 @@
 **Learning:** In Dart, processing directory listing streams directly using an `await for` loop to populate a collection is significantly more efficient than chaining `.toList().map().toSet()`, which creates redundant intermediate allocations.
 **Action:** Always use `await for` to iterate over streams (like `Directory.list()`) when you only need to process or calculate aggregate values (like file sizes or counting types) instead of creating expensive intermediate lists.
 
+## 2026-04-15 - Parallelize Channel Avatar Caching
+**Learning:** Sequential async operations over large lists (like `await`ing HTTP requests inside a loop) are a common source of performance bottlenecks during app initialization or caching processes.
+**Action:** When executing independent async operations in a loop, collect the futures in a list and execute them concurrently using `Future.wait(futures)` to significantly reduce wait times.
+
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.

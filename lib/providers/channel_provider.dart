@@ -647,12 +647,16 @@ class ChannelProvider with ChangeNotifier {
 
   /// 🖼️ Permanent Avatar Caching: Ensures all channels have a local profile picture.
   Future<void> _ensureChannelAvatars() async {
+    final futures = <Future<void>>[];
     for (int i = 0; i < _channels.length; i++) {
       final channel = _channels[i];
       if (channel.localThumbnailPath == null &&
           channel.thumbnailUrl.isNotEmpty) {
-        await _persistChannelAvatar(i);
+        futures.add(_persistChannelAvatar(i));
       }
+    }
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
     }
   }
 
