@@ -61,6 +61,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
     final isPlaying = value.isPlaying;
 
     return TactileButton(
+      semanticLabel: isPlaying ? 'Pause' : 'Play',
       onTap: () {
         _cancelAndRestartTimer();
         if (isPlaying) {
@@ -89,6 +90,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildSkip(bool forward, double scale) {
     return TactileButton(
+      semanticLabel: forward ? 'Fast forward 10 seconds' : 'Rewind 10 seconds',
       onTap: () {
         _cancelAndRestartTimer();
         final currentPosition = _controller!.value.position;
@@ -112,6 +114,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildBackButton(BuildContext context, double scale) {
     return TactileButton(
+      semanticLabel: 'Back',
       onTap: () {
         if (_chewieController!.isFullScreen) {
           _chewieController!.exitFullScreen();
@@ -134,12 +137,14 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || _chewieController == null) return const SizedBox();
+    if (_controller == null || _chewieController == null)
+      return const SizedBox();
 
     // ✅ Strengthened full-screen detection
-    final isFullScreen = _chewieController!.isFullScreen || 
-                         MediaQuery.of(context).orientation == Orientation.landscape;
-    
+    final isFullScreen =
+        _chewieController!.isFullScreen ||
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     // Scale up buttons for kids in full screen (compensated for 1.1x video zoom)
     final scale = isFullScreen ? (2.0 / 1.1) : 1.0;
 
@@ -170,16 +175,14 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                 // Dark background overlay when controls are visible (softened)
                 if (!_hideStuff)
                   IgnorePointer(
-                    child: Container(
-                      color: Colors.black.withAlpha(76),
-                    ),
+                    child: Container(color: Colors.black.withAlpha(76)),
                   ),
 
                 // ✅ Responsive Controls using SafeArea with Zoom Compensation
                 SafeArea(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      // Increase padding in full screen to account for 1.1x scaling which pushes 
+                      // Increase padding in full screen to account for 1.1x scaling which pushes
                       // logical edges off-screen by roughly 5% on each side.
                       horizontal: (isFullScreen ? 64.0 : 16.0) * scale,
                       vertical: (isFullScreen ? 48.0 : 16.0) * scale,
@@ -192,6 +195,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             top: 0,
                             left: 0,
                             child: TactileButton(
+                              semanticLabel: 'Back',
                               onTap: () {
                                 if (_chewieController!.isFullScreen) {
                                   _chewieController!.exitFullScreen();
@@ -207,10 +211,9 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.4),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.4),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -234,10 +237,10 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                               SizedBox(width: 32 * scale),
                               ValueListenableBuilder(
                                 valueListenable: _controller!,
-                                builder: (context, VideoPlayerValue value,
-                                    child) {
-                                  return _buildPlayPause(value, scale);
-                                },
+                                builder:
+                                    (context, VideoPlayerValue value, child) {
+                                      return _buildPlayPause(value, scale);
+                                    },
                               ),
                               SizedBox(width: 32 * scale),
                               _buildSkip(true, scale),
@@ -263,10 +266,12 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                     enabledThumbRadius: 10 * scale,
                                   ),
                                   activeTrackColor: DadyTubeTheme.primary,
-                                  inactiveTrackColor: Colors.white.withAlpha(204),
+                                  inactiveTrackColor: Colors.white.withAlpha(
+                                    204,
+                                  ),
                                   thumbColor: DadyTubeTheme.primary,
-                                  overlayColor:
-                                      DadyTubeTheme.primary.withOpacity(0.2),
+                                  overlayColor: DadyTubeTheme.primary
+                                      .withOpacity(0.2),
                                 ),
                                 child: Slider(
                                   value: position.inMilliseconds.toDouble(),
@@ -276,7 +281,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                   onChanged: (val) {
                                     _cancelAndRestartTimer();
                                     _controller!.seekTo(
-                                        Duration(milliseconds: val.toInt()));
+                                      Duration(milliseconds: val.toInt()),
+                                    );
                                   },
                                 ),
                               );
