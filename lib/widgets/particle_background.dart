@@ -39,15 +39,18 @@ class _ParticleBackgroundState extends State<ParticleBackground>
     final theme = Theme.of(context);
     final targetColor = widget.overrideColor ?? theme.colorScheme.primary;
 
+    // ⚡ Bolt: Pass down child to prevent unnecessary rebuilds inside animations
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: targetColor),
         duration: const Duration(milliseconds: 800),
-        builder: (context, color, child) {
+        child: widget.child,
+        builder: (context, color, tweenChild) {
           return AnimatedBuilder(
             animation: _controller,
-            builder: (context, child) {
+            child: tweenChild,
+            builder: (context, animChild) {
               for (var particle in _particles) {
                 particle.update();
               }
@@ -57,7 +60,7 @@ class _ParticleBackgroundState extends State<ParticleBackground>
                     _particles,
                     color ?? theme.colorScheme.primary,
                   ),
-                  child: widget.child,
+                  child: animChild,
                 ),
               );
             },

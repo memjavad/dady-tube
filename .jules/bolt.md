@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2026-04-23 - Prevent Deep Subtree Rebuilds in Nested Animations
+**Learning:** When using `AnimatedBuilder` or `TweenAnimationBuilder` wrapped around large, static widget subtrees, failing to pass the static subtree via the `child` property forces Flutter to unnecessarily rebuild the entire subtree on every single animation frame, causing severe CPU load and jank during constant background animations.
+**Action:** Always pass the static subtree to the `child` argument of the animation builder, and then inject that `child` back into the `builder` function, ensuring it's only built once while the surrounding layout animates.
