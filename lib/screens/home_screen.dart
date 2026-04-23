@@ -283,8 +283,10 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: 100,
       color: Theme.of(context).cardTheme.color,
       child: TextField(
+        maxLength: 100,
         onTap: () => setState(() => _currentIndex = 1),
         decoration: InputDecoration(
+          counterText: '',
           hintText: loc.translate('search_hint'),
           prefixIcon: const Icon(
             Icons.search_rounded,
