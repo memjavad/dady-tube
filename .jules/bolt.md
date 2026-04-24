@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2025-05-20 - Unused AnimatedBuilder Bottleneck
+**Learning:** In Flutter, wrapping widgets in `AnimatedBuilder` when the `builder` function does not actually utilize the `animation` parameter causes pointless rebuilds on every animation tick without producing any visual changes, creating an unnecessary performance bottleneck.
+**Action:** To prevent complex widget subtrees from rebuilding on every frame inside animation builders, remove the builder if the animation is not used, or pass the static subtree via the `child` parameter instead of capturing the widget reference directly inside the `builder` function.
