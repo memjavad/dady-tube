@@ -308,10 +308,10 @@ class ChannelProvider with ChangeNotifier {
     if (selectedWorld == 'Travel Mode') {
       videos = downloadedVideos;
     } else if (selectedWorld != 'All') {
+      // ⚡ Bolt: Cache lowercase transformation outside the loop to prevent O(N) redundant memory allocations
+      final searchStr = selectedWorld.toLowerCase();
       videos = videos
-          .where(
-            (v) => v.title.toLowerCase().contains(selectedWorld.toLowerCase()),
-          )
+          .where((v) => v.title.toLowerCase().contains(searchStr))
           .toList();
     }
 
