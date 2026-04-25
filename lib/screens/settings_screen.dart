@@ -560,7 +560,10 @@ class _SafetyTab extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  // SECURITY: Prevent memory exhaustion/DoS by limiting keyword input length
+                  maxLength: 50,
                   decoration: InputDecoration(
+                    counterText: '',
                     hintText: loc.translate('search_hint').replaceAll('!', ''),
                     border: InputBorder.none,
                   ),
@@ -650,7 +653,10 @@ class _ChannelsTab extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              // SECURITY: Prevent memory exhaustion/DoS by limiting channel URL input length
+              maxLength: 100,
               decoration: InputDecoration(
+                counterText: '',
                 hintText: 'youtube.com/@...',
                 border: InputBorder.none,
               ),
@@ -698,10 +704,19 @@ class _ChannelsTab extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: channel.localThumbnailPath != null && File(channel.localThumbnailPath!).existsSync()
+                  backgroundImage:
+                      channel.localThumbnailPath != null &&
+                          File(channel.localThumbnailPath!).existsSync()
                       ? FileImage(File(channel.localThumbnailPath!))
-                      : (channel.thumbnailUrl.isNotEmpty ? CachedNetworkImageProvider(channel.thumbnailUrl) : null) as ImageProvider?,
-                  child: channel.thumbnailUrl.isEmpty && channel.localThumbnailPath == null
+                      : (channel.thumbnailUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(
+                                    channel.thumbnailUrl,
+                                  )
+                                : null)
+                            as ImageProvider?,
+                  child:
+                      channel.thumbnailUrl.isEmpty &&
+                          channel.localThumbnailPath == null
                       ? const Icon(Icons.person_rounded)
                       : null,
                 ),
@@ -713,7 +728,10 @@ class _ChannelsTab extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.redAccent,
+                  ),
                   tooltip: loc.translate('remove_channel'),
                   onPressed: () => provider.removeChannel(channel.id),
                 ),
