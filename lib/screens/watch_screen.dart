@@ -548,7 +548,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final usage = Provider.of<UsageProvider>(context);
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
-    final showImmersive = isLandscape || (_isPlaying && !_isShowingBuffer);
 
     // ✅ Auto-trigger Full-Screen & Breaks based on Orientation and Usage
     if (_chewieController != null && 
