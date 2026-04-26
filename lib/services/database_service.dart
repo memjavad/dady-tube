@@ -57,7 +57,9 @@ CREATE TABLE videos (
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT');
+      await db.execute(
+        'ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT',
+      );
     }
   }
 
@@ -65,29 +67,47 @@ CREATE TABLE videos (
 
   Future<void> insertChannel(YoutubeChannel channel, {int lastSync = 0}) async {
     final db = await instance.database;
-    await db.insert(
-      'channels',
-      {
+    await db.insert('channels', {
+      'id': channel.id,
+      'name': channel.name,
+      'thumbnailUrl': channel.thumbnailUrl,
+      'localThumbnailPath': channel.localThumbnailPath,
+      'lastSync': lastSync,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> insertChannels(
+    List<YoutubeChannel> channels, {
+    int lastSync = 0,
+  }) async {
+    final db = await instance.database;
+    Batch batch = db.batch();
+    for (var channel in channels) {
+      batch.insert('channels', {
         'id': channel.id,
         'name': channel.name,
         'thumbnailUrl': channel.thumbnailUrl,
         'localThumbnailPath': channel.localThumbnailPath,
         'lastSync': lastSync,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<List<YoutubeChannel>> getChannels() async {
     final db = await instance.database;
     final result = await db.query('channels');
 
-    return result.map((json) => YoutubeChannel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
-      localThumbnailPath: json['localThumbnailPath'] as String?,
-    )).toList();
+    return result
+        .map(
+          (json) => YoutubeChannel(
+            id: json['id'] as String,
+            name: json['name'] as String,
+            thumbnailUrl: json['thumbnailUrl'] as String,
+            localThumbnailPath: json['localThumbnailPath'] as String?,
+          ),
+        )
+        .toList();
   }
 
   Future<void> deleteChannel(String id) async {
@@ -167,8 +187,11 @@ CREATE TABLE videos (
         )
         .toList();
   }
+
   /// ⚡ Fix 4: Parallel DB queries — all 12 channels fetched concurrently instead of sequentially
-  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
+  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(
+    List<String> channelIds,
+  ) async {
     final results = await Future.wait(
       channelIds.map((id) => getVideosForChannel(id)),
     );
