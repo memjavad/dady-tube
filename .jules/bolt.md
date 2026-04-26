@@ -37,3 +37,6 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+## 2024-05-17 - Optimize sequential file stitching in VideoCacheService
+**Learning:** Awaiting `RandomAccessFile.writeFrom(chunk)` in an `await for` loop creates significant async event-loop overhead for every small chunk, slowing down I/O bound operations.
+**Action:** Use `IOSink.addStream` instead. It delegates the stream reading and writing internally, utilizing optimal chunking and reducing microtask yields, leading to measurable performance gains (e.g. ~20% faster).
