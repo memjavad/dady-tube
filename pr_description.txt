@@ -1,0 +1,11 @@
+🎯 **What:** Removed unused `_buildBackButton` private method from `lib/widgets/dadytube_controls.dart`.
+
+💡 **Why:** The private method was not referenced anywhere in the file. Removing dead code improves codebase maintainability, reduces cognitive load, and keeps the code clean.
+
+✅ **Verification:**
+- Verified the method was unused via `grep`.
+- Ran `dart format` to ensure file syntax is correct.
+- Ran `flutter test` to ensure no related regressions.
+- Restored `pubspec.lock` to prevent out-of-scope dependency changes.
+
+✨ **Result:** Dead code is removed without affecting any functionality.
