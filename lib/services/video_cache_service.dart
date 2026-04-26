@@ -393,21 +393,19 @@ class VideoCacheService {
       }
 
       // Stitch parts together sequentially
-      final raf = await file.open(mode: FileMode.write);
+      // ⚡ Bolt: Using IOSink.addStream instead of raf.writeFrom in a loop avoids async overhead of awaiting every small chunk.
+      final sink = file.openWrite();
       try {
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
-            final stream = partFile.openRead();
-            await for (final chunk in stream) {
-              await raf.writeFrom(chunk);
-            }
+            await sink.addStream(partFile.openRead());
             await partFile.delete();
           }
         }
-        await raf.flush(); // Added flush before close for reliability
+        await sink.flush(); // Added flush before close for reliability
       } finally {
-        await raf.close();
+        await sink.close();
       }
 
       // ⚡ Fix 5: Invalidate cached ID set so next read picks up this new file
