@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dadytube/core/theme.dart';
@@ -8,7 +10,21 @@ void main() {
 
   setUpAll(() {
     // google_fonts tests require a special mock to avoid errors when testing offline
-    // but the simplest fix for testing theme colors when fonts are hardcoded is to just run them and mock the assets channel
+    // We mock the asset channel to provide empty manifests to prevent font loading errors
+    // Since GoogleFonts loads fonts from the AssetManifest, we must provide an empty
+    // manifest via the flutter/assets channel.
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler('flutter/assets', (ByteData? message) async {
+          if (message != null) {
+            final String key = utf8.decode(message.buffer.asUint8List());
+            if (key == 'AssetManifest.json') {
+              return ByteData.view(utf8.encode('{}').buffer);
+            } else if (key == 'AssetManifest.bin') {
+              return const StandardMessageCodec().encodeMessage({});
+            }
+          }
+          return null;
+        });
     GoogleFonts.config.allowRuntimeFetching = false;
   });
 
@@ -18,11 +34,16 @@ void main() {
       expect(DadyTubeTheme.borderRadiusFull, 9999.0);
     });
 
-    testWidgets('lightTheme should match blush theme', (WidgetTester tester) async {
+    testWidgets('lightTheme should match blush theme', (
+      WidgetTester tester,
+    ) async {
       final blushTheme = DadyTubeTheme.getTheme(AppThemeLevel.blush);
       final lightTheme = DadyTubeTheme.lightTheme;
 
-      expect(blushTheme.scaffoldBackgroundColor, lightTheme.scaffoldBackgroundColor);
+      expect(
+        blushTheme.scaffoldBackgroundColor,
+        lightTheme.scaffoldBackgroundColor,
+      );
       expect(blushTheme.colorScheme.primary, lightTheme.colorScheme.primary);
     });
 
