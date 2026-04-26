@@ -37,3 +37,6 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+## 2024-04-26 - Fix _cachePath race condition
+**Learning:** In Dart, when implementing asynchronous lazy initialization (e.g., fetching a path like `getTemporaryDirectory()`), if multiple concurrent requests occur before the first completes, the async operation will run multiple times.
+**Action:** Always cache the `Future` itself while it is in flight to ensure single execution and proper memoization.
