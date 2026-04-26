@@ -195,7 +195,6 @@ class VideoCacheService {
     }
   }
 
-  // ⚡ Fix 8: Use Set for O(1) dedup instead of O(N) List.contains()
   bool _isFetchingManifest = false;
   final List<String> _manifestFetchQueue = [];
   final Set<String> _manifestQueueSet = {};
@@ -207,7 +206,6 @@ class VideoCacheService {
       if (!cached.isExpired) return;
     }
 
-    // ⚡ Fix 8: O(1) set lookup
     if (!_manifestQueueSet.contains(videoId)) {
       _manifestQueueSet.add(videoId);
       _manifestFetchQueue.add(videoId);
@@ -223,7 +221,7 @@ class VideoCacheService {
 
     _isFetchingManifest = true;
     final videoId = _manifestFetchQueue.removeAt(0);
-    _manifestQueueSet.remove(videoId); // ⚡ Fix 8: Keep set in sync
+    _manifestQueueSet.remove(videoId);
 
     try {
       final cachedUrl = await getCachedStreamUrl(videoId);
