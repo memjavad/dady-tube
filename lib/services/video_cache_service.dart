@@ -678,7 +678,9 @@ class VideoCacheService {
       _manifestCache.clear();
       _cachedVideoIdSet = null;
       _resolvedCachePath = null;
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error clearing cache: $e');
+    }
   }
 
   void dispose() {

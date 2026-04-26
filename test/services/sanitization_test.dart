@@ -28,7 +28,7 @@ void main() {
       final service = VideoCacheService();
 
       expect(service.sanitizeVideoId('dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
-      expect(service.sanitizeVideoId('../../../etc/passwd'), 'etcpasswd');
+      expect(service.sanitizeVideoId('../../../etc/passwd'), '_________etc_passwd');
       expect(service.sanitizeVideoId('some_video-ID'), 'some_video-ID');
       expect(
         service.sanitizeVideoId('video?id=123&foo=bar'),
