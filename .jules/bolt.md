@@ -37,3 +37,6 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+## 2024-10-24 - Optimize SharedPreferences removal loop
+**Learning:** Using a `for` loop with individual `await` calls for deleting multiple SharedPreferences keys causes sequential waiting, artificially bloating the execution time (O(N) sequential delays).
+**Action:** Whenever applying an asynchronous operation uniformly across a collection of items, use `await Future.wait(collection.map((item) => asyncTask(item)))` to perform the operations concurrently and significantly reduce total execution time.
