@@ -41,7 +41,10 @@ class VideoCacheService {
   factory VideoCacheService() => _instance;
   VideoCacheService._internal();
 
-  yt.YoutubeExplode get _yt => YoutubeClientService().client;
+  @visibleForTesting
+  yt.YoutubeExplode? mockYt;
+
+  yt.YoutubeExplode get _yt => mockYt ?? YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
   static const int _maxCacheEntries =
       25; // Halved from 50 for reduced footprint
