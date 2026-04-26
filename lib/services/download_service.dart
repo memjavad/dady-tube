@@ -16,13 +16,11 @@ class DownloadService {
       _client = httpClient ?? http.Client();
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
-  String? _resolvedLocalPath;
+  Future<String>? _resolvedLocalPathFuture;
 
-  Future<String> get _localPath async {
-    if (_resolvedLocalPath != null) return _resolvedLocalPath!;
-    final directory = await getApplicationDocumentsDirectory();
-    _resolvedLocalPath = directory.path;
-    return _resolvedLocalPath!;
+  Future<String> get _localPath {
+    _resolvedLocalPathFuture ??= getApplicationDocumentsDirectory().then((dir) => dir.path);
+    return _resolvedLocalPathFuture!;
   }
 
   // Visible for testing
