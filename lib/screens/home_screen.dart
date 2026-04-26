@@ -276,31 +276,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchBox(BuildContext context, AppLocalizations loc) {
-    // ... existing code
-    return TactileCard(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      borderRadius: 100,
-      color: Theme.of(context).cardTheme.color,
-      child: TextField(
-        onTap: () => setState(() => _currentIndex = 1),
-        decoration: InputDecoration(
-          hintText: loc.translate('search_hint'),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: DadyTubeTheme.primary,
-            size: 28,
-          ),
-          border: InputBorder.none,
-          hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchPlaceholder(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Center(child: Text(loc.translate('search_hint')));
