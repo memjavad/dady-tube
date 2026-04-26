@@ -1,11 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dadytube/services/video_cache_service.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
-  test('Sanitize ID handles dangerous characters', () {
-    // We cannot instantiate VideoCacheService easily without path_provider initialization
-    // But since _sanitizeId is private, we can't test it directly unless we test the public methods.
-    // Given the nature of this project, we might just assert logic if we could expose it.
-    expect(true, true);
+  test('writeMetaSidecarForTest writes correctly', () async {
+    final tempDir = Directory.systemTemp.createTempSync('video_cache_test');
+    final service = VideoCacheService();
+
+    // Test that the meta file is written
+    await service.writeMetaSidecarForTest(
+      tempDir.path,
+      'test_id',
+      title: 'Test Title',
+      thumbnailUrl: 'http://test.com/thumb.jpg',
+      channelId: 'test_channel',
+    );
+
+    final metaFile = File('${tempDir.path}/test_id.meta');
+    expect(await metaFile.exists(), isTrue);
+
+    final jsonContent = json.decode(await metaFile.readAsString());
+    expect(jsonContent['title'], 'Test Title');
+    expect(jsonContent['thumbnailUrl'], 'http://test.com/thumb.jpg');
+    expect(jsonContent['channelId'], 'test_channel');
+    expect(jsonContent.containsKey('cachedAt'), isTrue);
+
+    tempDir.deleteSync(recursive: true);
   });
 }
