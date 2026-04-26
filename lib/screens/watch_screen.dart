@@ -373,7 +373,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         if (streamInfo == null) throw Exception("No playable stream found.");
         _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
         
-        // ⚡ Fix 7: Pass metadata so the .meta sidecar is written alongside the .mp4
         _cacheService.cacheVideo(
           widget.videoId,
           title: _videoTitle ?? widget.videoTitle ?? '',
