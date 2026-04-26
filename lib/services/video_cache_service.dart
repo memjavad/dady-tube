@@ -275,8 +275,6 @@ class VideoCacheService {
   // ⚡ Fix 5: In-memory cached video ID set — scans disk only once per session
   Set<String>? _cachedVideoIdSet;
 
-  void _invalidateCachedIdSet() => _cachedVideoIdSet = null;
-
   /// Returns a set of all video IDs currently in the cache.
   Future<Set<String>> getCachedVideoIds() async {
     // Return cached set immediately if available
@@ -410,8 +408,8 @@ class VideoCacheService {
         await raf.close();
       }
 
-      // ⚡ Fix 5: Invalidate cached ID set so next read picks up this new file
-      _invalidateCachedIdSet();
+      // ⚡ Fix 5: Update cached ID set in memory without scanning disk
+      _cachedVideoIdSet?.add(sanitizedId);
 
       // ⚡ Fix 7: Write metadata sidecar
       if (title.isNotEmpty) {
@@ -506,10 +504,14 @@ class VideoCacheService {
         if (await metaFile.exists()) await metaFile.delete();
         final previewFile = File('$base.preview');
         if (await previewFile.exists()) await previewFile.delete();
+
+        final name = sortedFiles[i].path
+            .split(Platform.pathSeparator)
+            .last
+            .replaceAll('.mp4', '');
+        _cachedVideoIdSet?.remove(name);
       } catch (_) {}
     }
-    // Invalidate set after deletion
-    _invalidateCachedIdSet();
   }
 
   static const String _keyLastCacheDate = 'last_auto_cache_date';
