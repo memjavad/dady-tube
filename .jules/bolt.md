@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2025-02-15 - Fix N+1 Query in JSON Cache Migration
+**Learning:** Inserting multiple items into a database individually inside a loop (N+1 query problem) creates severe transaction overhead and blocks the UI thread unnecessarily, especially for operations like migrating a cached JSON list.
+**Action:** When inserting or updating nested collections (e.g., `Map<String, List<Model>>`), flatten the data structure using `.values.expand((v) => v).toList()` and process it in a single `Batch` commit instead of iteratively writing to the database inside a loop.
