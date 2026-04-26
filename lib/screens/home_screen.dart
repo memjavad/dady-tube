@@ -12,7 +12,6 @@ import 'achievements_screen.dart';
 import '../widgets/bedtime_overlay.dart';
 import '../widgets/particle_background.dart';
 import '../widgets/shimmer_video_card.dart';
-import '../widgets/world_carousel.dart';
 import '../providers/usage_provider.dart';
 import '../providers/download_provider.dart';
 import '../providers/settings_provider.dart';
@@ -304,58 +303,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchPlaceholder(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Center(child: Text(loc.translate('search_hint')));
-  }
-
-  Widget _buildPickAWorld(BuildContext context, AppLocalizations loc) {
-    final worlds = [
-      WorldItem(
-        name: loc.translate('animals'),
-        icon: 'assets/images/animals_icon_3d.png',
-        color: Colors.orangeAccent,
-      ),
-      WorldItem(
-        name: loc.translate('music'),
-        icon: 'assets/images/music_icon_3d.png',
-        color: Colors.greenAccent,
-      ),
-      WorldItem(
-        name: loc.translate('toys'),
-        icon: 'assets/images/toys_icon_3d.png',
-        color: Colors.yellowAccent,
-      ),
-      WorldItem(
-        name: loc.translate('learning'),
-        icon: 'assets/images/learning_icon_3d.png',
-        color: Colors.blueAccent,
-      ),
-      WorldItem(
-        name: loc.translate('travel_mode'),
-        icon: Icons.card_travel_rounded,
-        color: DadyTubeTheme.primary,
-        isMaterial: true,
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            loc.translate('pick_a_world'),
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-        ),
-        const SizedBox(height: 8),
-        WorldCarousel(
-          items: worlds,
-          selectedWorld: _selectedWorld,
-          onWorldSelected: (name) => setState(
-            () => _selectedWorld = _selectedWorld == name ? 'All' : name,
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _buildPopularFeed(
