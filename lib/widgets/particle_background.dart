@@ -44,9 +44,11 @@ class _ParticleBackgroundState extends State<ParticleBackground>
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: targetColor),
         duration: const Duration(milliseconds: 800),
+        child: widget.child,
         builder: (context, color, child) {
           return AnimatedBuilder(
             animation: _controller,
+            child: child,
             builder: (context, child) {
               for (var particle in _particles) {
                 particle.update();
@@ -57,7 +59,7 @@ class _ParticleBackgroundState extends State<ParticleBackground>
                     _particles,
                     color ?? theme.colorScheme.primary,
                   ),
-                  child: widget.child,
+                  child: child,
                 ),
               );
             },
