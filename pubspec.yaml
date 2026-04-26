@@ -65,6 +65,7 @@ dependencies:
   wakelock_plus: ^1.2.8
 
 dev_dependencies:
+  sqflite_common_ffi: ^2.3.3
   flutter_test:
     sdk: flutter
 
