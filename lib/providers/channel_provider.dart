@@ -505,7 +505,6 @@ class ChannelProvider with ChangeNotifier {
 
               // Update the in-memory map incrementally
               final existingVids = _channelVideos[channel.id] ?? [];
-              final chunkIds = chunk.map((v) => v.id).toSet();
 
               final existingIds = existingVids.map((e) => e.id).toSet();
               final newInChunk = chunk
