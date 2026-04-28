@@ -393,21 +393,21 @@ class VideoCacheService {
       }
 
       // Stitch parts together sequentially
-      final raf = await file.open(mode: FileMode.write);
+      // ⚡ Bolt: Using IOSink.addStream instead of await for loop with RandomAccessFile.writeFrom
+      // This delegates buffering and writing to Dart's internal implementation, significantly reducing async event-loop overhead.
+      final ios = file.openWrite();
       try {
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
             final stream = partFile.openRead();
-            await for (final chunk in stream) {
-              await raf.writeFrom(chunk);
-            }
+            await ios.addStream(stream);
             await partFile.delete();
           }
         }
-        await raf.flush(); // Added flush before close for reliability
+        await ios.flush();
       } finally {
-        await raf.close();
+        await ios.close();
       }
 
       // ⚡ Fix 5: Invalidate cached ID set so next read picks up this new file

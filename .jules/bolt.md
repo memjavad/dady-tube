@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2026-04-28 - Dart File I/O Optimization for Sequential Chunk Writing
+**Learning:** In Dart, using an `await for` loop with `RandomAccessFile.writeFrom` to write sequential stream chunks incurs significant asynchronous event-loop overhead for each iteration.
+**Action:** Always use `IOSink.addStream` (via `file.openWrite()`) instead, which delegates buffering and writing to Dart's highly optimized internal implementation, bypassing the per-chunk async overhead and maximizing sequential I/O throughput.
