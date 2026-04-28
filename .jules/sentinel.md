@@ -17,3 +17,8 @@
 **Vulnerability:** The parental gate used a predictable random number generator (`Random()`), allowing potential predictability of math problems used for authorization.
 **Learning:** `Random()` in Dart generates a predictable pseudo-random sequence. For security-sensitive features like authorization gates, even simple math challenges need to be unpredictable.
 **Prevention:** Always use `Random.secure()` for generating numbers used in security challenges or authorization flows.
+
+## 2026-04-11 - [Path Traversal in Channel Provider]
+**Vulnerability:** The channel provider used an unsanitized external ID (`channel.id`) when constructing a local file path for channel avatars (`${avatarsDir.path}/${channel.id}.jpg`), allowing for potential path traversal attacks.
+**Learning:** Local file paths constructed from dynamic or external variables must be sanitized to prevent malicious actors from writing files outside intended directories.
+**Prevention:** Always sanitize variables that represent file names before using them in file path construction (e.g., using `replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '')`).
