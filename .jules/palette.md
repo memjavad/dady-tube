@@ -17,3 +17,7 @@
 ## 2026-04-03 - Added missing tooltips to icon-only buttons
 **Learning:** Icon-only buttons (like `IconButton` without text) lack inherent descriptions for screen readers. Using `tooltip` property natively provides semantic labeling for accessibility and adds hover tooltips for desktop/web contexts.
 **Action:** Always provide a localized descriptive string using the `tooltip` property whenever an `IconButton` or icon-only widget is used.
+
+## 2023-10-27 - Add semantics to custom tactile buttons
+**Learning:** Found that custom highly interactive widgets like `TactileButton` often miss native semantic bindings because they compose raw `GestureDetector` instances. Screen readers skip them unless manually wrapped with a `Semantics` widget providing explicit `semanticLabel`.
+**Action:** Next time building custom interactive components with `GestureDetector`, always ensure a `Semantics` wrapper is included, and expose a `semanticLabel` parameter for consumers to implement accessible touch targets.
