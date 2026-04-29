@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2026-05-01 - Optimize Dart File Copying and Stitching
+**Learning:** In Dart, copying or stitching files together using `await for` loops and `RandomAccessFile.writeFrom` incurs high async event-loop overhead. For high-throughput I/O operations where sequential order is guaranteed (like stitching downloaded chunks), processing chunks manually is significantly slower.
+**Action:** Always use `IOSink.addStream(file.openRead())` (via `file.openWrite()`) to delegate buffering and writing entirely to Dart's highly optimized internal C++ implementation, drastically reducing I/O bottleneck and CPU time.
