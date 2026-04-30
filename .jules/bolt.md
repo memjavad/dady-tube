@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2024-05-14 - Optimize getAllVideosMap to use single batch query
+**Learning:** Parallel SQLite database queries via `Future.wait` across multiple channels (N+1 queries) can cause unnecessary lock contention and excessive Dart-to-native bridge overhead, creating an initial bottleneck compared to a single query.
+**Action:** Always prefer flattening sequential or parallel database requests into a single batch query (e.g., using the SQL `IN` operator) when retrieving aggregated data collections mapped by IDs.
