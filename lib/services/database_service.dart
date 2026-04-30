@@ -167,12 +167,38 @@ CREATE TABLE videos (
         )
         .toList();
   }
-  /// ⚡ Fix 4: Parallel DB queries — all 12 channels fetched concurrently instead of sequentially
+  /// ⚡ Bolt: Single batch query — fetch all videos for channels in one go
   Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
-    final results = await Future.wait(
-      channelIds.map((id) => getVideosForChannel(id)),
+    if (channelIds.isEmpty) return {};
+
+    final db = await instance.database;
+    final placeholders = List.filled(channelIds.length, '?').join(',');
+
+    final result = await db.query(
+      'videos',
+      where: 'channelId IN ($placeholders)',
+      whereArgs: channelIds,
+      orderBy: 'publishedAt DESC',
     );
-    return Map.fromIterables(channelIds, results);
+
+    final videos = result.map(
+      (json) => YoutubeVideo(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        thumbnailUrl: json['thumbnailUrl'] as String,
+        channelId: json['channelId'] as String,
+        publishedAt: DateTime.tryParse(json['publishedAt'] as String) ?? DateTime.now(),
+      ),
+    ).toList();
+
+    final Map<String, List<YoutubeVideo>> map = {};
+    for (var id in channelIds) {
+      map[id] = [];
+    }
+    for (var video in videos) {
+      map[video.channelId]?.add(video);
+    }
+    return map;
   }
 
   Future<int> getTotalChannelCount() async {
