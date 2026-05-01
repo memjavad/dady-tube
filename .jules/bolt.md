@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2026-05-01 - Batched DB Queries for sqflite
+**Learning:** `Future.wait` on `sqflite` queries does not parallelize nicely natively. Doing concurrent queries across multiple connections can cause excessive lock contention and high Dart-to-native bridge overhead.
+**Action:** Replace multiple concurrent `db.query` calls (via `Future.wait`) with a single batched query using the SQL `IN` operator and grouping the results in Dart.
