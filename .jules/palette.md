@@ -17,3 +17,7 @@
 ## 2026-04-03 - Added missing tooltips to icon-only buttons
 **Learning:** Icon-only buttons (like `IconButton` without text) lack inherent descriptions for screen readers. Using `tooltip` property natively provides semantic labeling for accessibility and adds hover tooltips for desktop/web contexts.
 **Action:** Always provide a localized descriptive string using the `tooltip` property whenever an `IconButton` or icon-only widget is used.
+
+## 2024-05-01 - Add semantic labels to video player controls
+**Learning:** Custom interactive widgets (like `TactileButton`) acting as icon-only buttons lack inherent accessibility if a `semanticLabel` is not explicitly passed to the underlying `Semantics` node. In `dadytube_controls.dart`, video player controls were completely invisible/unannounced to screen readers.
+**Action:** Always provide and ensure custom button wrappers forward `semanticLabel` appropriately.
