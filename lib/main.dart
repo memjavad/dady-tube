@@ -7,7 +7,6 @@ import 'providers/channel_provider.dart';
 import 'providers/usage_provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/settings_provider.dart';
-import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/eye_protection_overlay.dart';
 import 'widgets/break_timer_overlay.dart';
@@ -79,9 +78,7 @@ class DadyTubeApp extends StatelessWidget {
           builder: (context, child) {
             return Stack(
               children: [
-                EyeProtectionOverlay(
-                  child: child ?? const SizedBox.shrink(),
-                ),
+                EyeProtectionOverlay(child: child ?? const SizedBox.shrink()),
                 // Mandatory Periodic Break Overlay (highest priority)
                 const BreakTimerOverlay(),
               ],
