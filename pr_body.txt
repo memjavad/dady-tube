@@ -1,0 +1,11 @@
+🎯 **What:** Removed unused import `parental_gate.dart` from `lib/screens/watch_screen.dart`.
+
+💡 **Why:** `parental_gate.dart` was imported but never used in `WatchScreen`. Removing unused imports reduces clutter, improves code readability, and prevents potential confusion for future maintainers.
+
+✅ **Verification:**
+- Formatted code using `dart format`.
+- Ran `flutter analyze lib/screens/watch_screen.dart` to confirm the unused import warning is gone.
+- Ran `flutter test` to verify no regressions were introduced.
+- Successfully completed pre-commit steps and verified the changes are safe.
+
+✨ **Result:** A cleaner `watch_screen.dart` file with no unused import warnings.
