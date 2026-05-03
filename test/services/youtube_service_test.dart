@@ -1,18 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:http/http.dart' as http;
 import 'package:dadytube/services/youtube_service.dart';
 
 class MockYoutubeExplode extends Mock implements YoutubeExplode {}
 class MockChannelClient extends Mock implements ChannelClient {}
 class MockChannel extends Mock implements Channel {}
 class MockChannelId extends Mock implements ChannelId {}
+class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
   late MockYoutubeExplode mockYtClient;
   late MockChannelClient mockChannelClient;
   late MockChannel mockChannel;
   late MockChannelId mockChannelId;
+
+
+  setUpAll(() {
+    registerFallbackValue(Uri.parse('https://example.com'));
+  });
 
   setUp(() {
     mockYtClient = MockYoutubeExplode();
@@ -45,6 +52,24 @@ void main() {
       expect(result.thumbnailUrl, 'https://example.com/logo.png');
 
       verify(() => mockChannelClient.getByVideo(url)).called(1);
+    });
+
+
+    test('Returns null when getChannelInfoById scraping fallback throws an exception', () async {
+      final channelId = 'UC1234567890';
+      final mockHttpClient = MockHttpClient();
+
+      when(() => mockChannelClient.get(any())).thenThrow(Exception('Channel not found'));
+      when(() => mockHttpClient.get(any())).thenThrow(Exception('Network error'));
+
+      final result = await YoutubeService.getChannelInfoById(
+        channelId,
+        ytClient: mockYtClient,
+        httpClient: mockHttpClient,
+      );
+
+      expect(result, isNull);
+      verify(() => mockHttpClient.get(any())).called(1);
     });
 
     test('Fallback to getChannelInfoById when getByVideo fails and URL contains /channel/', () async {
