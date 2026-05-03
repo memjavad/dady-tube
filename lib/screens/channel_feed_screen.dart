@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/settings_provider.dart';
-import '../services/youtube_service.dart';
 import '../core/theme.dart';
 import '../core/app_localizations.dart';
 import '../widgets/video_card.dart';
