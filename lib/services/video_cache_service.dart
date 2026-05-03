@@ -481,11 +481,13 @@ class VideoCacheService {
     final dir = Directory(path);
     if (!(await dir.exists())) return;
 
-    final files = await dir
-        .list()
-        .where((e) => e is File && e.path.endsWith('.mp4'))
-        .cast<File>()
-        .toList();
+    final files = <File>[];
+    // ⚡ Bolt: Use `await for` to iterate over stream instead of creating expensive intermediate lists
+    await for (final entity in dir.list()) {
+      if (entity is File && entity.path.endsWith('.mp4')) {
+        files.add(entity);
+      }
+    }
     if (files.length <= _maxCacheEntries) return;
 
     // ⚡ Bolt: Use Schwartzian transform to avoid O(N log N) blocking disk I/O
@@ -497,16 +499,23 @@ class VideoCacheService {
 
     final sortedFiles = filesWithStats.map((e) => e.file).toList();
 
+    // ⚡ Bolt: Execute independent async delete operations concurrently to reduce wait time
+    final deleteTasks = <Future<void>>[];
     for (int i = 0; i < sortedFiles.length - _maxCacheEntries; i++) {
-      try {
-        await sortedFiles[i].delete();
-        // Also delete the associated sidecar files
-        final base = sortedFiles[i].path.replaceAll('.mp4', '');
-        final metaFile = File('$base.meta');
-        if (await metaFile.exists()) await metaFile.delete();
-        final previewFile = File('$base.preview');
-        if (await previewFile.exists()) await previewFile.delete();
-      } catch (_) {}
+      deleteTasks.add(() async {
+        try {
+          await sortedFiles[i].delete();
+          // Also delete the associated sidecar files
+          final base = sortedFiles[i].path.replaceAll('.mp4', '');
+          final metaFile = File('$base.meta');
+          if (await metaFile.exists()) await metaFile.delete();
+          final previewFile = File('$base.preview');
+          if (await previewFile.exists()) await previewFile.delete();
+        } catch (_) {}
+      }());
+    }
+    if (deleteTasks.isNotEmpty) {
+      await Future.wait(deleteTasks);
     }
     // Invalidate set after deletion
     _invalidateCachedIdSet();
