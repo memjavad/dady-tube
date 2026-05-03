@@ -18,7 +18,7 @@ import '../providers/download_provider.dart';
 import '../providers/settings_provider.dart';
 import '../core/app_localizations.dart';
 import '../widgets/video_card.dart';
-import '../widgets/playtime_bucket.dart';
+
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/video_cache_service.dart';
