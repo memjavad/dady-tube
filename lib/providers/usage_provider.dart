@@ -20,6 +20,13 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   int _breakCountdown = 30;
   int _lastBreakUsageSeconds = 0;
 
+  SharedPreferences? _prefs;
+
+  Future<SharedPreferences> get _asyncPrefs async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
+
   UsageProvider() {
     WidgetsBinding.instance.addObserver(this);
     _loadSettings();
@@ -61,7 +68,7 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _asyncPrefs;
     final today = DateTime.now().toIso8601String().split('T')[0];
     final lastReset = prefs.getString(_keyLastReset) ?? '';
 
@@ -118,7 +125,7 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void addStar() async {
     _starsCount++;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _asyncPrefs;
     await prefs.setInt(_keyStars, _starsCount);
     notifyListeners();
   }
@@ -166,13 +173,13 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _saveUsage() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _asyncPrefs;
     await prefs.setInt(_keyUsage, _usageSeconds);
   }
 
   Future<void> setDailyLimit(int minutes) async {
     _dailyLimitMinutes = minutes;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _asyncPrefs;
     await prefs.setInt(_keyLimit, minutes);
     _isBedtime = false; // Reset bedtime state when limit changes
     _checkBedtime();
