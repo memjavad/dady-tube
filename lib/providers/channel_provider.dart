@@ -268,15 +268,15 @@ class ChannelProvider with ChangeNotifier {
     }
 
     if (isNightTime) {
-      // ⚡ Bolt: Single-pass O(N) partition to avoid O(N²) .where().contains() bottleneck
+      // ⚡ Bolt: Use compiled RegExp for faster filtering instead of multiple .contains()
+      final calmPattern = RegExp(
+        r'learn|music|lullaby|story',
+        caseSensitive: false,
+      );
       final calmVideos = <YoutubeVideo>[];
       final otherVideos = <YoutubeVideo>[];
       for (final v in videos) {
-        final title = v.title.toLowerCase();
-        if (title.contains('learn') ||
-            title.contains('music') ||
-            title.contains('lullaby') ||
-            title.contains('story')) {
+        if (calmPattern.hasMatch(v.title)) {
           calmVideos.add(v);
         } else {
           otherVideos.add(v);
