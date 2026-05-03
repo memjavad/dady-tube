@@ -37,3 +37,7 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
+
+## 2026-05-04 - Dart SharedPreferences Caching
+**Learning:** In Dart, repeatedly calling `await SharedPreferences.getInstance()` in property setters causes redundant native channel invocations and disk access overhead, leading to degraded performance.
+**Action:** Cache the SharedPreferences instance locally inside providers during initialization, or lazily using a getter `_prefs ??= await SharedPreferences.getInstance()`, and reference the cached instance in all setters to eliminate redundant disk reads.
