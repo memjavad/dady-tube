@@ -17,3 +17,7 @@
 ## 2026-04-03 - Added missing tooltips to icon-only buttons
 **Learning:** Icon-only buttons (like `IconButton` without text) lack inherent descriptions for screen readers. Using `tooltip` property natively provides semantic labeling for accessibility and adds hover tooltips for desktop/web contexts.
 **Action:** Always provide a localized descriptive string using the `tooltip` property whenever an `IconButton` or icon-only widget is used.
+
+## 2024-05-20 - Adding Semantic Labels to Playback Controls
+**Learning:** Custom interactive elements representing common playback controls (Play, Pause, Fast Forward, Rewind) must be dynamically labeled for screen readers based on their current state. A static label like "Play/Pause" is ambiguous. Dynamically assigning `semanticLabel: isPlaying ? 'Pause' : 'Play'` ensures the screen reader accurately reflects the action the button will perform when tapped.
+**Action:** Always bind the `semanticLabel` of toggleable custom controls to the underlying state they represent, ensuring accurate contextual announcements.
