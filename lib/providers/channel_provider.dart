@@ -673,7 +673,12 @@ class ChannelProvider with ChangeNotifier {
           await avatarsDir.create(recursive: true);
         }
 
-        final file = File('${avatarsDir.path}/${channel.id}.jpg');
+        // Sanitize channel.id to prevent Path Traversal vulnerabilities
+        final sanitizedId = channel.id.replaceAll(
+          RegExp(r'[^a-zA-Z0-9_\-]'),
+          '',
+        );
+        final file = File('${avatarsDir.path}/$sanitizedId.jpg');
         await file.writeAsBytes(response.bodyBytes);
 
         // Update model and DB
