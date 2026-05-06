@@ -61,6 +61,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
     final isPlaying = value.isPlaying;
 
     return TactileButton(
+      semanticLabel: isPlaying ? 'Pause' : 'Play',
       onTap: () {
         _cancelAndRestartTimer();
         if (isPlaying) {
@@ -89,6 +90,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildSkip(bool forward, double scale) {
     return TactileButton(
+      semanticLabel: forward ? 'Fast forward 10 seconds' : 'Rewind 10 seconds',
       onTap: () {
         _cancelAndRestartTimer();
         final currentPosition = _controller!.value.position;
@@ -112,6 +114,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildBackButton(BuildContext context, double scale) {
     return TactileButton(
+      semanticLabel: 'Back',
       onTap: () {
         if (_chewieController!.isFullScreen) {
           _chewieController!.exitFullScreen();
@@ -192,6 +195,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             top: 0,
                             left: 0,
                             child: TactileButton(
+                              semanticLabel: 'Exit Fullscreen',
                               onTap: () {
                                 if (_chewieController!.isFullScreen) {
                                   _chewieController!.exitFullScreen();

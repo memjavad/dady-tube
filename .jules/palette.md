@@ -17,3 +17,7 @@
 ## 2026-04-03 - Added missing tooltips to icon-only buttons
 **Learning:** Icon-only buttons (like `IconButton` without text) lack inherent descriptions for screen readers. Using `tooltip` property natively provides semantic labeling for accessibility and adds hover tooltips for desktop/web contexts.
 **Action:** Always provide a localized descriptive string using the `tooltip` property whenever an `IconButton` or icon-only widget is used.
+
+## 2026-05-06 - Semantic Labels for Media Controls
+**Learning:** Icon-only media control buttons (like Play, Pause, Skip, Back, Exit Fullscreen) built using custom widgets (like `TactileButton`) do not provide inherent semantic meaning to screen readers, making the media player inaccessible.
+**Action:** Always provide explicit, context-aware `semanticLabel`s (e.g., changing 'Play' to 'Pause' dynamically) to all interactive media control buttons.
