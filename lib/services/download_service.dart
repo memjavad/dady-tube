@@ -52,11 +52,6 @@ class DownloadService {
 
       if (await file.exists()) await file.delete();
 
-      // Pre-allocate file to prevent sparse file fragmentation and concurrent creation races
-      final preallocRaf = await file.open(mode: FileMode.write);
-      await preallocRaf.truncate(totalSize);
-      await preallocRaf.close();
-
       // Parallel Turbo: 4 concurrent connections
       const int segmentCount = 4;
       final int segmentSize = (totalSize / segmentCount).ceil();
@@ -93,7 +88,6 @@ class DownloadService {
             }
           } catch (e) {
             debugPrint('Segment Download Error: $e');
-            rethrow;
           } finally {
             await raf.close();
           }

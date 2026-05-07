@@ -26,6 +26,10 @@
 **Learning:** Calling directory invalidation methods repeatedly causes the application to re-scan the entire directory on the next read, which is inefficient. Modifying the in-memory `Set` prevents redundant disk I/O.
 **Action:** Instead of nullifying memory cache variables that require full rebuilding, actively add or remove individual entries from the cache when changes occur to preserve the cache's integrity and avoid full re-scans.
 
+## 2025-02-15 - [Fix N+1 Query in JSON Cache Migration and Batched Inserts]
+**Learning:** Inserting multiple items into a database individually inside a loop (N+1 query problem) creates severe transaction overhead and blocks the UI thread unnecessarily, especially for operations like migrating a cached JSON list.
+**Action:** When inserting or updating nested collections (e.g., `Map<String, List<Model>>`), flatten the data structure using `.values.expand((v) => v).toList()` and process it in a single `Batch` commit instead of iteratively writing to the database inside a loop.
+
 ## 2025-02-15 - Flutter Provider Expensive Getter Memoization
 **Learning:** In Flutter, `ChangeNotifier` providers with computed getters (like merging lists and sorting them) are re-evaluated *every single time* they are called during a UI `build()`. This means an O(N log N) sort operation inside a getter can execute dozens of times per frame, causing massive CPU spikes and jank.
 **Action:** Always memoize expensive operations (e.g. sorting, filtering large lists) within Provider getters. Cache the result in a private field (`_cachedData`) and introduce a `_invalidateCache()` method to clear the cache whenever the underlying data mutates.
