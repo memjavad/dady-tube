@@ -25,3 +25,7 @@
 ## 2026-04-20 - Custom Control Semantics
 **Learning:** Adding `semanticLabel`s directly to custom button wrappers (like `TactileButton` in `dadytube_controls.dart`) ensures that complex, interactive overlays remain accessible to screen readers, especially when they replace native system controls.
 **Action:** Always map accessibility properties like `semanticLabel` from custom widgets down to their underlying `Semantics` or `GestureDetector` widgets to maintain a cohesive accessibility tree.
+
+## 2024-05-20 - Adding Semantic Labels to Playback Controls
+**Learning:** Custom interactive elements representing common playback controls (Play, Pause, Fast Forward, Rewind) must be dynamically labeled for screen readers based on their current state. A static label like "Play/Pause" is ambiguous. Dynamically assigning `semanticLabel: isPlaying ? 'Pause' : 'Play'` ensures the screen reader accurately reflects the action the button will perform when tapped.
+**Action:** Always bind the `semanticLabel` of toggleable custom controls to the underlying state they represent, ensuring accurate contextual announcements.
