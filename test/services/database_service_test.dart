@@ -135,6 +135,13 @@ void main() {
       expect(remainingVideos.first.id, 'v2');
     });
 
+    test('deleteChannel when channel does not exist does not throw', () async {
+      await expectLater(
+        dbService.deleteChannel('non_existent_channel_id'),
+        completes,
+      );
+    });
+
     test('clearAllVideos removes all videos but keeps channels', () async {
       await dbService.insertChannel(YoutubeChannel(id: 'c1', name: 'C1', thumbnailUrl: 't1'));
       await dbService.insertVideos([
