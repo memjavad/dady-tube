@@ -41,3 +41,7 @@
 ## 2026-05-01 - [Batched sqflite queries for performance]
 **Learning:** Using `Future.wait` on multiple concurrent sqflite `query` calls creates significant lock contention and excessive Dart-to-native bridge overhead. `sqflite` queries don't parallelize natively as well as one might expect.
 **Action:** Always replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` operator and group the results in Dart. This reduces bridge overhead and prevents lock contention.
+
+## 2024-05-24 - [Cache SharedPreferences instance]
+**Learning:** Calling `SharedPreferences.getInstance()` repeatedly creates unnecessary overhead as it involves cross-isolate communication or native calls depending on the platform.
+**Action:** Always cache the `SharedPreferences` instance locally in the provider after the first lookup using a lazy getter or initialization step to ensure subsequent reads/writes are as fast as possible.
