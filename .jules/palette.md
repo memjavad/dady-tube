@@ -29,3 +29,7 @@
 ## 2024-05-20 - Adding Semantic Labels to Playback Controls
 **Learning:** Custom interactive elements representing common playback controls (Play, Pause, Fast Forward, Rewind) must be dynamically labeled for screen readers based on their current state. A static label like "Play/Pause" is ambiguous. Dynamically assigning `semanticLabel: isPlaying ? 'Pause' : 'Play'` ensures the screen reader accurately reflects the action the button will perform when tapped.
 **Action:** Always bind the `semanticLabel` of toggleable custom controls to the underlying state they represent, ensuring accurate contextual announcements.
+
+## 2024-05-01 - Add semantic labels to video player controls
+**Learning:** Custom interactive widgets (like `TactileButton`) acting as icon-only buttons lack inherent accessibility if a `semanticLabel` is not explicitly passed to the underlying `Semantics` node. In `dadytube_controls.dart`, video player controls were completely invisible/unannounced to screen readers.
+**Action:** Always provide and ensure custom button wrappers forward `semanticLabel` appropriately.
