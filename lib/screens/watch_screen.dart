@@ -395,6 +395,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           thumbnailUrl: widget.thumbnailUrl ?? '',
           channelId: widget.channelName ?? '',
         );
+
       }
 
       _videoPlayerController!.addListener(_onPlayerStateChanged);
