@@ -672,7 +672,6 @@ class ChannelProvider with ChangeNotifier {
           await avatarsDir.create(recursive: true);
         }
 
-        // 🛡️ Sentinel: Sanitize channel ID to prevent path traversal
         final sanitizedId = channel.id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
         final file = File('${avatarsDir.path}/$sanitizedId.jpg');
         await file.writeAsBytes(response.bodyBytes);
