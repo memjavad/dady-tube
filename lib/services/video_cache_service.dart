@@ -278,6 +278,11 @@ class VideoCacheService {
   // ⚡ Fix 5: In-memory cached video ID set — scans disk only once per session
   Set<String>? _cachedVideoIdSet;
 
+  @visibleForTesting
+  void invalidateCachedIdSetForTest() => _invalidateCachedIdSet();
+
+  void _invalidateCachedIdSet() => _cachedVideoIdSet = null;
+
   /// Returns a set of all video IDs currently in the cache.
   Future<Set<String>> getCachedVideoIds() async {
     // Return cached set immediately if available

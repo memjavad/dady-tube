@@ -139,4 +139,31 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
+
+  test('Confirm that invalidating the cached ID set works when a new video is successfully downloaded', () async {
+    // 1. Initial check - should be empty
+    var ids = await service.getCachedVideoIds();
+    expect(ids, isEmpty, reason: 'Cache should be initially empty');
+
+    // 2. Simulate video download by writing a file behind the scenes
+    final dir = Directory('./test_tmp/video_cache');
+    if (!await dir.exists()) await dir.create(recursive: true);
+
+    // Use an ID that _sanitizeId won't change
+    final testVideoId = 'test_video_1';
+    final videoFile = File('${dir.path}/$testVideoId.mp4');
+    await videoFile.writeAsString('dummy mp4 content');
+
+    // 3. Since we haven't invalidated the in-memory cache yet, it should still report empty
+    ids = await service.getCachedVideoIds();
+    expect(ids, isEmpty, reason: 'In-memory cache should not have picked up the new file yet');
+
+    // 4. Invalidate the cache (this is what cacheVideo does after a successful download via _invalidateCachedIdSet())
+    service.invalidateCachedIdSetForTest();
+
+    // 5. The next call should rescan the directory and find the new file
+    ids = await service.getCachedVideoIds();
+    expect(ids, isNotEmpty, reason: 'After invalidation, cache should pick up the new file');
+    expect(ids.contains(testVideoId), isTrue, reason: 'Cache should contain the newly downloaded video ID');
+  });
 }
