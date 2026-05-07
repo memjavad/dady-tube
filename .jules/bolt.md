@@ -38,7 +38,6 @@
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
 
-<<<<<<< HEAD
 ## 2026-05-01 - [Batched sqflite queries for performance]
 **Learning:** Using `Future.wait` on multiple concurrent sqflite `query` calls creates significant lock contention and excessive Dart-to-native bridge overhead. `sqflite` queries don't parallelize natively as well as one might expect.
 **Action:** Always replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` operator and group the results in Dart. This reduces bridge overhead and prevents lock contention.
@@ -66,3 +65,7 @@
 ## 2026-04-28 - [Dart File I/O Optimization for Sequential Chunk Writing]
 **Learning:** In Dart, using an `await for` loop with `RandomAccessFile.writeFrom` to write sequential stream chunks incurs significant asynchronous event-loop overhead for each iteration.
 **Action:** Always use `IOSink.addStream` (via `file.openWrite()`) instead, which delegates buffering and writing to Dart's highly optimized internal implementation, bypassing the per-chunk async overhead and maximizing sequential I/O throughput.
+
+## 2026-04-23 - [Prevent Deep Subtree Rebuilds in Nested Animations]
+**Learning:** When using `AnimatedBuilder` or `TweenAnimationBuilder` wrapped around large, static widget subtrees, failing to pass the static subtree via the `child` property forces Flutter to unnecessarily rebuild the entire subtree on every single animation frame, causing severe CPU load and jank during constant background animations.
+**Action:** Always pass the static subtree to the `child` argument of the animation builder, and then inject that `child` back into the `builder` function, ensuring it's only built once while the surrounding layout animates.
