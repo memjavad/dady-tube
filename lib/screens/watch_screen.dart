@@ -1441,68 +1441,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 }
 
-class _AuthorizedDownload extends StatelessWidget {
-  const _AuthorizedDownload();
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.download_rounded,
-              size: 64,
-              color: DadyTubeTheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              loc.translate('download_confirm'),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(loc.translate('download_msg'), textAlign: TextAlign.center),
-            const SizedBox(height: 48),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TactileButton(
-                  onTap: () => Navigator.pop(context, false),
-                  child: TactileCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(loc.translate('cancel')),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                TactileButton(
-                  onTap: () => Navigator.pop(context, true),
-                  child: TactileCard(
-                    color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                    child: Text(
-                      loc.translate('yes_download'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PulseCloud extends StatefulWidget {
   const _PulseCloud();
 
