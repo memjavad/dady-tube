@@ -197,25 +197,8 @@ CREATE TABLE videos (
     );
 
     final map = <String, List<YoutubeVideo>>{};
-    for (final id in channelIds) {
-      map[id] = [];
-    }
-
-    for (final json in result) {
-      final channelId = json['channelId'] as String;
-      if (map.containsKey(channelId)) {
-        map[channelId]!.add(
-          YoutubeVideo(
-            id: json['id'] as String,
-            title: json['title'] as String,
-            thumbnailUrl: json['thumbnailUrl'] as String,
-            channelId: channelId,
-            publishedAt:
-                DateTime.tryParse(json['publishedAt'] as String) ??
-                DateTime.now(),
-          ),
-        );
-      }
+    for (int i = 0; i < channelIds.length; i++) {
+      map[channelIds[i]] = results[i];
     }
 
     return map;
