@@ -188,5 +188,31 @@ void main() {
       expect(map['c1']!.length, 1);
       expect(map['c2']!.length, 2);
     });
+
+    test('handles invalid publishedAt dates gracefully', () async {
+      final db = await dbService.database;
+      await dbService.insertChannel(YoutubeChannel(
+        id: 'channel_1',
+        name: 'Test Channel 1',
+        thumbnailUrl: 'thumb1',
+      ));
+
+      await db.insert(
+        'videos',
+        {
+          'id': 'v_invalid',
+          'channelId': 'channel_1',
+          'title': 'Video Invalid Date',
+          'thumbnailUrl': 'vthumb_invalid',
+          'publishedAt': 'invalid-date-string',
+        },
+      );
+
+      final videos = await dbService.getVideosForChannel('channel_1');
+      expect(videos.length, 1);
+      expect(videos[0].id, 'v_invalid');
+      // Because of ?? DateTime.now(), it should be close to now
+      expect(videos[0].publishedAt.difference(DateTime.now()).inSeconds.abs(), lessThan(2));
+    });
   });
 }
