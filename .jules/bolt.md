@@ -65,3 +65,8 @@
 ## 2026-05-19 - Expose Private Methods for Testing using @visibleForTesting
 **Learning:** Private methods (prefixed with `_`) in Dart cannot be tested directly even if annotated with `@visibleForTesting`. The annotation acts only as a linter hint for package-private scope.
 **Action:** Always rename the method to remove the `_` prefix, add the `@visibleForTesting` annotation, and refactor the callsites to allow for direct testing of the function's internal logic.
+
+## 2026-05-07 - Image Pre-warming and Persistent Manifest Caching
+**Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
+**Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
+
