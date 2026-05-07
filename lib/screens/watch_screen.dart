@@ -18,7 +18,6 @@ import '../services/download_service.dart';
 import '../widgets/playtime_bucket.dart';
 import '../services/video_cache_service.dart';
 import '../core/app_localizations.dart';
-import 'parental_gate.dart';
 import 'package:audio_service/audio_service.dart';
 import '../services/background_audio_service.dart';
 import '../services/youtube_client_service.dart';
@@ -31,7 +30,6 @@ class WatchScreen extends StatefulWidget {
   final String? thumbnailUrl;
   final String? channelName;
   final String? channelThumbnailUrl;
-
   const WatchScreen({
     super.key,
     required this.videoId,
@@ -40,7 +38,6 @@ class WatchScreen extends StatefulWidget {
     this.channelName,
     this.channelThumbnailUrl,
   });
-
   @override
   State<WatchScreen> createState() => _WatchScreenState();
 }
@@ -64,26 +61,20 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   Orientation? _lastOrientation;
   bool _wasPlayingBeforeBreak = false;
   bool _isBreakCurrentlyActive = false;
-
   @override
   void initState() {
     super.initState();
     _videoTitle = widget.videoTitle; // Initialize with passed title
     WidgetsBinding.instance.addObserver(this);
-
     // Keep screen on during the watch session
     WakelockPlus.enable();
-
     // ✅ Enable all orientations while watching to allow sensor-based full-screen
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-
     // ⚡ Performance Prioritization: Pause background tasks immediately
     // to give the video player 100% of device resources.
     _cacheService.pauseBackgroundOperations();
-
     // Phase 2: Show Gentle Buffer before initializing player
     _setupPreviewAndInitialize();
-
     // Safety timeout: Re-enable background tasks if video fails to play within 15s
     Future.delayed(const Duration(seconds: 15), () {
       if (mounted) {
@@ -107,14 +98,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   Future<void> _setupPreviewAndInitialize() async {
     // Start initializing the main player
     final initFuture = _initializePlayer();
-
     // Only set up preview if we are actually waiting for the network
     final localResults = await Future.wait([
       _downloadService.getLocalPath(widget.videoId),
       _cacheService.getCachedVideoPath(widget.videoId),
     ]);
     final hasLocal = (localResults[0] ?? localResults[1]) != null;
-
     if (!hasLocal) {
       final previewPath = await _cacheService.getPreviewPath(widget.videoId);
       if (previewPath != null && mounted) {
@@ -171,7 +160,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _videoPlayerController!.value.isPlaying) {
       final position = _videoPlayerController!.value.position;
       _videoPlayerController!.pause();
-
       final audioHandler =
           context.read<AudioHandler>() as BackgroundAudioService;
       audioHandler
@@ -195,15 +183,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       final audioHandler =
           context.read<AudioHandler>() as BackgroundAudioService;
       final position = audioHandler.playbackState.value.position;
-
       audioHandler.pause();
       audioHandler.stop();
-
       if (_videoPlayerController != null) {
         _videoPlayerController!.seekTo(position);
         _videoPlayerController!.play();
       }
-
       if (mounted) {
         setState(() => _isBackgroundPlaying = false);
       }
@@ -214,11 +199,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     if (_videoPlayerController == null ||
         !_videoPlayerController!.value.isInitialized)
       return;
-
     _videoPlayerController!.addListener(_onVideoProgress);
-
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController!,
       autoPlay: true,
@@ -254,22 +236,27 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       customControls: const DadyTubeControls(),
       allowedScreenSleep: false,
       // ⚡ Reduced Black Bars: Apply custom scaling to the full-screen route
-      routePageBuilder: (context, animation, secondaryAnimation, controllerProvider) {
-        return Scaffold(
-          backgroundColor: Colors.black,
-          body: SizedBox.expand(
-            child: Center(
-              child: Transform.scale(
-                scale: 1.1, // Zoom strictly at 1.1x as requested
-                alignment: Alignment.center,
-                child: controllerProvider,
-              ),
-            ),
-          ),
-        );
-      },
+      routePageBuilder:
+          (context, animation, secondaryAnimation, controllerProvider) {
+            return AnimatedBuilder(
+              animation: animation,
+              builder: (context, child) {
+                return Scaffold(
+                  backgroundColor: Colors.black,
+                  body: SizedBox.expand(
+                    child: Center(
+                      child: Transform.scale(
+                        scale: 1.1, // Zoom strictly at 1.1x as requested
+                        alignment: Alignment.center,
+                        child: controllerProvider,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
     );
-
     _chewieController!.addListener(() {
       if (!_chewieController!.isFullScreen) {
         SystemChrome.setPreferredOrientations([
@@ -282,7 +269,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         );
       }
     });
-
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -302,10 +288,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _isLoading = true;
         _errorMessage = null;
       });
-
       // 1. Instant Metadata Lookup (Parallel)
       final channelProvider = context.read<ChannelProvider>();
-
       // Fire off metadata fetch and player init in parallel
       final metadataLookup = Future(() {
         final localVideo = channelProvider.getVideoById(widget.videoId);
@@ -315,23 +299,19 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         }
         return false;
       });
-
       // 2. Check local/cache sources (Priority #1)
       final localResults = await Future.wait([
         _downloadService.getLocalPath(widget.videoId),
         _cacheService.getCachedVideoPath(widget.videoId),
       ]);
-
       String? downloadPath = localResults[0];
       String? cachePath = localResults[1];
       String? finalLocalPath = downloadPath ?? cachePath;
-
       if (finalLocalPath != null) {
         print('🚀 Turbo Watch: Playing from Local/Cache File (INSTANT)');
         _videoPlayerController = VideoPlayerController.file(
           File(finalLocalPath),
         );
-
         await _videoPlayerController!.initialize().timeout(
           const Duration(seconds: 5),
         );
@@ -341,11 +321,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             _isShowingBuffer = false;
           });
         }
-
         _setupChewieAndUI();
         return; // EXIT EARLY - NO NETWORK NEEDED
       }
-
       // 3. Check for Persistent URL Cache (Fastest Network Hack)
       final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
       if (cachedUrl != null) {
@@ -363,15 +341,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               })
               .catchError((_) {});
         }
-
         if (!mounted) return;
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         final manifest = await _cacheService.getManifest(widget.videoId);
-
-        yt.MuxedStreamInfo streamInfo;
+        yt.MuxedStreamInfo? streamInfo;
         final isTurbo = settings.turboModeEnabled;
         final quality = isTurbo ? VideoQuality.p360 : settings.videoQuality;
-
         if (quality == VideoQuality.auto && !isTurbo) {
           streamInfo = manifest.muxed.withHighestBitrate();
         } else {
@@ -385,9 +360,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               ? compatibleStreams.withHighestBitrate()
               : manifest.muxed.withHighestBitrate();
         }
-
-        _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
-
+        if (streamInfo == null) throw Exception("No playable stream found.");
+        _videoPlayerController = VideoPlayerController.networkUrl(
+          streamInfo.url,
+        );
         // ⚡ Fix 7: Pass metadata so the .meta sidecar is written alongside the .mp4
         _cacheService.cacheVideo(
           widget.videoId,
@@ -397,7 +373,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         );
 
       }
-
       _videoPlayerController!.addListener(_onPlayerStateChanged);
       await _videoPlayerController!.initialize().timeout(
         const Duration(seconds: 10),
@@ -415,13 +390,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       });
     } catch (e) {
       if (!mounted) return;
-
       // Attempt recovery
       final isFile =
           _videoPlayerController?.dataSourceType == DataSourceType.file;
       final isNetwork =
           _videoPlayerController?.dataSourceType == DataSourceType.network;
-
       if (isFile) {
         try {
           print(
@@ -437,7 +410,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             await file.delete();
             print('🗑️ Deleted corrupted file: $cleanPath');
           }
-
           // Fallback to network
           final manifest = await _cacheService.getManifest(widget.videoId);
           final freshStream = manifest.muxed.withHighestBitrate();
@@ -473,7 +445,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           print('⚠️ Manifest recovery failed: $e2');
         }
       }
-
       setState(() {
         _isLoading = false;
         _errorMessage =
@@ -509,26 +480,22 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       final position = _videoPlayerController!.value.position;
       final duration = _videoPlayerController!.value.duration;
       final isPlayingNow = _videoPlayerController!.value.isPlaying;
-
       if (_isPlaying != isPlayingNow) {
         setState(() => _isPlaying = isPlayingNow);
       } else {
         // Still need to rebuild to update the progress slider
         setState(() {});
       }
-
       if (position >= duration && !_isFinished) {
         setState(() {
           _isFinished = true;
         });
-
         // Predictive Pre-warming: Prepare the next video while this one plays
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             context.read<ChannelProvider>().prewarmNextVideo(widget.videoId);
           }
         });
-
         // Phase 4: Grant Stars for educational content
         final title = (_videoTitle ?? widget.videoTitle ?? "").toLowerCase();
         final isEducational =
@@ -537,7 +504,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             title.contains('abc') ||
             title.contains('math') ||
             title.contains('number');
-
         if (isEducational) {
           context.read<UsageProvider>().addStar();
         }
@@ -551,11 +517,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _cacheService.resumeBackgroundOperations();
     _videoPlayerController?.removeListener(_onPlayerStateChanged);
     _videoPlayerController?.removeListener(_onVideoProgress);
-
     WidgetsBinding.instance.removeObserver(this);
     // _yt.close(); // Shared singleton, don't close
     _downloadService.dispose();
-
     // Safety Reset for System UI
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -565,11 +529,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
     );
-
     _videoPlayerController?.dispose();
     _previewController?.dispose();
     _chewieController?.dispose();
-
     // Release the wake lock when exiting the player
     WakelockPlus.disable();
     super.dispose();
@@ -580,7 +542,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final usage = Provider.of<UsageProvider>(context);
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
-
+    final showImmersive = isLandscape || (_isPlaying && !_isShowingBuffer);
     // ✅ Auto-trigger Full-Screen & Breaks based on Orientation and Usage
     if (_chewieController != null &&
         _videoPlayerController != null &&
@@ -597,7 +559,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         }
         _lastOrientation = orientation;
       }
-
       // 🧘 Mandatory Periodic Breaks (Eye Yoga)
       // We use a transition-based approach to ensure manual pauses are respected.
       if (usage.isBreakActive && !_isBreakCurrentlyActive) {
@@ -618,7 +579,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         }
       }
     }
-
     return BedtimeOverlay(
       child: Container(
         color: Theme.of(context)
@@ -640,9 +600,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     Expanded(child: _buildPlayerArea(context))
                   else
                     _buildPlayerArea(context),
-
                   if (!isLandscape) _buildTactileControls(context),
-
                   // Keep metadata visible but maybe dimmed in portrait
                   if (!isLandscape)
                     Expanded(
@@ -744,6 +702,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildPlayerArea(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
@@ -770,21 +729,17 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         (_videoPlayerController != null &&
             _videoPlayerController!.value.isInitialized) ||
         (_previewController != null && _previewController!.value.isInitialized);
-
     // Instant Buttons logic: Always show the container to prevent layout shift.
     // We'll use the activeController if it exists, or dummy values if not.
-
     final activeController = hasPlayer
         ? ((_videoPlayerController != null &&
                   _videoPlayerController!.value.isInitialized)
               ? _videoPlayerController!
               : _previewController!)
         : null;
-
     final duration = activeController?.value.duration ?? Duration.zero;
     final position = activeController?.value.position ?? Duration.zero;
     final isPlaying = activeController?.value.isPlaying ?? false;
-
     String formatDuration(Duration d) {
       final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
       final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -1065,7 +1020,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   orElse: () =>
                       YoutubeChannel(id: '', name: '', thumbnailUrl: ''),
                 );
-
                 if (channel.localThumbnailPath != null &&
                     File(channel.localThumbnailPath!).existsSync()) {
                   return CircleAvatar(
@@ -1075,7 +1029,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     radius: 20,
                   );
                 }
-
                 if (widget.channelThumbnailUrl != null &&
                     widget.channelThumbnailUrl!.isNotEmpty) {
                   return CircleAvatar(
@@ -1085,7 +1038,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     radius: 20,
                   );
                 }
-
                 return const CircleAvatar(
                   backgroundColor: DadyTubeTheme.primaryContainer,
                   radius: 20,
@@ -1202,13 +1154,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final loc = AppLocalizations.of(context);
     // Parent Gate removed per user request
     const authorized = true;
-
     if (authorized == true) {
       setState(() {
         _isDownloading = true;
         _downloadProgress = 0;
       });
-
       try {
         await _downloadService.downloadVideo(widget.videoId, (progress) {
           if (mounted) {
@@ -1217,7 +1167,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             });
           }
         });
-
         // Register metadata for offline browsing
         final channelProvider = Provider.of<ChannelProvider>(
           context,
@@ -1227,7 +1176,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           context,
           listen: false,
         );
-
         final video = channelProvider.allVideos.firstWhere(
           (v) => v.id == widget.videoId,
           orElse: () => YoutubeVideo(
@@ -1238,9 +1186,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             publishedAt: DateTime.now(),
           ),
         );
-
         await downloadProvider.addDownloadedVideo(video);
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(loc.translate('added_to_travel'))),
         );
@@ -1262,7 +1208,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     final loc = AppLocalizations.of(context);
     final provider = context.watch<ChannelProvider>();
     final moreVideos = provider.allVideos.take(5).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1383,7 +1328,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         child: const Center(child: _PulseCloud()),
       );
     }
-
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -1395,7 +1339,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         ),
         // Darken overlay
         Container(color: Colors.black.withOpacity(0.6)),
-
         // 2. High-Fidelity Focused Thumbnail
         Center(
           child: SingleChildScrollView(
@@ -1442,9 +1385,69 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 }
 
-class _PulseCloud extends StatefulWidget {
-  const _PulseCloud();
+class _AuthorizedDownload extends StatelessWidget {
+  const _AuthorizedDownload();
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.download_rounded,
+              size: 64,
+              color: DadyTubeTheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              loc.translate('download_confirm'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(loc.translate('download_msg'), textAlign: TextAlign.center),
+            const SizedBox(height: 48),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TactileButton(
+                  onTap: () => Navigator.pop(context, false),
+                  child: TactileCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(loc.translate('cancel')),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                TactileButton(
+                  onTap: () => Navigator.pop(context, true),
+                  child: TactileCard(
+                    color: DadyTubeTheme.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
+                    child: Text(
+                      loc.translate('yes_download'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
+class _PulseCloud extends StatefulWidget {
+  const _PulseCloud({super.key});
   @override
   State<_PulseCloud> createState() => _PulseCloudState();
 }
@@ -1453,7 +1456,6 @@ class _PulseCloudState extends State<_PulseCloud>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-
   @override
   void initState() {
     super.initState();

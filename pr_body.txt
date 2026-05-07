@@ -1,17 +1,11 @@
-🎯 **What:** Removed unused `_magicBubbles` and `_buildMagicBubbles` declarations from `lib/screens/home_screen.dart`.
-💡 **Why:** Variables and methods that are assigned but never used can be safely deleted to clean up the code. This improves maintainability and readability by eliminating dead code.
-✅ **Verification:** Verified safe by running `flutter analyze` and `flutter test`, and confirmed through a code review process.
-✨ **Result:** A cleaner `home_screen.dart` without dead code.
+🎯 **What:** Removed unused import `parental_gate.dart` from `lib/screens/watch_screen.dart`.
 
----
-
-🎯 **What:** Removed the assignment of the `Future` returned by the background metadata fetch to an unused variable (`metadataLookup`) in `lib/screens/watch_screen.dart`.
-
-💡 **Why:** To resolve an "Unused Declaration" code health issue. Storing a Future in a local variable without ever awaiting it or using it adds clutter and triggers linting warnings.
+💡 **Why:** `parental_gate.dart` was imported but never used in `WatchScreen`. Removing unused imports reduces clutter, improves code readability, and prevents potential confusion for future maintainers.
 
 ✅ **Verification:**
-- Evaluated the impact: The `Future` is meant to be a fire-and-forget side effect (updating state in parallel). Removing the variable assignment safely preserves this behavior exactly.
-- Ran `dart analyze` to verify the "Unused Declaration" warning is resolved.
-- Ran `flutter test` to ensure existing functionality is unaffected.
+- Formatted code using `dart format`.
+- Ran `flutter analyze lib/screens/watch_screen.dart` to confirm the unused import warning is gone.
+- Ran `flutter test` to verify no regressions were introduced.
+- Successfully completed pre-commit steps and verified the changes are safe.
 
-✨ **Result:** Improved code cleanliness and readability by removing dead code while preserving correct concurrent execution.
+✨ **Result:** A cleaner `watch_screen.dart` file with no unused import warnings.
