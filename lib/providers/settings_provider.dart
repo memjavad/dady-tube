@@ -5,6 +5,11 @@ import '../core/theme.dart';
 enum VideoQuality { auto, p360, p720, p1080 }
 
 class SettingsProvider with ChangeNotifier {
+  SharedPreferences? _prefs;
+  // ⚡ Bolt: Lazy SharedPreferences caching to avoid redundant disk lookups
+  Future<SharedPreferences> get _getPrefs async =>
+      _prefs ??= await SharedPreferences.getInstance();
+
   VideoQuality _videoQuality = VideoQuality.auto;
   bool _fullScreenByDefault = false;
   bool _showSuggestions = false;
@@ -20,12 +25,6 @@ class SettingsProvider with ChangeNotifier {
   bool _postureProtectionEnabled = true;
   bool _safeVolumeEnabled = true;
   double _maxVolumeLevel = 0.5;
-
-  SharedPreferences? _prefs;
-  Future<SharedPreferences> get _getPrefs async {
-    _prefs ??= await SharedPreferences.getInstance();
-    return _prefs!;
-  }
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;

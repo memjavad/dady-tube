@@ -69,3 +69,7 @@
 ## 2026-04-23 - [Prevent Deep Subtree Rebuilds in Nested Animations]
 **Learning:** When using `AnimatedBuilder` or `TweenAnimationBuilder` wrapped around large, static widget subtrees, failing to pass the static subtree via the `child` property forces Flutter to unnecessarily rebuild the entire subtree on every single animation frame, causing severe CPU load and jank during constant background animations.
 **Action:** Always pass the static subtree to the `child` argument of the animation builder, and then inject that `child` back into the `builder` function, ensuring it's only built once while the surrounding layout animates.
+
+## 2026-05-04 - [Dart SharedPreferences Caching]
+**Learning:** In Dart, repeatedly calling `await SharedPreferences.getInstance()` in property setters causes redundant native channel invocations and disk access overhead, leading to degraded performance.
+**Action:** Cache the SharedPreferences instance locally inside providers during initialization, or lazily using a getter `_prefs ??= await SharedPreferences.getInstance()`, and reference the cached instance in all setters to eliminate redundant disk reads.
