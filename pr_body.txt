@@ -1,0 +1,4 @@
+🎯 **What:** Removed unused `_magicBubbles` and `_buildMagicBubbles` declarations from `lib/screens/home_screen.dart`.
+💡 **Why:** Variables and methods that are assigned but never used can be safely deleted to clean up the code. This improves maintainability and readability by eliminating dead code.
+✅ **Verification:** Verified safe by running `flutter analyze` and `flutter test`, and confirmed through a code review process.
+✨ **Result:** A cleaner `home_screen.dart` without dead code.
