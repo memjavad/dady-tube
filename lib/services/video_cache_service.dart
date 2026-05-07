@@ -426,7 +426,7 @@ class VideoCacheService {
 
       // ⚡ Fix 7: Write metadata sidecar
       if (title.isNotEmpty) {
-        await _writeMetaSidecar(
+        await writeMetaSidecarForTest(
           cacheDir,
           sanitizedId,
           title: title,
@@ -634,7 +634,8 @@ class VideoCacheService {
   }
 
   /// Writes metadata sidecar for cached videos.
-  Future<void> _writeMetaSidecar(
+  @visibleForTesting
+  Future<void> writeMetaSidecarForTest(
     String cacheDir,
     String sanitizedId, {
     required String title,

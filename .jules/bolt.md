@@ -62,6 +62,6 @@
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
 
-## 2026-05-18 - SharedPreferences Redundant Instantiation
-**Learning:** Calling `await SharedPreferences.getInstance()` repeatedly throughout a class, particularly inside frequently invoked methods (like timers, listeners, or loops), incurs unnecessary asynchronous overhead. While `SharedPreferences` caches its instance internally, the asynchronous boundary and Future resolution on every call can add up and affect performance.
-**Action:** Always fetch the `SharedPreferences` instance once, cache it locally within the class (e.g., using a lazy-loaded property or a setup method), and reuse the cached instance to eliminate redundant async calls.
+## 2026-05-19 - Expose Private Methods for Testing using @visibleForTesting
+**Learning:** Private methods (prefixed with `_`) in Dart cannot be tested directly even if annotated with `@visibleForTesting`. The annotation acts only as a linter hint for package-private scope.
+**Action:** Always rename the method to remove the `_` prefix, add the `@visibleForTesting` annotation, and refactor the callsites to allow for direct testing of the function's internal logic.
