@@ -22,9 +22,33 @@ void main() {
       expect(service.httpClient, isA<http.Client>());
     });
 
-    test('dispose executes without throwing', () {
+    test('dispose should close the clients', () async {
       final service = YoutubeClientService();
-      expect(() => service.dispose(), returnsNormally);
+
+      expect(service.client, isNotNull);
+      expect(service.httpClient, isNotNull);
+
+      service.dispose();
+
+      // When the client is closed, it throws a ClientException
+      // containing "HTTP request failed. Client is already closed."
+      try {
+        await service.httpClient.get(Uri.parse('https://example.com'));
+        fail('Should have thrown a ClientException');
+      } on http.ClientException catch (e) {
+        expect(e.message.contains('closed'), isTrue,
+          reason: 'Exception should indicate client is closed, got: ${e.message}');
+      }
+
+      // YoutubeExplode wraps the inner HttpClientClosedException inside a Retry logic
+      // which eventually might bubble up as HttpClientClosedException or YoutubeExplodeException
+      try {
+        await service.client.videos.get('12345678901');
+        fail('Should have thrown an exception due to closed client');
+      } catch (e) {
+        expect(e.runtimeType.toString(), contains('HttpClientClosedException'),
+          reason: 'Exception should indicate http client is closed, got: ${e.runtimeType.toString()}');
+      }
     });
   });
 }
