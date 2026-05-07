@@ -45,3 +45,7 @@
 ## 2024-05-24 - [Cache SharedPreferences instance]
 **Learning:** Calling `SharedPreferences.getInstance()` repeatedly creates unnecessary overhead as it involves cross-isolate communication or native calls depending on the platform.
 **Action:** Always cache the `SharedPreferences` instance locally in the provider after the first lookup using a lazy getter or initialization step to ensure subsequent reads/writes are as fast as possible.
+
+## 2024-11-09 - [Optimize Cache Disk Scanning]
+**Learning:** Calling `_invalidateCachedIdSet()` repeatedly caused the application to re-scan the entire directory on the next read, which is inefficient. Modifying the in-memory `Set` prevents redundant disk I/O.
+**Action:** Instead of nullifying memory cache variables that require full rebuilding, actively add or remove individual entries from the cache when changes occur to preserve the cache's integrity and avoid full re-scans.
