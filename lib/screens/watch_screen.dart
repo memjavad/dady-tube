@@ -368,7 +368,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         final manifest = await _cacheService.getManifest(widget.videoId);
 
-        yt.MuxedStreamInfo? streamInfo;
+        yt.MuxedStreamInfo streamInfo;
         final isTurbo = settings.turboModeEnabled;
         final quality = isTurbo ? VideoQuality.p360 : settings.videoQuality;
 
@@ -386,10 +386,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               : manifest.muxed.withHighestBitrate();
         }
 
-        if (streamInfo == null) throw Exception("No playable stream found.");
-        _videoPlayerController = VideoPlayerController.networkUrl(
-          streamInfo.url,
-        );
+        _videoPlayerController = VideoPlayerController.networkUrl(streamInfo.url);
 
         // ⚡ Fix 7: Pass metadata so the .meta sidecar is written alongside the .mp4
         _cacheService.cacheVideo(
