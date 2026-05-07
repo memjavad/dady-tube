@@ -396,6 +396,7 @@ class VideoCacheService {
       }
 
       // Stitch parts together sequentially
+
       final sink = file.openWrite();
       try {
         for (int i = 0; i < segmentCount; i++) {
@@ -405,6 +406,7 @@ class VideoCacheService {
             // ⚡ Bolt: Use IOSink.addStream to delegate buffering and writing to Dart's optimized internal implementation
             // This significantly reduces async event-loop overhead compared to 'await for' and 'writeFrom'.
             await sink.addStream(stream);
+
             await partFile.delete();
           }
         }
