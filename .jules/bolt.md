@@ -73,3 +73,7 @@
 ## 2024-05-24 - N+1 Query in Channel Migration Optimization
 **Learning:** Replaced a loop of N sequential `db.insert()` operations with a single batched `db.batch()` insertion to eliminate SQLite connection and transaction overhead. The benchmark demonstrated an 83% performance improvement for bulk inserts.
 **Action:** Always utilize `db.batch()` when performing multiple insert or update operations on an SQLite database sequentially in a loop.
+
+## 2024-02-12 - Optimize Database Query Concurrency
+**Learning:** `sqflite` operations happen sequentially on a single background thread. Using `Future.wait` for multiple queries queues them sequentially anyway, but incurs multiple expensive platform channel method call overheads.
+**Action:** Replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` clause to minimize platform channel bridging overhead.

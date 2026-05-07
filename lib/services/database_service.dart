@@ -187,11 +187,13 @@ CREATE TABLE videos (
         )
         .toList();
   }
+
   /// ⚡ Bolt: Batched getAllVideosMap query
   /// Replaced multiple concurrent `db.query` calls (via Future.wait) with a single batched query
   /// using the SQL `IN` operator. This prevents lock contention and reduces Dart-to-native bridge overhead.
-
-  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
+  Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(
+    List<String> channelIds,
+  ) async {
     if (channelIds.isEmpty) return {};
 
     final db = await instance.database;
@@ -204,28 +206,30 @@ CREATE TABLE videos (
       orderBy: 'publishedAt DESC',
     );
 
-    // Initialize map with empty lists for all requested channels
-    final Map<String, List<YoutubeVideo>> videosMap = {
-      for (var id in channelIds) id: []
-    };
-
-    // Group the flat results by channelId
-    for (var json in result) {
-      final channelId = json['channelId'] as String;
-      final video = YoutubeVideo(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        thumbnailUrl: json['thumbnailUrl'] as String,
-        channelId: channelId,
-        publishedAt: DateTime.tryParse(json['publishedAt'] as String) ?? DateTime.now(),
-      );
-      videosMap[channelId]?.add(video);
+    final map = <String, List<YoutubeVideo>>{};
+    for (final id in channelIds) {
+      map[id] = [];
     }
 
-    return videosMap;
+    for (final json in result) {
+      final channelId = json['channelId'] as String;
+      if (map.containsKey(channelId)) {
+        map[channelId]!.add(
+          YoutubeVideo(
+            id: json['id'] as String,
+            title: json['title'] as String,
+            thumbnailUrl: json['thumbnailUrl'] as String,
+            channelId: channelId,
+            publishedAt:
+                DateTime.tryParse(json['publishedAt'] as String) ??
+                DateTime.now(),
+          ),
+        );
+      }
+    }
 
+    return map;
   }
-
 
   Future<int> getTotalChannelCount() async {
     final db = await instance.database;
