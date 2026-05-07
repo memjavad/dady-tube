@@ -307,7 +307,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       final channelProvider = context.read<ChannelProvider>();
 
       // Fire off metadata fetch and player init in parallel
-      Future(() {
+      final metadataLookup = Future(() {
         final localVideo = channelProvider.getVideoById(widget.videoId);
         if (localVideo != null && mounted) {
           setState(() => _videoTitle = localVideo.title);
@@ -346,6 +346,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         return; // EXIT EARLY - NO NETWORK NEEDED
       }
 
+      // 3. Check for Persistent URL Cache (Fastest Network Hack)
       final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
       if (cachedUrl != null) {
         print('💎 Turbo Watch: Using Persistent Link Cache');
