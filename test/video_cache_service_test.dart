@@ -1,15 +1,14 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:collection';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dadytube/services/video_cache_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:flutter/services.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:mockito/mockito.dart';
-
 
 // Since the mockito code generator is not run, we just do exactly what download_service_test.dart did which compiled fine!
 // It manually extended Mock and implemented yt interfaces.
@@ -27,8 +26,6 @@ class MockMuxedStreamInfo extends Mock implements yt.MuxedStreamInfo {
   yt.FileSize get size => yt.FileSize(1024);
   @override
   yt.Bitrate get bitrate => yt.Bitrate(1000);
-
-  // mock the comparable methods
 }
 
 class MockVideoClient extends Mock implements yt.VideoClient {
@@ -125,5 +122,21 @@ void main() {
 
     // Verify manifest reuse (no additional call to getManifest)
     expect(MockStreamClient.getManifestCallCount, 1);
+  });
+
+  test('clearAllCache handles exceptions gracefully', () async {
+    const MethodChannel channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      throw PlatformException(code: 'TEST_ERROR', message: 'Simulated error');
+    });
+
+    final cacheService = VideoCacheService();
+
+    // This should not throw, proving the catch block works
+    await cacheService.clearAllCache();
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
   });
 }
