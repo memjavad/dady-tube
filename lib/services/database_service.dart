@@ -76,6 +76,24 @@ CREATE TABLE videos (
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<void> insertChannels(
+    List<YoutubeChannel> channels, {
+    int lastSync = 0,
+  }) async {
+    final db = await instance.database;
+    final batch = db.batch();
+    for (var channel in channels) {
+      batch.insert('channels', {
+        'id': channel.id,
+        'name': channel.name,
+        'thumbnailUrl': channel.thumbnailUrl,
+        'localThumbnailPath': channel.localThumbnailPath,
+        'lastSync': lastSync,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<List<YoutubeChannel>> getChannels() async {
     final db = await instance.database;
     final result = await db.query('channels');
