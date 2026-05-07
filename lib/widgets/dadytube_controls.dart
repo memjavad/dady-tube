@@ -61,7 +61,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
     final isPlaying = value.isPlaying;
 
     return TactileButton(
-      semanticLabel: isPlaying ? "Pause" : "Play",
+      semanticLabel: isPlaying ? 'Pause' : 'Play',
+
       onTap: () {
         _cancelAndRestartTimer();
         if (isPlaying) {
@@ -90,9 +91,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildSkip(bool forward, double scale) {
     return TactileButton(
-      semanticLabel: forward
-          ? "Skip 10 seconds forward"
-          : "Skip 10 seconds backward",
+      semanticLabel: forward ? 'Fast forward 10 seconds' : 'Rewind 10 seconds',
+
       onTap: () {
         _cancelAndRestartTimer();
         final currentPosition = _controller!.value.position;
@@ -116,7 +116,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   Widget _buildBackButton(BuildContext context, double scale) {
     return TactileButton(
-      semanticLabel: "Back",
+      semanticLabel: 'Back',
+
       onTap: () {
         if (_chewieController!.isFullScreen) {
           _chewieController!.exitFullScreen();
@@ -197,7 +198,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             top: 0,
                             left: 0,
                             child: TactileButton(
-                              semanticLabel: "Exit Fullscreen",
+                              semanticLabel: 'Exit Fullscreen',
+
                               onTap: () {
                                 if (_chewieController!.isFullScreen) {
                                   _chewieController!.exitFullScreen();
@@ -217,6 +219,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                           .colorScheme
                                           .primary
                                           .withValues(alpha: 0.4),
+
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -275,6 +278,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                   thumbColor: DadyTubeTheme.primary,
                                   overlayColor: DadyTubeTheme.primary
                                       .withValues(alpha: 0.2),
+
                                 ),
                                 child: Slider(
                                   value: position.inMilliseconds.toDouble(),
