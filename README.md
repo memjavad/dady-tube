@@ -116,6 +116,12 @@ DadyTube is fully bilingual. Switch between **English** and **Arabic** in the **
 
 ## 📈 Changelog
 
+### [v3.8.0] - 2026-05-07
+- **Improved**: **Sliver-based UI Rendering**. Replaced `shrinkWrap` `ListView`s with `CustomScrollView` and `SliverList` across the app to restore lazy rendering, eliminating scroll jank and dramatically reducing CPU overhead and memory footprint.
+- **Added**: **Image Pre-warming & Persistent Caching**. Implemented critical asset pre-caching during the splash screen and persistent local caching for remote manifests to ensure immediate app startup and a seamless offline experience.
+- **Improved**: **Database & File I/O Optimization**. Flattened database inserts via batching and replaced inefficient chunked file writing with optimized `IOSink.addStream` to minimize Dart-to-native bridge bottlenecks.
+- **Cleaned**: **Project Consolidation**. Executed a massive repository cleanup, integrating over 100 experimental and performance branches into a unified `main` branch.
+
 ### [v3.7.0] - 2026-04-20
 - **Added**: **Eye Protection & Breaks**. Integrated a mandatory 30-second break every 15 minutes. The system now records previous state to auto-resume intelligently only if the video was playing beforehand.
 - **Added**: **Intelligent Orientation**. The playback experience now supports seamless, sensor-driven full-screen transitions without manual button toggles.
