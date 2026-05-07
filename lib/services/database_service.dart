@@ -169,6 +169,7 @@ CREATE TABLE videos (
         )
         .toList();
   }
+
   /// ⚡ Bolt: Batched getAllVideosMap query
   /// Replaced multiple concurrent `db.query` calls (via Future.wait) with a single batched query
   /// using the SQL `IN` operator. This prevents lock contention and reduces Dart-to-native bridge overhead.
@@ -205,6 +206,7 @@ CREATE TABLE videos (
 
     return videosMap;
   }
+
 
   Future<int> getTotalChannelCount() async {
     final db = await instance.database;

@@ -49,3 +49,7 @@
 ## 2024-11-09 - [Optimize Cache Disk Scanning]
 **Learning:** Calling `_invalidateCachedIdSet()` repeatedly caused the application to re-scan the entire directory on the next read, which is inefficient. Modifying the in-memory `Set` prevents redundant disk I/O.
 **Action:** Instead of nullifying memory cache variables that require full rebuilding, actively add or remove individual entries from the cache when changes occur to preserve the cache's integrity and avoid full re-scans.
+
+## 2026-05-02 - [Flutter sqflite Concurrent Query Performance Bottleneck]
+**Learning:** Executing concurrent queries (e.g., using `Future.wait` on multiple `db.query` calls) against `sqflite` databases creates significant lock contention and excessive Dart-to-native bridge overhead, drastically reducing performance.
+**Action:** Always replace multiple concurrent queries with a single batched query using the SQL `IN` operator, and group the results locally in Dart.
