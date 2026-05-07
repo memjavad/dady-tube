@@ -61,23 +61,6 @@
 ## 2026-04-15 - Optimize ChannelProvider.getVideoById
 **Learning:** O(N*M) lookups inside getter methods (`getVideoById`) traversing large collections like `_channelVideos` can be heavily optimized using a lazily-evaluated flattened Map cache, turning lookups into O(1).
 **Action:** Always maintain or lazily compute Map representations for collections that are queried by ID frequently, and invalidate them properly alongside other caches.
-
-## 2026-04-23 - [Prevent Deep Subtree Rebuilds in Nested Animations]
-**Learning:** When using `AnimatedBuilder` or `TweenAnimationBuilder` wrapped around large, static widget subtrees, failing to pass the static subtree via the `child` property forces Flutter to unnecessarily rebuild the entire subtree on every single animation frame, causing severe CPU load and jank during constant background animations.
-**Action:** Always pass the static subtree to the `child` argument of the animation builder, and then inject that `child` back into the `builder` function, ensuring it's only built once while the surrounding layout animates.
-
-## 2026-05-04 - [Cache and Reuse SharedPreferences Instance]
-**Learning:** Calling `SharedPreferences.getInstance()` repeatedly creates unnecessary overhead as it involves cross-isolate communication or native channel calls, especially when used in property setters.
-**Action:** Always cache the `SharedPreferences` instance locally inside providers during initialization or via a lazy getter (`_prefs ??= await SharedPreferences.getInstance()`). Reference the cached instance for all subsequent reads/writes to eliminate redundant disk I/O and bridge overhead.
-
-## 2024-05-24 - N+1 Query in Channel Migration Optimization
-**Learning:** Replaced a loop of N sequential `db.insert()` operations with a single batched `db.batch()` insertion to eliminate SQLite connection and transaction overhead. The benchmark demonstrated an 83% performance improvement for bulk inserts.
-**Action:** Always utilize `db.batch()` when performing multiple insert or update operations on an SQLite database sequentially in a loop.
-
-## 2024-02-12 - Optimize Database Query Concurrency
-**Learning:** `sqflite` operations happen sequentially on a single background thread. Using `Future.wait` for multiple queries queues them sequentially anyway, but incurs multiple expensive platform channel method call overheads.
-**Action:** Replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` clause to minimize platform channel bridging overhead.
-
-## 2026-04-26 - Optimize App Directory Path Caching
-**Learning:** Caching a fully resolved `String` path from an asynchronous `getApplicationDocumentsDirectory()` inside an async getter like `Future<String> get _localPath async` creates race conditions if accessed concurrently before the first resolution finishes, causing `getApplicationDocumentsDirectory()` to be erroneously invoked multiple times.
-**Action:** Store the `Future<String>` instance itself (using `Future.then` to unwrap the path), ensuring only one concurrent request triggers the underlying filesystem API, and returning the exact same `Future` for subsequent callers.
+## 2024-04-26 - Fix _cachePath race condition
+**Learning:** In Dart, when implementing asynchronous lazy initialization (e.g., fetching a path like `getTemporaryDirectory()`), if multiple concurrent requests occur before the first completes, the async operation will run multiple times.
+**Action:** Always cache the `Future` itself while it is in flight to ensure single execution and proper memoization.

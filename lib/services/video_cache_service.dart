@@ -55,12 +55,18 @@ class VideoCacheService {
 
   // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
   String? _resolvedCachePath;
+  Future<String>? _resolvingCachePathFuture;
 
   Future<String> get _cachePath async {
     if (_resolvedCachePath != null) return _resolvedCachePath!;
-    final directory = await getTemporaryDirectory();
-    _resolvedCachePath = '${directory.path}/video_cache';
-    return _resolvedCachePath!;
+    if (_resolvingCachePathFuture != null) return await _resolvingCachePathFuture!;
+
+    _resolvingCachePathFuture = getTemporaryDirectory().then((directory) {
+      _resolvedCachePath = '${directory.path}/video_cache';
+      return _resolvedCachePath!;
+    });
+
+    return await _resolvingCachePathFuture!;
   }
 
   // ⚡ Fix 2: In-memory stream URL cache — reads SharedPrefs only once per video
@@ -700,9 +706,8 @@ class VideoCacheService {
       _manifestCache.clear();
       _cachedVideoIdSet = null;
       _resolvedCachePath = null;
-    } catch (e) {
-      debugPrint('Error clearing cache: $e');
-    }
+      _resolvingCachePathFuture = null;
+    } catch (_) {}
   }
 
   void dispose() {
