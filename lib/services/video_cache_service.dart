@@ -413,6 +413,7 @@ class VideoCacheService {
         await sink.close();
       }
 
+
       // ⚡ Fix 5: Update cached ID set in memory without scanning disk
       _cachedVideoIdSet?.add(sanitizedId);
 
