@@ -61,7 +61,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
     final isPlaying = value.isPlaying;
 
     return TactileButton(
-      semanticLabel: isPlaying ? 'Pause' : 'Play',
+      semanticLabel: isPlaying ? 'Pause' : (isFinished ? 'Replay' : 'Play'),
 
       onTap: () {
         _cancelAndRestartTimer();
