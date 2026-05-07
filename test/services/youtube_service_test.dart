@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:http/http.dart' as http;
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:dadytube/services/youtube_service.dart';
 
 class MockYoutubeExplode extends Mock implements YoutubeExplode {}
@@ -15,7 +15,6 @@ void main() {
   late MockChannelClient mockChannelClient;
   late MockChannel mockChannel;
   late MockChannelId mockChannelId;
-
 
   setUpAll(() {
     registerFallbackValue(Uri.parse('https://example.com'));
@@ -54,24 +53,6 @@ void main() {
       verify(() => mockChannelClient.getByVideo(url)).called(1);
     });
 
-
-    test('Returns null when getChannelInfoById scraping fallback throws an exception', () async {
-      final channelId = 'UC1234567890';
-      final mockHttpClient = MockHttpClient();
-
-      when(() => mockChannelClient.get(any())).thenThrow(Exception('Channel not found'));
-      when(() => mockHttpClient.get(any())).thenThrow(Exception('Network error'));
-
-      final result = await YoutubeService.getChannelInfoById(
-        channelId,
-        ytClient: mockYtClient,
-        httpClient: mockHttpClient,
-      );
-
-      expect(result, isNull);
-      verify(() => mockHttpClient.get(any())).called(1);
-    });
-
     test('Fallback to getChannelInfoById when getByVideo fails and URL contains /channel/', () async {
       final channelId = 'UC1234567890';
       final url = 'https://youtube.com/channel/$channelId?feature=share';
@@ -102,9 +83,32 @@ void main() {
       when(() => mockChannelClient.getByVideo(any())).thenThrow(ArgumentError('Invalid video URL'));
       when(() => mockChannelClient.get(any())).thenThrow(Exception('Channel not found'));
 
-      final result = await YoutubeService.getChannelInfo(url, ytClient: mockYtClient);
+      final result = await YoutubeService.getChannelInfo(
+        url,
+        ytClient: mockYtClient,
+      );
 
       expect(result, isNull);
+    });
+  });
+
+  group('YoutubeService.getChannelInfoById Error Path', () {
+    test('Returns null when YoutubeExplode fails and fallback scraping HTTP request throws exception', () async {
+      final channelId = 'UC_ERROR_TEST';
+      final mockHttpClient = MockHttpClient();
+      
+      when(() => mockChannelClient.get(any())).thenThrow(Exception('YoutubeExplode failed'));
+      when(() => mockHttpClient.get(any())).thenThrow(Exception('HTTP Client failed'));
+
+      final result = await YoutubeService.getChannelInfoById(
+        channelId,
+        ytClient: mockYtClient,
+        httpClient: mockHttpClient,
+      );
+
+      expect(result, isNull);
+      verify(() => mockChannelClient.get(channelId)).called(1);
+      verify(() => mockHttpClient.get(any())).called(1);
     });
   });
 
@@ -116,9 +120,18 @@ void main() {
     });
 
     test('Replaces resolution string with mqdefault.jpg when turboMode is true', () {
-      expect(YoutubeService.getOptimizedThumbnail('.../hqdefault.jpg', true), contains('mqdefault.jpg'));
-      expect(YoutubeService.getOptimizedThumbnail('.../sddefault.jpg', true), contains('mqdefault.jpg'));
-      expect(YoutubeService.getOptimizedThumbnail('.../maxresdefault.jpg', true), contains('mqdefault.jpg'));
+      expect(
+        YoutubeService.getOptimizedThumbnail('.../hqdefault.jpg', true),
+        contains('mqdefault.jpg'),
+      );
+      expect(
+        YoutubeService.getOptimizedThumbnail('.../sddefault.jpg', true),
+        contains('mqdefault.jpg'),
+      );
+      expect(
+        YoutubeService.getOptimizedThumbnail('.../maxresdefault.jpg', true),
+        contains('mqdefault.jpg'),
+      );
     });
   });
 }
