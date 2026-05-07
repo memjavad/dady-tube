@@ -33,3 +33,7 @@
 ## 2024-05-01 - Add semantic labels to video player controls
 **Learning:** Custom interactive widgets (like `TactileButton`) acting as icon-only buttons lack inherent accessibility if a `semanticLabel` is not explicitly passed to the underlying `Semantics` node. In `dadytube_controls.dart`, video player controls were completely invisible/unannounced to screen readers.
 **Action:** Always provide and ensure custom button wrappers forward `semanticLabel` appropriately.
+
+## 2026-05-06 - Semantic Labels for Media Controls
+**Learning:** Icon-only media control buttons (like Play, Pause, Skip, Back, Exit Fullscreen) built using custom widgets (like `TactileButton`) do not provide inherent semantic meaning to screen readers, making the media player inaccessible.
+**Action:** Always provide explicit, context-aware `semanticLabel`s (e.g., changing 'Play' to 'Pause' dynamically) to all interactive media control buttons.
