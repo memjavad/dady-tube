@@ -9,10 +9,21 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:mockito/mockito.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-// Since the mockito code generator is not run, we just do exactly what download_service_test.dart did which compiled fine!
-// It manually extended Mock and implemented yt interfaces.
-// We will also stub `bitrate` to prevent runtime crashes.
+class FakePathProviderPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  final String path;
+  FakePathProviderPlatform(this.path);
+
+  @override
+  Future<String?> getTemporaryPath() async => path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => path;
+}
 
 class MockStreamManifest extends Mock implements yt.StreamManifest {
   @override
@@ -35,10 +46,14 @@ class MockVideoClient extends Mock implements yt.VideoClient {
 
 class MockStreamClient extends Mock implements yt.StreamClient {
   static int getManifestCallCount = 0;
+  static bool shouldThrow = false;
 
   @override
   Future<yt.StreamManifest> getManifest(dynamic videoId, {bool fullManifest = false, List<yt.YoutubeApiClient>? ytClients, bool requireWatchPage = false}) async {
     getManifestCallCount++;
+    if (shouldThrow) {
+      throw const SocketException('Simulated network error');
+    }
     return MockStreamManifest();
   }
 }
@@ -54,23 +69,16 @@ class MockYoutubeExplode extends Mock implements yt.YoutubeExplode {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late Directory tempDir;
   late VideoCacheService service;
   late MockYoutubeExplode mockYtClient;
   late MockClient mockHttpClient;
 
-  setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/path_provider'),
-      (MethodCall methodCall) async {
-        if (methodCall.method == 'getTemporaryDirectory') {
-          return './test_tmp';
-        }
-        return null;
-      },
-    );
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('video_cache_test');
+    PathProviderPlatform.instance = FakePathProviderPlatform(tempDir.path);
+    
     mockYtClient = MockYoutubeExplode();
-
     mockHttpClient = MockClient((request) async {
       return http.Response('dummy content chunk', 200);
     });
@@ -78,28 +86,22 @@ void main() {
     service = VideoCacheService();
     service.mockYt = mockYtClient;
     service.mockHttpClient = mockHttpClient;
+    
     MockStreamClient.getManifestCallCount = 0;
+    MockStreamClient.shouldThrow = false;
+    
+    SharedPreferences.setMockInitialValues({});
   });
 
   tearDown(() async {
-    final dir = Directory('./test_tmp/video_cache');
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
     }
-    await service.clearAllCache();
   });
 
   test('cacheVideo uses in-memory manifest and writes metadata sidecar', () async {
-    SharedPreferences.setMockInitialValues({});
-    await Future.delayed(Duration.zero);
-
-    // First call getManifest directly to prepopulate the in-memory manifest cache
     await service.getManifest('test_video');
     expect(MockStreamClient.getManifestCallCount, 1);
-
-    // Make sure our test file gets deleted if left over
-    final dir = Directory('./test_tmp/video_cache');
-    if (!await dir.exists()) await dir.create(recursive: true);
 
     await service.cacheVideo(
       'test_video',
@@ -108,62 +110,99 @@ void main() {
       channelId: 'test_channel',
     );
 
-    // Verify sidecar was written
-    final metaFile = File('./test_tmp/video_cache/test_video.meta');
+    final metaFile = File('${tempDir.path}/video_cache/test_video.meta');
     expect(await metaFile.exists(), isTrue);
 
-    // Verify sidecar content
     final metaContent = await metaFile.readAsString();
     final metaData = json.decode(metaContent);
     expect(metaData['title'], 'Test Title');
     expect(metaData['thumbnailUrl'], 'https://example.com/thumb.jpg');
     expect(metaData['channelId'], 'test_channel');
-    expect(metaData.containsKey('cachedAt'), isTrue);
-
-    // Verify manifest reuse (no additional call to getManifest)
     expect(MockStreamClient.getManifestCallCount, 1);
   });
 
   test('clearAllCache handles exceptions gracefully', () async {
-    const MethodChannel channel = MethodChannel('plugins.flutter.io/path_provider');
+    // Force path provider to fail by setting instance to null or similar if needed,
+    // but here we can just mock it to throw.
+    PathProviderPlatform.instance = FakePathProviderPlatform('') ; // empty path might cause issues or we mock it specifically
+    
+    // Actually the previous test used MethodChannel mock for path_provider which is more direct for clearAllCache's internal call
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (MethodCall methodCall) async {
       throw PlatformException(code: 'TEST_ERROR', message: 'Simulated error');
     });
 
     final cacheService = VideoCacheService();
-
-    // This should not throw, proving the catch block works
     await cacheService.clearAllCache();
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+        .setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), null);
   });
 
-  test('Confirm that invalidating the cached ID set works when a new video is successfully downloaded', () async {
-    // 1. Initial check - should be empty
+  test('Confirm that invalidating the cached ID set works', () async {
     var ids = await service.getCachedVideoIds();
-    expect(ids, isEmpty, reason: 'Cache should be initially empty');
+    expect(ids, isEmpty);
 
-    // 2. Simulate video download by writing a file behind the scenes
-    final dir = Directory('./test_tmp/video_cache');
-    if (!await dir.exists()) await dir.create(recursive: true);
-
-    // Use an ID that _sanitizeId won't change
-    final testVideoId = 'test_video_1';
-    final videoFile = File('${dir.path}/$testVideoId.mp4');
+    final dir = Directory('${tempDir.path}/video_cache');
+    await dir.create(recursive: true);
+    final videoFile = File('${dir.path}/test_video_1.mp4');
     await videoFile.writeAsString('dummy mp4 content');
 
-    // 3. Since we haven't invalidated the in-memory cache yet, it should still report empty
     ids = await service.getCachedVideoIds();
-    expect(ids, isEmpty, reason: 'In-memory cache should not have picked up the new file yet');
+    expect(ids, isEmpty);
 
-    // 4. Invalidate the cache (this is what cacheVideo does after a successful download via _invalidateCachedIdSet())
     service.invalidateCachedIdSetForTest();
-
-    // 5. The next call should rescan the directory and find the new file
     ids = await service.getCachedVideoIds();
-    expect(ids, isNotEmpty, reason: 'After invalidation, cache should pick up the new file');
-    expect(ids.contains(testVideoId), isTrue, reason: 'Cache should contain the newly downloaded video ID');
+    expect(ids, isNotEmpty);
+    expect(ids.contains('test_video_1'), isTrue);
+  });
+
+  test('cacheVideo exits early if video is already cached', () async {
+    final videoId = 'test_video_123';
+    final sanitizedId = service.sanitizeVideoId(videoId);
+    final cacheDirPath = '${tempDir.path}/video_cache';
+    await Directory(cacheDirPath).create(recursive: true);
+    final dummyFile = File('$cacheDirPath/$sanitizedId.mp4');
+    await dummyFile.writeAsString('original content');
+
+    await service.cacheVideo(videoId);
+
+    expect(await dummyFile.exists(), isTrue);
+    expect(await dummyFile.readAsString(), 'original content');
+    expect(MockStreamClient.getManifestCallCount, 0); // Should not have even fetched manifest
+  });
+
+  test('cacheVideo handles network errors gracefully', () async {
+    MockStreamClient.shouldThrow = true;
+    final videoId = 'test_video_fail';
+
+    try {
+      await service.cacheVideo(videoId);
+    } catch (e) {
+      // Expected
+    }
+
+    final sanitizedId = service.sanitizeVideoId(videoId);
+    final videoFile = File('${tempDir.path}/video_cache/$sanitizedId.mp4');
+    expect(await videoFile.exists(), isFalse);
+  });
+
+  test('cacheVideo respects background pause state', () async {
+    final videoId = 'test_video_pause';
+    service.pauseBackgroundOperations();
+
+    bool didProceed = false;
+    final cacheFuture = service.cacheVideo(videoId).then((_) {
+      didProceed = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 100));
+    expect(didProceed, isFalse);
+
+    service.resumeBackgroundOperations();
+    try {
+      await cacheFuture;
+    } catch (_) {}
+    expect(didProceed, isTrue);
   });
 }

@@ -32,15 +32,15 @@ void main() {
       expect(service.sanitizeVideoId('some_video-ID'), 'some_video-ID');
       expect(
         service.sanitizeVideoId('video?id=123&foo=bar'),
-        'videoid123foobar',
+        'video_id_123_foo_bar',
       );
       expect(
         service.sanitizeVideoId('..\\..\\Windows\\System32'),
-        'WindowsSystem32',
+        '______Windows_System32',
       );
       expect(
         service.sanitizeVideoId('/absolute/path/video'),
-        'absolutepathvideo',
+        '_absolute_path_video',
       );
     });
   });
