@@ -1515,7 +1515,7 @@ class _AuthorizedDownload extends StatelessWidget {
 }
 
 class _PulseCloud extends StatefulWidget {
-  const _PulseCloud({super.key});
+  const _PulseCloud();
 
   @override
   State<_PulseCloud> createState() => _PulseCloudState();
