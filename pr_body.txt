@@ -2,3 +2,16 @@
 💡 **Why:** Variables and methods that are assigned but never used can be safely deleted to clean up the code. This improves maintainability and readability by eliminating dead code.
 ✅ **Verification:** Verified safe by running `flutter analyze` and `flutter test`, and confirmed through a code review process.
 ✨ **Result:** A cleaner `home_screen.dart` without dead code.
+
+---
+
+🎯 **What:** Removed the assignment of the `Future` returned by the background metadata fetch to an unused variable (`metadataLookup`) in `lib/screens/watch_screen.dart`.
+
+💡 **Why:** To resolve an "Unused Declaration" code health issue. Storing a Future in a local variable without ever awaiting it or using it adds clutter and triggers linting warnings.
+
+✅ **Verification:**
+- Evaluated the impact: The `Future` is meant to be a fire-and-forget side effect (updating state in parallel). Removing the variable assignment safely preserves this behavior exactly.
+- Ran `dart analyze` to verify the "Unused Declaration" warning is resolved.
+- Ran `flutter test` to ensure existing functionality is unaffected.
+
+✨ **Result:** Improved code cleanliness and readability by removing dead code while preserving correct concurrent execution.
