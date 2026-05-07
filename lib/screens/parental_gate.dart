@@ -22,6 +22,12 @@ class _ParentalGateState extends State<ParentalGate> {
   int _num2 = 0;
 
   @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _generateMathProblem();
@@ -63,7 +69,10 @@ class _ParentalGateState extends State<ParentalGate> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
+          icon: Icon(
+            Icons.close_rounded,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           tooltip: loc.translate('close'),
           onPressed: () => Navigator.pop(context),
         ),
