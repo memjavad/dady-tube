@@ -996,9 +996,8 @@ class _StatisticsTabState extends State<_StatisticsTab> {
                 final keys = prefs.getKeys().where(
                   (k) => k.startsWith('stream_link_'),
                 );
-                for (var key in keys) {
-                  await prefs.remove(key);
-                }
+                // ⚡ Bolt: Use Future.wait for concurrent SharedPreferences removal instead of sequential loop.
+                await Future.wait(keys.map((key) => prefs.remove(key)));
                 _loadStats();
               },
               onAction: () async {
