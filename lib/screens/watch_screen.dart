@@ -15,7 +15,6 @@ import '../providers/download_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/youtube_service.dart';
 import '../services/download_service.dart';
-import '../widgets/eye_protection_overlay.dart';
 import '../widgets/playtime_bucket.dart';
 import '../services/video_cache_service.dart';
 import '../core/app_localizations.dart';
