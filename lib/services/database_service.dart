@@ -167,12 +167,39 @@ CREATE TABLE videos (
         )
         .toList();
   }
-  /// ⚡ Fix 4: Parallel DB queries — all 12 channels fetched concurrently instead of sequentially
+  /// ⚡ Bolt: Batched DB queries to prevent SQLite lock contention and Dart-to-native bridge overhead.
   Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
-    final results = await Future.wait(
-      channelIds.map((id) => getVideosForChannel(id)),
+    if (channelIds.isEmpty) return {};
+
+    final db = await instance.database;
+    final placeholders = List.filled(channelIds.length, '?').join(',');
+
+    final result = await db.query(
+      'videos',
+      where: 'channelId IN ($placeholders)',
+      whereArgs: channelIds,
+      orderBy: 'publishedAt DESC',
     );
-    return Map.fromIterables(channelIds, results);
+
+    // Initialize map with empty lists for all requested channels
+    final Map<String, List<YoutubeVideo>> videosMap = {
+      for (var id in channelIds) id: []
+    };
+
+    // Group the flat results by channelId
+    for (var json in result) {
+      final channelId = json['channelId'] as String;
+      final video = YoutubeVideo(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        thumbnailUrl: json['thumbnailUrl'] as String,
+        channelId: channelId,
+        publishedAt: DateTime.tryParse(json['publishedAt'] as String) ?? DateTime.now(),
+      );
+      videosMap[channelId]?.add(video);
+    }
+
+    return videosMap;
   }
 
   Future<int> getTotalChannelCount() async {
