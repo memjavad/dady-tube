@@ -77,3 +77,7 @@
 ## 2024-02-12 - Optimize Database Query Concurrency
 **Learning:** `sqflite` operations happen sequentially on a single background thread. Using `Future.wait` for multiple queries queues them sequentially anyway, but incurs multiple expensive platform channel method call overheads.
 **Action:** Replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` clause to minimize platform channel bridging overhead.
+
+## 2026-04-26 - Optimize App Directory Path Caching
+**Learning:** Caching a fully resolved `String` path from an asynchronous `getApplicationDocumentsDirectory()` inside an async getter like `Future<String> get _localPath async` creates race conditions if accessed concurrently before the first resolution finishes, causing `getApplicationDocumentsDirectory()` to be erroneously invoked multiple times.
+**Action:** Store the `Future<String>` instance itself (using `Future.then` to unwrap the path), ensuring only one concurrent request triggers the underlying filesystem API, and returning the exact same `Future` for subsequent callers.
