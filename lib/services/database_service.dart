@@ -57,7 +57,9 @@ CREATE TABLE videos (
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT');
+      await db.execute(
+        'ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT',
+      );
     }
   }
 
@@ -65,29 +67,29 @@ CREATE TABLE videos (
 
   Future<void> insertChannel(YoutubeChannel channel, {int lastSync = 0}) async {
     final db = await instance.database;
-    await db.insert(
-      'channels',
-      {
-        'id': channel.id,
-        'name': channel.name,
-        'thumbnailUrl': channel.thumbnailUrl,
-        'localThumbnailPath': channel.localThumbnailPath,
-        'lastSync': lastSync,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('channels', {
+      'id': channel.id,
+      'name': channel.name,
+      'thumbnailUrl': channel.thumbnailUrl,
+      'localThumbnailPath': channel.localThumbnailPath,
+      'lastSync': lastSync,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<YoutubeChannel>> getChannels() async {
     final db = await instance.database;
     final result = await db.query('channels');
 
-    return result.map((json) => YoutubeChannel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
-      localThumbnailPath: json['localThumbnailPath'] as String?,
-    )).toList();
+    return result
+        .map(
+          (json) => YoutubeChannel(
+            id: json['id'] as String,
+            name: json['name'] as String,
+            thumbnailUrl: json['thumbnailUrl'] as String,
+            localThumbnailPath: json['localThumbnailPath'] as String?,
+          ),
+        )
+        .toList();
   }
 
   Future<void> deleteChannel(String id) async {
@@ -167,7 +169,9 @@ CREATE TABLE videos (
         )
         .toList();
   }
-  /// ⚡ Bolt: Batched DB queries to prevent SQLite lock contention and Dart-to-native bridge overhead.
+  /// ⚡ Bolt: Batched getAllVideosMap query
+  /// Replaced multiple concurrent `db.query` calls (via Future.wait) with a single batched query
+  /// using the SQL `IN` operator. This prevents lock contention and reduces Dart-to-native bridge overhead.
   Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(List<String> channelIds) async {
     if (channelIds.isEmpty) return {};
 
