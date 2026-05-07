@@ -395,18 +395,16 @@ class VideoCacheService {
         return; // Exit early, do not mark as cached
       }
 
-      // Stitch parts together sequentially
-
+      // ⚡ Bolt: Optimized by replacing `await for` loop and `RandomAccessFile.writeFrom`
+      // with `IOSink.addStream` to delegate buffering and writing to Dart's optimized internal implementation,
+      // significantly reducing async event-loop overhead.
       final sink = file.openWrite();
       try {
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
             final stream = partFile.openRead();
-            // ⚡ Bolt: Use IOSink.addStream to delegate buffering and writing to Dart's optimized internal implementation
-            // This significantly reduces async event-loop overhead compared to 'await for' and 'writeFrom'.
             await sink.addStream(stream);
-
             await partFile.delete();
           }
         }
