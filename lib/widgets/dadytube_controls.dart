@@ -62,7 +62,6 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
     return TactileButton(
       semanticLabel: isPlaying ? 'Pause' : (isFinished ? 'Replay' : 'Play'),
-
       onTap: () {
         _cancelAndRestartTimer();
         if (isPlaying) {
@@ -199,7 +198,6 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             left: 0,
                             child: TactileButton(
                               semanticLabel: 'Exit Fullscreen',
-
                               onTap: () {
                                 if (_chewieController!.isFullScreen) {
                                   _chewieController!.exitFullScreen();
@@ -219,7 +217,6 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                           .colorScheme
                                           .primary
                                           .withValues(alpha: 0.4),
-
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -278,7 +275,6 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                   thumbColor: DadyTubeTheme.primary,
                                   overlayColor: DadyTubeTheme.primary
                                       .withValues(alpha: 0.2),
-
                                 ),
                                 child: Slider(
                                   value: position.inMilliseconds.toDouble(),
