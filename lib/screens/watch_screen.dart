@@ -346,7 +346,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         return; // EXIT EARLY - NO NETWORK NEEDED
       }
 
-      // 3. Check for Persistent URL Cache (Fastest Network Hack)
       final cachedUrl = await _cacheService.getCachedStreamUrl(widget.videoId);
       if (cachedUrl != null) {
         print('💎 Turbo Watch: Using Persistent Link Cache');
