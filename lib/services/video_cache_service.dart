@@ -43,8 +43,6 @@ class VideoCacheService {
 
   @visibleForTesting
   yt.YoutubeExplode? mockYt;
-  @visibleForTesting
-  http.Client? mockHttpClient;
 
   yt.YoutubeExplode get _yt => mockYt ?? YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
