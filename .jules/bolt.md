@@ -80,4 +80,8 @@
 
 ## 2024-05-17 - [Optimize sequential file stitching in VideoCacheService]
 **Learning:** Awaiting `RandomAccessFile.writeFrom(chunk)` in an `await for` loop creates significant async event-loop overhead for every small chunk, slowing down I/O bound operations.
-**Action:** Use `IOSink.addStream` instead. It delegates the stream reading and writing internally, utilizing optimal chunking and reducing microtask yields, leading to measurable performance gains (e.g. ~20% faster).
+**Action:** Use `IOSink.addStream` instead. It delegates the stream reading and writing internally, utilizing optimal chunking and microtask yields, leading to measurable performance gains (e.g. ~20% faster).
+
+## 2026-05-19 - [Parallelize I/O During Cache Sweeps]
+**Learning:** Performing sequential file deletions within a loop over a large array of items can significantly delay the execution of the main application logic because Dart has to await on disk operations sequentially.
+**Action:** When cleaning up a large number of local files, perform deletions inside independent unawaited `async` blocks collected as futures and wait for them using `Future.wait()`.
