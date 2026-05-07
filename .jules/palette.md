@@ -21,3 +21,7 @@
 ## 2023-10-27 - Add semantics to custom tactile buttons
 **Learning:** Found that custom highly interactive widgets like `TactileButton` often miss native semantic bindings because they compose raw `GestureDetector` instances. Screen readers skip them unless manually wrapped with a `Semantics` widget providing explicit `semanticLabel`.
 **Action:** Next time building custom interactive components with `GestureDetector`, always ensure a `Semantics` wrapper is included, and expose a `semanticLabel` parameter for consumers to implement accessible touch targets.
+
+## 2026-04-20 - Custom Control Semantics
+**Learning:** Adding `semanticLabel`s directly to custom button wrappers (like `TactileButton` in `dadytube_controls.dart`) ensures that complex, interactive overlays remain accessible to screen readers, especially when they replace native system controls.
+**Action:** Always map accessibility properties like `semanticLabel` from custom widgets down to their underlying `Semantics` or `GestureDetector` widgets to maintain a cohesive accessibility tree.

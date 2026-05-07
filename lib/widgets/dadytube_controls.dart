@@ -197,7 +197,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             top: 0,
                             left: 0,
                             child: TactileButton(
-                              semanticLabel: 'Exit Fullscreen',
+                               semanticLabel: 'Exit Fullscreen',
                               onTap: () {
                                 if (_chewieController!.isFullScreen) {
                                   _chewieController!.exitFullScreen();
