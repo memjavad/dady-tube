@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/usage_provider.dart';
 import '../core/theme.dart';
 import '../core/app_localizations.dart';
-import '../core/tactile_widgets.dart';
 import '../services/distance_protection_service.dart';
 
 class EyeProtectionOverlay extends StatefulWidget {
@@ -20,13 +17,9 @@ class EyeProtectionOverlay extends StatefulWidget {
 }
 
 class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
-  Timer? _breakTimer;
-  Timer? _activityTimer;
   Timer? _filterUpdateTimer;
-  bool _showOverlay = false;
   bool _isTooClose = false;
   bool _isSlouching = false;
-  int _currentActivity = 0;
   StreamSubscription<bool>? _distanceSubscription;
   StreamSubscription<bool>? _postureSubscription;
 
@@ -79,40 +72,8 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
     });
   }
 
-  void _showBreak() {
-    setState(() {
-      _showOverlay = true;
-      _currentActivity = 0;
-    });
-
-    // Cycle through 3 activities every 7 seconds
-    _activityTimer = Timer.periodic(const Duration(seconds: 7), (timer) {
-      if (mounted && _showOverlay) {
-        setState(() {
-          if (_currentActivity < 2) {
-            _currentActivity++;
-          } else {
-            timer.cancel();
-            _hideBreak();
-          }
-        });
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  void _hideBreak() {
-    if (mounted) {
-      setState(() => _showOverlay = false);
-    }
-    _activityTimer?.cancel();
-  }
-
   @override
   void dispose() {
-    _breakTimer?.cancel();
-    _activityTimer?.cancel();
     _filterUpdateTimer?.cancel();
     _stopDistanceProtection();
     super.dispose();
@@ -134,7 +95,6 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
         const _SunsetFadeoutOverlay(),
 
         // Break Overlay
-        if (_showOverlay) _BreakOverlay(currentActivity: _currentActivity),
 
         // Distance Warning Overlay (Step Back!)
         if (_isTooClose && settings.distanceProtectionEnabled)
@@ -185,121 +145,6 @@ class _SunsetFadeoutOverlay extends StatelessWidget {
   }
 }
 
-class _BreakOverlay extends StatelessWidget {
-  final int currentActivity;
-
-  const _BreakOverlay({required this.currentActivity});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.white.withOpacity(0.98),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.spa_rounded,
-                  color: DadyTubeTheme.primary,
-                  size: 60,
-                ),
-                const SizedBox(height: 32),
-                const SizedBox(height: 48),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: _buildActivityCard(context, currentActivity),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                _buildProgressBar(currentActivity),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressBar(int activity) {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: (activity + 1) / 3,
-            backgroundColor: DadyTubeTheme.primary.withOpacity(0.1),
-            valueColor: const AlwaysStoppedAnimation(DadyTubeTheme.primary),
-            minHeight: 12,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          "${activity + 1} / 3",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-            fontSize: 18,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActivityCard(BuildContext context, int index) {
-    final activities = [
-      {
-        'image': 'assets/images/eye_yoga_look_far.png',
-        'color': Colors.blueAccent,
-      },
-      {
-        'image': 'assets/images/eye_yoga_blink.png',
-        'color': Colors.orangeAccent,
-      },
-      {
-        'image': 'assets/images/eye_yoga_stretch.png',
-        'color': Colors.purpleAccent,
-      },
-    ];
-
-    final activity = activities[index];
-
-    return Column(
-      key: ValueKey(index),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(48),
-              boxShadow: [
-                BoxShadow(
-                  color: (activity['color'] as Color).withOpacity(0.15),
-                  blurRadius: 40,
-                  spreadRadius: 4,
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(48),
-              child: Image.asset(
-                activity['image'] as String,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
-        // Wordless Design Sandbox: Removing explicit text instructions to let the UI breathe
-        // and allow children to simply copy the "Virtual Buddy" rabbit.
-      ],
-    );
-  }
-}
-
 class _DistanceWarningOverlay extends StatelessWidget {
   final AppLocalizations loc;
 
@@ -333,11 +178,11 @@ class _DistanceWarningOverlay extends StatelessWidget {
                         ),
                       ],
                     ),
-                      child: const Icon(
-                        Icons.visibility_off_rounded,
-                        size: 60,
-                        color: Colors.pinkAccent,
-                      ),
+                    child: const Icon(
+                      Icons.visibility_off_rounded,
+                      size: 60,
+                      color: Colors.pinkAccent,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Stack(
