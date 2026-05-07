@@ -746,8 +746,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildPlayerArea(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
