@@ -405,9 +405,7 @@ class ChannelProvider with ChangeNotifier {
       // Force reset or migrate curated list
       _channels = curatedChannels;
       await prefs.setBool('v2_5_migration_applied', true);
-      for (var channel in _channels) {
-        await dbService.insertChannel(channel);
-      }
+      await dbService.insertChannels(_channels);
 
       // Attempt to migrate old JSON cache if it exists
       final oldVideosCache = prefs.getString('videos_cache');

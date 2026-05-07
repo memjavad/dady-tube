@@ -81,7 +81,7 @@ CREATE TABLE videos (
     int lastSync = 0,
   }) async {
     final db = await instance.database;
-    final batch = db.batch();
+    Batch batch = db.batch();
     for (var channel in channels) {
       batch.insert('channels', {
         'id': channel.id,
@@ -188,22 +188,12 @@ CREATE TABLE videos (
         .toList();
   }
 
-  /// ⚡ Bolt: Batched getAllVideosMap query
-  /// Replaced multiple concurrent `db.query` calls (via Future.wait) with a single batched query
-  /// using the SQL `IN` operator. This prevents lock contention and reduces Dart-to-native bridge overhead.
+  /// ⚡ Fix 4: Parallel DB queries — all 12 channels fetched concurrently instead of sequentially
   Future<Map<String, List<YoutubeVideo>>> getAllVideosMap(
     List<String> channelIds,
   ) async {
-    if (channelIds.isEmpty) return {};
-
-    final db = await instance.database;
-    final placeholders = List.filled(channelIds.length, '?').join(',');
-
-    final result = await db.query(
-      'videos',
-      where: 'channelId IN ($placeholders)',
-      whereArgs: channelIds,
-      orderBy: 'publishedAt DESC',
+    final results = await Future.wait(
+      channelIds.map((id) => getVideosForChannel(id)),
     );
 
     final map = <String, List<YoutubeVideo>>{};
