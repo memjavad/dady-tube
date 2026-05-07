@@ -53,3 +53,7 @@
 ## 2026-05-02 - [Flutter sqflite Concurrent Query Performance Bottleneck]
 **Learning:** Executing concurrent queries (e.g., using `Future.wait` on multiple `db.query` calls) against `sqflite` databases creates significant lock contention and excessive Dart-to-native bridge overhead, drastically reducing performance.
 **Action:** Always replace multiple concurrent queries with a single batched query using the SQL `IN` operator, and group the results locally in Dart.
+
+## 2026-05-01 - [Optimize Dart File Copying and Stitching]
+**Learning:** In Dart, copying or stitching files together using `await for` loops and `RandomAccessFile.writeFrom` incurs high async event-loop overhead. For high-throughput I/O operations where sequential order is guaranteed (like stitching downloaded chunks), processing chunks manually is significantly slower.
+**Action:** Always use `IOSink.addStream(file.openRead())` (via `file.openWrite()`) to delegate buffering and writing entirely to Dart's highly optimized internal C++ implementation, drastically reducing I/O bottleneck and CPU time.
