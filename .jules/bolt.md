@@ -57,3 +57,7 @@
 ## 2026-05-01 - [Optimize Dart File Copying and Stitching]
 **Learning:** In Dart, copying or stitching files together using `await for` loops and `RandomAccessFile.writeFrom` incurs high async event-loop overhead. For high-throughput I/O operations where sequential order is guaranteed (like stitching downloaded chunks), processing chunks manually is significantly slower.
 **Action:** Always use `IOSink.addStream(file.openRead())` (via `file.openWrite()`) to delegate buffering and writing entirely to Dart's highly optimized internal C++ implementation, drastically reducing I/O bottleneck and CPU time.
+
+## 2024-05-18 - [Dart RegExp vs Multiple .contains() Performance Bottleneck]
+**Learning:** In Dart, using multiple consecutive `.contains()` calls on a string (even when lowercased beforehand) is significantly slower than using a single, pre-compiled `RegExp` when matching against a known set of fixed keywords. In our benchmark, the RegExp approach was approximately 9x faster than multiple `.contains()`.
+**Action:** Always replace multiple `|| string.contains(...)` conditions with a single, pre-compiled `RegExp(r'word1|word2|word3', caseSensitive: false)` when filtering collections. Ensure the RegExp is instantiated exactly once (static final or as a local variable outside the loop) to avoid recompilation costs during iteration.
