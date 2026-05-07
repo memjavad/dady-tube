@@ -73,3 +73,7 @@
 ## 2026-05-04 - [Dart SharedPreferences Caching]
 **Learning:** In Dart, repeatedly calling `await SharedPreferences.getInstance()` in property setters causes redundant native channel invocations and disk access overhead, leading to degraded performance.
 **Action:** Cache the SharedPreferences instance locally inside providers during initialization, or lazily using a getter `_prefs ??= await SharedPreferences.getInstance()`, and reference the cached instance in all setters to eliminate redundant disk reads.
+
+## 2024-05-14 - [Optimize getAllVideosMap to use single batch query]
+**Learning:** Parallel SQLite database queries via `Future.wait` across multiple channels (N+1 queries) can cause unnecessary lock contention and excessive Dart-to-native bridge overhead, creating an initial bottleneck compared to a single query.
+**Action:** Always prefer flattening sequential or parallel database requests into a single batch query (e.g., using the SQL `IN` operator) when retrieving aggregated data collections mapped by IDs.
