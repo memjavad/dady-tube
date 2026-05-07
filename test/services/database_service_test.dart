@@ -40,6 +40,11 @@ void main() {
       expect(channels.first.name, 'Channel 1');
       expect(channels.first.thumbnailUrl, 'thumb1.jpg');
       expect(channels.first.localThumbnailPath, 'local1.jpg');
+
+      // Check lastSync by querying directly since getChannels doesn't return it
+      final db = await dbService.database;
+      final results = await db.query('channels', where: 'id = ?', whereArgs: ['c1']);
+      expect(results.first['lastSync'], 100);
     });
 
     test('insertChannel updates existing channel', () async {
@@ -57,12 +62,16 @@ void main() {
         thumbnailUrl: 'thumb1_new.jpg',
       );
 
-      await dbService.insertChannel(updatedChannel);
+      await dbService.insertChannel(updatedChannel, lastSync: 200);
 
       final channels = await dbService.getChannels();
       expect(channels.length, 1);
       expect(channels.first.name, 'Channel 1 Updated');
       expect(channels.first.thumbnailUrl, 'thumb1_new.jpg');
+
+      final db = await dbService.database;
+      final results = await db.query('channels', where: 'id = ?', whereArgs: ['c1']);
+      expect(results.first['lastSync'], 200);
     });
 
     test('getTotalChannelCount and getTotalVideoCount', () async {
