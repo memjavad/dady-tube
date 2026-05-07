@@ -181,8 +181,6 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Parents can grant "5 more minutes"
   void grantExtraTime(int minutes) {
-    // Audit Fix: Previously set usage to (limit - minutes) which is inverted.
-    // Now correctly SUBTRACTS granted time from recorded usage.
     _usageSeconds -= minutes * 60;
     if (_usageSeconds < 0) _usageSeconds = 0;
     _isBedtime = false;
