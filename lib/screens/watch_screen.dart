@@ -254,26 +254,20 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       customControls: const DadyTubeControls(),
       allowedScreenSleep: false,
       // ⚡ Reduced Black Bars: Apply custom scaling to the full-screen route
-      routePageBuilder:
-          (context, animation, secondaryAnimation, controllerProvider) {
-            return AnimatedBuilder(
-              animation: animation,
-              builder: (context, child) {
-                return Scaffold(
-                  backgroundColor: Colors.black,
-                  body: SizedBox.expand(
-                    child: Center(
-                      child: Transform.scale(
-                        scale: 1.1, // Zoom strictly at 1.1x as requested
-                        alignment: Alignment.center,
-                        child: controllerProvider,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+      routePageBuilder: (context, animation, secondaryAnimation, controllerProvider) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: SizedBox.expand(
+            child: Center(
+              child: Transform.scale(
+                scale: 1.1, // Zoom strictly at 1.1x as requested
+                alignment: Alignment.center,
+                child: controllerProvider,
+              ),
+            ),
+          ),
+        );
+      },
     );
 
     _chewieController!.addListener(() {
