@@ -13,6 +13,7 @@ import 'dart:io';
 import '../providers/settings_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/youtube_client_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -124,6 +125,15 @@ class _ExperienceTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildUsageTimerCard(context, usage, loc),
+          const SizedBox(height: 32),
+          _buildSectionHeader(
+            context,
+            '⚙️ Advanced (Anti-Bot)',
+            Icons.security_rounded,
+          ),
+          const SizedBox(height: 16),
+          const _CookieInjectionCard(),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -1224,6 +1234,270 @@ class _StatisticsTabState extends State<_StatisticsTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A card that lets parents paste YouTube session cookies to help DadyTube
+/// bypass bot-detection blocks. Displayed in Settings → Experience → Advanced.
+class _CookieInjectionCard extends StatefulWidget {
+  const _CookieInjectionCard();
+
+  @override
+  State<_CookieInjectionCard> createState() => _CookieInjectionCardState();
+}
+
+class _CookieInjectionCardState extends State<_CookieInjectionCard> {
+  final _controller = TextEditingController();
+  bool _hasCookies = false;
+  DateTime? _savedAt;
+  bool _isSaving = false;
+  bool _showField = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final svc = YoutubeClientService();
+    final has = await svc.hasCookies();
+    final ts = await svc.getCookiesSavedAt();
+    if (mounted) {
+      setState(() {
+        _hasCookies = has;
+        _savedAt = ts;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final val = _controller.text.trim();
+    if (val.isEmpty) return;
+    setState(() => _isSaving = true);
+    await YoutubeClientService().saveCookies(val);
+    _controller.clear();
+    await _loadStatus();
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        _showField = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Cookies saved! Videos should unblock now.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _clear() async {
+    await YoutubeClientService().clearCookies();
+    await _loadStatus();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🗑️ Cookies cleared.')),
+      );
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) return 'today';
+    if (diff.inDays == 1) return 'yesterday';
+    return '${diff.inDays} days ago';
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: DadyTubeTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.cookie_rounded,
+                  color: DadyTubeTheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'YouTube Session Cookies',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      _hasCookies
+                          ? '✅ Active — saved ${_formatDate(_savedAt!)}'
+                          : 'Not set — some videos may be blocked',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _hasCookies ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Info box
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'If some videos show a "robot blocked" error, add your '
+              'YouTube browser cookies here. Open YouTube in Chrome on a PC, '
+              'press F12 → Application → Cookies → youtube.com, then copy and '
+              'paste all cookies as text. Refresh cookies every 1–2 weeks.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_showField) ...[
+            TextField(
+              controller: _controller,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText:
+                    'Paste cookies here...\ne.g. VISITOR_INFO1_LIVE=abc; YSC=xyz; PREF=...',
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TactileButton(
+                    onTap: _isSaving ? null : _save,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: DadyTubeTheme.primary,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      alignment: Alignment.center,
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Save Cookies',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TactileButton(
+                  onTap: () => setState(() => _showField = false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: TactileButton(
+                    onTap: () => setState(() => _showField = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: DadyTubeTheme.primary,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _hasCookies ? '🔄 Update Cookies' : '➕ Add Cookies',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_hasCookies) ...[
+                  const SizedBox(width: 10),
+                  TactileButton(
+                    onTap: _clear,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+        ],
       ),
     );
   }

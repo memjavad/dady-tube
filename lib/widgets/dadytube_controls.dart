@@ -76,13 +76,13 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
       child: TactileCard(
         color: DadyTubeTheme.primary,
         shape: const StadiumBorder(),
-        padding: EdgeInsets.all(24 * scale),
+        padding: EdgeInsets.all(18 * scale),
         child: Icon(
           isFinished
               ? Icons.replay_rounded
               : (isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
           color: Colors.white,
-          size: 48 * scale,
+          size: 38 * scale,
         ),
       ),
     );
@@ -103,35 +103,11 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
       child: TactileCard(
         color: Colors.white.withValues(alpha: 0.8),
         shape: const CircleBorder(),
-        padding: EdgeInsets.all(16 * scale),
+        padding: EdgeInsets.all(12 * scale),
         child: Icon(
           forward ? Icons.forward_10_rounded : Icons.replay_10_rounded,
           color: DadyTubeTheme.primary,
-          size: 32 * scale,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context, double scale) {
-    return TactileButton(
-      semanticLabel: 'Back',
-
-      onTap: () {
-        if (_chewieController!.isFullScreen) {
-          _chewieController!.exitFullScreen();
-        } else {
-          Navigator.of(context).pop();
-        }
-      },
-      child: TactileCard(
-        color: DadyTubeTheme.primary,
-        shape: const CircleBorder(),
-        padding: EdgeInsets.all(12 * scale),
-        child: Icon(
-          Icons.arrow_back_rounded,
-          color: Colors.white,
-          size: 28 * scale,
+          size: 24 * scale,
         ),
       ),
     );
@@ -146,9 +122,17 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
     final isFullScreen =
         _chewieController!.isFullScreen ||
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final mediaQuery = MediaQuery.of(context);
+    final shortestSide = mediaQuery.size.shortestSide;
 
-    // Scale up buttons for kids in full screen (compensated for 1.1x video zoom)
-    final scale = isFullScreen ? (2.0 / 1.1) : 1.0;
+    // Keep landscape controls compact enough to fit safely inside the zoomed player.
+    final scale = isFullScreen
+        ? (shortestSide < 420 ? 0.9 : 1.0)
+        : 0.92;
+    final horizontalInset = isFullScreen ? 28.0 : 16.0;
+    final verticalInset = isFullScreen ? 18.0 : 16.0;
+    final backButtonSize = 48.0 * scale;
+    final backIconSize = 22.0 * scale;
 
     return Stack(
       children: [
@@ -184,10 +168,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                 SafeArea(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      // Increase padding in full screen to account for 1.1x scaling which pushes
-                      // logical edges off-screen by roughly 5% on each side.
-                      horizontal: (isFullScreen ? 64.0 : 16.0) * scale,
-                      vertical: (isFullScreen ? 48.0 : 16.0) * scale,
+                      horizontal: horizontalInset,
+                      vertical: verticalInset,
                     ),
                     child: Stack(
                       children: [
@@ -206,8 +188,8 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                 }
                               },
                               child: Container(
-                                width: 64,
-                                height: 64,
+                                width: backButtonSize,
+                                height: backButtonSize,
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).colorScheme.primary,
                                   shape: BoxShape.circle,
@@ -222,10 +204,10 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.arrow_back,
                                   color: Colors.white,
-                                  size: 32,
+                                  size: backIconSize,
                                 ),
                               ),
                             ),
@@ -237,7 +219,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               _buildSkip(false, scale),
-                              SizedBox(width: 32 * scale),
+                              SizedBox(width: 14 * scale),
                               ValueListenableBuilder(
                                 valueListenable: _controller!,
                                 builder:
@@ -245,7 +227,7 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
                                       return _buildPlayPause(value, scale);
                                     },
                               ),
-                              SizedBox(width: 32 * scale),
+                              SizedBox(width: 14 * scale),
                               _buildSkip(true, scale),
                             ],
                           ),
@@ -253,9 +235,9 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
                         // Progress Bar (Bottom - pushed to edge to avoid overlap with buttons)
                         Positioned(
-                          bottom: (isFullScreen ? 12.0 : 4.0) * scale,
-                          left: 16 * scale,
-                          right: 16 * scale,
+                          bottom: isFullScreen ? 10.0 : 4.0,
+                          left: isFullScreen ? 18.0 : 16.0,
+                          right: isFullScreen ? 18.0 : 16.0,
                           child: ValueListenableBuilder(
                             valueListenable: _controller!,
                             builder: (context, VideoPlayerValue value, child) {
@@ -264,9 +246,9 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
                               return SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 12 * scale,
+                                  trackHeight: 8 * scale,
                                   thumbShape: RoundSliderThumbShape(
-                                    enabledThumbRadius: 10 * scale,
+                                    enabledThumbRadius: 7 * scale,
                                   ),
                                   activeTrackColor: DadyTubeTheme.primary,
                                   inactiveTrackColor: Colors.white.withAlpha(

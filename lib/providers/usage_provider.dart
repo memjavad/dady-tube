@@ -8,11 +8,13 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _keyLastReset = 'last_reset_date';
   static const String _keyStars = 'magic_stars_count';
   static const String _keyMonthlyStars = 'monthly_stars_count';
+  static const String _keyWatchedVideos = 'watched_videos';
 
   int _dailyLimitMinutes = 120;
   int _usageSeconds = 0;
   int _starsCount = 0;
   int _monthlyStars = 0;
+  Set<String> _watchedVideoIds = {};
   Timer? _timer;
   bool _isBedtime = false;
   bool _isAppPaused = false;
@@ -48,6 +50,7 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get usageSeconds => _usageSeconds;
   int get starsCount => _starsCount;
   int get monthlyStars => _monthlyStars;
+  Set<String> get watchedVideoIds => _watchedVideoIds;
   bool get isBedtime => _isBedtime;
   bool get isBreakActive => _isBreakActive;
   int get breakCountdown => _breakCountdown;
@@ -99,6 +102,8 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _dailyLimitMinutes = prefs.getInt(_keyLimit) ?? 120;
     _starsCount = prefs.getInt(_keyStars) ?? 0;
+    final watchedList = prefs.getStringList(_keyWatchedVideos) ?? [];
+    _watchedVideoIds = watchedList.toSet();
 
     // Initialize last break to the closest previous 15-m interval to avoid immediate break on restart
     _lastBreakUsageSeconds = (_usageSeconds ~/ 900) * 900;
@@ -128,6 +133,18 @@ class UsageProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await _asyncPrefs;
     await prefs.setInt(_keyStars, _starsCount);
     notifyListeners();
+  }
+
+  void markVideoAsWatched(String videoId) async {
+    if (!_watchedVideoIds.contains(videoId)) {
+      _watchedVideoIds.add(videoId);
+      if (_watchedVideoIds.length > 500) {
+        _watchedVideoIds.remove(_watchedVideoIds.first);
+      }
+      notifyListeners();
+      final prefs = await _asyncPrefs;
+      await prefs.setStringList(_keyWatchedVideos, _watchedVideoIds.toList());
+    }
   }
 
   void _startTimer() {

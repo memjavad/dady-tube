@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 
 class ParticleBackground extends StatefulWidget {
   final Widget child;
@@ -37,11 +38,22 @@ class _ParticleBackgroundState extends State<ParticleBackground>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final targetColor = widget.overrideColor ?? theme.colorScheme.primary;
+    final tokens = DadyTubeTheme.tokens(context);
+    final targetColor = widget.overrideColor ?? tokens.particleColor;
 
     // ⚡ Bolt: Pass down child to prevent unnecessary rebuilds inside animations
-    return Container(
-      color: theme.scaffoldBackgroundColor,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            tokens.backgroundGradientStart,
+            theme.scaffoldBackgroundColor,
+            tokens.backgroundGradientEnd,
+          ],
+        ),
+      ),
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: targetColor),
         duration: const Duration(milliseconds: 800),
@@ -97,6 +109,7 @@ class ParticlePainter extends CustomPainter {
     final paint = Paint();
     for (var particle in particles) {
       paint.color = particleColor.withOpacity(particle.opacity);
+      paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
       canvas.drawCircle(
         Offset(particle.x * size.width, particle.y * size.height),
         particle.size,

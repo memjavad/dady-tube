@@ -31,6 +31,7 @@ class AppLocalizations {
       'try_again': 'Try Again',
       'back': 'Back',
       'offline': 'Offline',
+      'author_credit': 'By Dr. Mohammed Looti',
 
       // Worlds
       'animals': 'Animals',
@@ -174,7 +175,18 @@ class AppLocalizations {
       'metadata_stored': 'Channel Metadata',
       'instant_play_links': 'Instant Play Links',
       'manual_downloads': 'Saved to Travel Bag',
-      'clear_cache': 'Clear Auto-Cache',
+            'clear_cache': 'Clear Auto-Cache',
+      // Onboarding
+      'onboarding_welcome': 'Welcome to DadyTube!',
+      'onboarding_features_title': 'Discover Fun Worlds',
+      'onboarding_features_desc':
+          'Explore Animals, Music, Toys, and Learning in a safe environment.',
+      'onboarding_settings_title': 'Parental Control',
+      'onboarding_settings_desc':
+          'Ask a parent to change limits, add channels, or adjust safety in Settings.',
+      'onboarding_start': 'Let\'s Play!',
+      'onboarding_author': 'from Dr. Mohammed Looti',
+
     },
     'ar': {
       // General
@@ -198,6 +210,7 @@ class AppLocalizations {
       'try_again': 'حاول مرة أخرى',
       'back': 'رجوع',
       'offline': 'بدون إنترنت',
+      'author_credit': 'بواسطة دكتور محمد لوتي',
 
       // Worlds
       'animals': 'حيوانات',
@@ -339,7 +352,18 @@ class AppLocalizations {
       'metadata_stored': 'بيانات القنوات',
       'instant_play_links': 'روابط التشغيل الفوري',
       'manual_downloads': 'المحفوظات في حقيبة السفر',
-      'clear_cache': 'مسح التخزين التلقائي',
+            'clear_cache': 'مسح التخزين التلقائي',
+      // Onboarding
+      'onboarding_welcome': 'مرحباً بك في دادي تيوب!',
+      'onboarding_features_title': 'اكتشف عوالم المرح',
+      'onboarding_features_desc':
+          'استكشف الحيوانات والموسيقى والألعاب والتعلم في بيئة آمنة.',
+      'onboarding_settings_title': 'تحكم الوالدين',
+      'onboarding_settings_desc':
+          'اطلب من أحد والديك تغيير الحدود أو إضافة قنوات أو ضبط الأمان من الإعدادات.',
+      'onboarding_start': 'لنبدأ اللعب!',
+      'onboarding_author': 'من د. محمد لوتي',
+
     },
   };
 

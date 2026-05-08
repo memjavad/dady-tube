@@ -48,12 +48,10 @@ class VideoCacheService {
 
   yt.YoutubeExplode get _yt => mockYt ?? YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
-  static const int _maxCacheEntries =
-      25; // Halved from 50 for reduced footprint
-  static const int _manifestTTLHours =
-      5; // 5 Hours to match YouTube link expiry
+  final Map<String, Future<yt.StreamManifest>> _activeFetches = {};
+  static const int _maxCacheEntries = 25;
+  static const int _manifestTTLHours = 5;
 
-  // ⚡ Fix 1: In-memory path cache — resolves once per session, then instant
   String? _resolvedCachePath;
   Future<String>? _resolvingCachePathFuture;
 
@@ -69,21 +67,16 @@ class VideoCacheService {
     return await _resolvingCachePathFuture!;
   }
 
-  // ⚡ Fix 2: In-memory stream URL cache — reads SharedPrefs only once per video
   final Map<String, _CachedUrl> _streamUrlMemCache = {};
 
-  /// Sanitizes the video ID to prevent path traversal vulnerabilities.
   String _sanitizeId(String id) {
     return id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
   }
 
-  // Backwards compatibility for Bolt code and visible for testing
   String sanitizeVideoId(String id) => _sanitizeId(id);
 
-  /// Saves a specific stream URL to disk for high-speed reuse.
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
-      // Store in memory immediately (no async wait needed for next read)
       _streamUrlMemCache[videoId] = _CachedUrl(
         url: url,
         timestamp: DateTime.now().millisecondsSinceEpoch,
@@ -100,14 +93,10 @@ class VideoCacheService {
     } catch (_) {}
   }
 
-  /// Returns a valid cached stream URL if it exists and is not expired.
-  /// ⚡ Fix 2: Checks in-memory cache first — zero disk I/O on hot path.
   Future<String?> getCachedStreamUrl(String videoId) async {
-    // 1. Check memory first (INSTANT — no I/O)
     final mem = _streamUrlMemCache[videoId];
     if (mem != null && !mem.isExpired) return mem.url;
 
-    // 2. Only fall through to disk if not in memory
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString('persistent_stream_urls');
@@ -123,7 +112,6 @@ class VideoCacheService {
       if (_isUrlExpired(url)) return null;
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - timestamp < 1000 * 60 * 60 * _manifestTTLHours) {
-        // Populate memory cache so next access is instant
         _streamUrlMemCache[videoId] = _CachedUrl(
           url: url,
           timestamp: timestamp,
@@ -134,23 +122,56 @@ class VideoCacheService {
     return null;
   }
 
-  final Map<String, Future<yt.StreamManifest>> _activeFetches = {};
+  Future<void> invalidateVideoSession(String videoId) async {
+    _manifestCache.remove(videoId);
+    _activeFetches.remove(videoId);
+    _streamUrlMemCache.remove(videoId);
 
-  /// Gets a cached manifest, or fetches and caches it if missing.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('persistent_stream_urls');
+      if (jsonStr == null) return;
+
+      final Map<String, dynamic> data = json.decode(jsonStr);
+      if (data.remove(videoId) != null) {
+        await prefs.setString('persistent_stream_urls', json.encode(data));
+      }
+    } catch (_) {}
+  }
+
+  static final _ytClients = [
+    yt.YoutubeApiClient.tv,
+    yt.YoutubeApiClient.androidVr,
+    yt.YoutubeApiClient.ios,
+    yt.YoutubeApiClient.android,
+    yt.YoutubeApiClient.safari,
+  ];
+
+  final Set<yt.YoutubeApiClient> _failedClients = {};
+
   Future<yt.StreamManifest> getManifest(String videoId) async {
-    // 1. Check in-memory cache
+    return getManifestWithOptions(videoId);
+  }
+
+  Future<yt.StreamManifest> getManifestWithOptions(
+    String videoId, {
+    bool forceRefresh = false,
+  }) async {
+    await YoutubeClientService().ensureReady();
+    if (forceRefresh) {
+      await invalidateVideoSession(videoId);
+    }
+
     if (_manifestCache.containsKey(videoId)) {
       final cached = _manifestCache[videoId]!;
       if (!cached.isExpired) return cached.manifest;
     }
 
-    // 1.5. Deduplicate Race Conditions (JIT taps vs Background Queue)
     if (_activeFetches.containsKey(videoId)) {
       return await _activeFetches[videoId]!;
     }
 
-    // 2. Fetch fresh from YouTube and broadcast the Future to any concurrent callers
-    final fetchFuture = _yt.videos.streamsClient.getManifest(videoId);
+    final fetchFuture = _fetchManifestWithRetry(videoId);
     _activeFetches[videoId] = fetchFuture;
 
     try {
@@ -160,15 +181,12 @@ class VideoCacheService {
         timestamp: DateTime.now(),
       );
 
-      // Persistence for "Instant Play"
       final bestStream = manifest.muxed.withHighestBitrate();
-      if (bestStream != null) {
-        _persistStreamUrl(videoId, bestStream.url.toString());
-      }
+      _persistStreamUrl(videoId, bestStream.url.toString());
 
       return manifest;
     } on yt.VideoUnplayableException catch (e) {
-      debugPrint('🚫 Video Unplayable: $videoId - $e');
+      debugPrint('🚫 Video Unplayable (all clients exhausted): $videoId - $e');
       rethrow;
     } catch (e) {
       debugPrint('⚠️ Manifest Fetch Error: $videoId - $e');
@@ -178,14 +196,87 @@ class VideoCacheService {
     }
   }
 
-  // ⚡ Performance Prioritization: Pause all background tasks during video startup
+  /// Clears the record of failed clients, allowing all clients to be tried again.
+  /// Call this after rotating the global identity in YoutubeClientService.
+  void clearFailedClients() {
+    _failedClients.clear();
+    debugPrint('♻️ Failed clients list cleared for retry.');
+  }
+
+  Future<yt.StreamManifest> _fetchManifestWithRetry(String videoId) async {
+    Object? lastError;
+    const delays = [0, 1, 2];
+
+    for (int attempt = 0; attempt < _ytClients.length; attempt++) {
+      // Re-evaluate ordered list on each attempt in case _failedClients changed
+      final orderedClients = [
+        ..._ytClients.where((c) => !_failedClients.contains(c)),
+        ..._ytClients.where((c) => _failedClients.contains(c)),
+      ];
+      
+      final client = orderedClients[attempt];
+      final delayIndex = attempt < delays.length ? attempt : delays.length - 1;
+
+      if (delays[delayIndex] > 0) {
+        await Future.delayed(Duration(seconds: delays[delayIndex]));
+      }
+
+      try {
+        debugPrint(
+          '🎬 Manifest attempt ${attempt + 1}/${orderedClients.length} '
+          'for $videoId using client: $client',
+        );
+        final manifest = await _yt.videos.streamsClient.getManifest(
+          videoId,
+          ytClients: [client],
+        );
+        
+        _failedClients.remove(client);
+        return manifest;
+      } on yt.VideoUnplayableException catch (e) {
+        final msg = e.toString().toLowerCase();
+        final isBot = msg.contains('bot') ||
+            msg.contains('sign in') ||
+            msg.contains('confirm') ||
+            msg.contains('robot') ||
+            msg.contains('available'); // "Not available" is often a soft-block
+            
+        if (isBot) {
+          debugPrint('🤖 Bot-block on client $client, marking as failed...');
+          _failedClients.add(client);
+          lastError = e;
+          continue;
+        }
+        rethrow;
+      } catch (e) {
+        debugPrint('⚠️ Client $client failed: $e');
+        lastError = e;
+        continue;
+      }
+    }
+
+    if (lastError != null) throw lastError;
+    throw yt.VideoUnplayableException.unplayable(yt.VideoId(videoId), reason: 'All clients exhausted');
+  }
+
   bool _isBackgroundPaused = false;
+  bool get isBackgroundPaused => _isBackgroundPaused;
+  bool _playbackFocus = false;
   final Set<http.Client> _activeClients = {};
+
+  /// Toggles global playback focus. When true, all background fetches are strictly
+  /// suppressed and cannot be resumed until focus is released.
+  void setPlaybackFocus(bool active) {
+    _playbackFocus = active;
+    if (active) {
+      pauseBackgroundOperations();
+    } else {
+      resumeBackgroundOperations();
+    }
+  }
 
   void pauseBackgroundOperations() {
     _isBackgroundPaused = true;
-
-    // Forcefully terminate all in-progress parallel downloads to instantly free bandwidth
     for (var client in _activeClients) {
       try {
         client.close();
@@ -196,6 +287,10 @@ class VideoCacheService {
 
   void resumeBackgroundOperations() {
     if (!_isBackgroundPaused) return;
+    if (_playbackFocus) {
+      debugPrint('⏸️ VideoCacheService: Resume suppressed while Playback Focus is active.');
+      return;
+    }
     _isBackgroundPaused = false;
     _processManifestQueue();
   }
@@ -210,7 +305,6 @@ class VideoCacheService {
   final List<String> _manifestFetchQueue = [];
   final Set<String> _manifestQueueSet = {};
 
-  /// Background task to fetch a manifest to make future clicks instant.
   void prefetchManifest(String videoId) {
     if (_manifestCache.containsKey(videoId)) {
       final cached = _manifestCache[videoId]!;
@@ -235,14 +329,13 @@ class VideoCacheService {
     _manifestQueueSet.remove(videoId);
 
     try {
+      await YoutubeClientService().ensureReady();
       final cachedUrl = await getCachedStreamUrl(videoId);
       if (cachedUrl == null) {
         final manifest = await getManifest(videoId);
-        // ⚡ Socket Warming: Perform a tiny HEAD request to the stream server to warm TCP/TLS
         try {
           final bestStream = manifest.muxed.withHighestBitrate();
           final warmUrl = bestStream.url;
-          // Trigger a HEAD request in background, don't await the body
           YoutubeClientService().httpClient
               .head(warmUrl)
               .timeout(const Duration(seconds: 3))
@@ -260,7 +353,6 @@ class VideoCacheService {
     }
   }
 
-  /// Helper method to return an existing file path based on video ID and extension.
   Future<String?> _getExistingFilePath(String videoId, String extension) async {
     try {
       final path = await _cachePath;
@@ -276,12 +368,10 @@ class VideoCacheService {
     return null;
   }
 
-  /// Returns a local file path if the video is cached, or null otherwise.
   Future<String?> getCachedVideoPath(String videoId) async {
     return _getExistingFilePath(videoId, '.mp4');
   }
 
-  // ⚡ Fix 5: In-memory cached video ID set — scans disk only once per session
   Set<String>? _cachedVideoIdSet;
 
   @visibleForTesting
@@ -289,9 +379,7 @@ class VideoCacheService {
 
   void _invalidateCachedIdSet() => _cachedVideoIdSet = null;
 
-  /// Returns a set of all video IDs currently in the cache.
   Future<Set<String>> getCachedVideoIds() async {
-    // Return cached set immediately if available
     if (_cachedVideoIdSet != null) return _cachedVideoIdSet!;
 
     final path = await _cachePath;
@@ -312,15 +400,13 @@ class VideoCacheService {
     return _cachedVideoIdSet!;
   }
 
-  /// Starts caching a video in the background.
-  /// ⚡ Fix 3: Reuses in-memory manifest. Fix 7: Writes metadata sidecar.
   Future<void> cacheVideo(
     String videoId, {
     String title = '',
     String thumbnailUrl = '',
     String channelId = '',
   }) async {
-    await _waitUntilResumed(); // Yield to prioritized playback
+    await _waitUntilResumed();
     final existing = await getCachedVideoPath(videoId);
     if (existing != null) return;
 
@@ -328,7 +414,6 @@ class VideoCacheService {
     _activeClients.add(client);
     File? file;
     try {
-      // ⚡ Fix 3: Use cached manifest instead of fetching a new one
       final manifest = await getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
 
@@ -340,7 +425,6 @@ class VideoCacheService {
       final sanitizedId = _sanitizeId(videoId);
       file = File('$cacheDir/$sanitizedId.mp4');
 
-      // Parallel Turbo Cache — 2 concurrent connections (Halved from 4 for footprint)
       const int segmentCount = 2;
       final int segmentSize = (totalSize / segmentCount).ceil();
       List<Future<void>> cacheTasks = [];
@@ -365,10 +449,7 @@ class VideoCacheService {
 
             sink = partFile.openWrite();
             await for (final chunk in response.stream) {
-              if (_isBackgroundPaused) {
-                // Abort chunk processing if paused
-                break;
-              }
+              if (_isBackgroundPaused) break;
               sink.add(chunk);
             }
             await sink.flush();
@@ -387,7 +468,6 @@ class VideoCacheService {
       await Future.wait(cacheTasks);
 
       if (_isBackgroundPaused || hasError) {
-        // We aborted mid-download or failed. Delete the incomplete parts.
         for (int i = 0; i < segmentCount; i++) {
           final partFile = File('${file.path}.part$i');
           if (await partFile.exists()) {
@@ -401,12 +481,9 @@ class VideoCacheService {
             await file.delete();
           } catch (_) {}
         }
-        return; // Exit early, do not mark as cached
+        return;
       }
 
-      // ⚡ Bolt: Optimized by replacing `await for` loop and `RandomAccessFile.writeFrom`
-      // with `IOSink.addStream` to delegate buffering and writing to Dart's optimized internal implementation,
-      // significantly reducing async event-loop overhead.
       final sink = file.openWrite();
       try {
         for (int i = 0; i < segmentCount; i++) {
@@ -417,16 +494,13 @@ class VideoCacheService {
             await partFile.delete();
           }
         }
-        await sink.flush(); // Added flush before close for reliability
+        await sink.flush();
       } finally {
         await sink.close();
       }
 
-
-      // ⚡ Fix 5: Update cached ID set in memory without scanning disk
       _cachedVideoIdSet?.add(sanitizedId);
 
-      // ⚡ Fix 7: Write metadata sidecar
       if (title.isNotEmpty) {
         await writeMetaSidecarForTest(
           cacheDir,
@@ -446,9 +520,8 @@ class VideoCacheService {
     }
   }
 
-  /// Caches just the first ~1.5MB of a video for instant start preview.
   Future<void> cachePreview(String videoId) async {
-    // If full video is already cached, no need for preview
+    await YoutubeClientService().ensureReady();
     if (await getCachedVideoPath(videoId) != null) return;
 
     final cacheDir = await _cachePath;
@@ -457,7 +530,6 @@ class VideoCacheService {
     if (await previewFile.exists()) return;
 
     try {
-      // ⚡ Fix 6: Reuses in-memory manifest if available
       final manifest = await getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
 
@@ -466,9 +538,8 @@ class VideoCacheService {
       final stream = _yt.videos.streamsClient.get(streamInfo);
       final ios = previewFile.openWrite();
 
-      // Approximately 1-2MB is usually enough for 5 seconds of 720p/360p
       int totalBytes = 0;
-      const int maxBytes = 1524 * 1024; // ~1.5MB
+      const int maxBytes = 1524 * 1024;
 
       await for (final chunk in stream) {
         ios.add(chunk);
@@ -483,19 +554,16 @@ class VideoCacheService {
     }
   }
 
-  /// Returns a local file path for a preview if it exists.
   Future<String?> getPreviewPath(String videoId) async {
     return _getExistingFilePath(videoId, '.preview');
   }
 
-  /// Ensures we don't exceed the storage limit.
   Future<void> _manageCacheSize() async {
     final path = await _cachePath;
     final dir = Directory(path);
     if (!(await dir.exists())) return;
 
     final files = <File>[];
-    // ⚡ Bolt: Use `await for` to iterate over stream instead of creating expensive intermediate lists
     await for (final entity in dir.list()) {
       if (entity is File && entity.path.endsWith('.mp4')) {
         files.add(entity);
@@ -503,8 +571,6 @@ class VideoCacheService {
     }
     if (files.length <= _maxCacheEntries) return;
 
-    // ⚡ Bolt: Use Schwartzian transform to avoid O(N log N) blocking disk I/O
-    // lastModifiedSync() reads the disk. Doing it inside .sort() calls it multiple times per element.
     final filesWithStats = files
         .map((f) => (file: f, modified: f.lastModifiedSync()))
         .toList();
@@ -512,13 +578,11 @@ class VideoCacheService {
 
     final sortedFiles = filesWithStats.map((e) => e.file).toList();
 
-    // ⚡ Bolt: Execute independent async delete operations concurrently to reduce wait time
     final deleteTasks = <Future<void>>[];
     for (int i = 0; i < sortedFiles.length - _maxCacheEntries; i++) {
       deleteTasks.add(() async {
         try {
           await sortedFiles[i].delete();
-          // Also delete the associated sidecar files
           final base = sortedFiles[i].path.replaceAll('.mp4', '');
           final metaFile = File('$base.meta');
           if (await metaFile.exists()) await metaFile.delete();
@@ -536,16 +600,13 @@ class VideoCacheService {
     if (deleteTasks.isNotEmpty) {
       await Future.wait(deleteTasks);
     }
-
-    }
-
+  }
 
   static const String _keyLastCacheDate = 'last_auto_cache_date';
   static const String _keyDailyCacheCount = 'daily_auto_cache_count';
   static const String _keyLastCacheTimestamp = 'last_auto_cache_timestamp';
-  static const int _maxDailyCache = 1; // Halved from 2 for footprint reduction
+  static const int _maxDailyCache = 1;
 
-  /// Orchestrates smart background caching with night priority.
   Future<void> syncAutoCache(
     Map<String, List<YoutubeVideo>> allChannelVideos, {
     bool ignoreTimers = false,
@@ -568,14 +629,13 @@ class VideoCacheService {
     final lastTimestamp = prefs.getInt(_keyLastCacheTimestamp) ?? 0;
     final timeSinceLastCache = now.millisecondsSinceEpoch - lastTimestamp;
 
-    // Night priority: 11 PM to 5 AM
     final isNightTime = now.hour >= 23 || now.hour < 5;
 
     bool shouldProceed = false;
     if (isNightTime) {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2); // 2 hours
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 2);
     } else {
-      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 12); // 12 hours
+      shouldProceed = (timeSinceLastCache > 1000 * 60 * 60 * 12);
     }
 
     if (!ignoreTimers && !deep && !shouldProceed && lastTimestamp != 0) {
@@ -585,7 +645,6 @@ class VideoCacheService {
       return;
     }
 
-    // Step 1: Video File Caching (Heavy Downloads)
     if (!deep) {
       List<YoutubeVideo> candidates = [];
       allChannelVideos.values.forEach((vids) => candidates.addAll(vids));
@@ -618,10 +677,7 @@ class VideoCacheService {
       }
     }
 
-    // Step 2: Instant Play Links Pre-fetching (Manifests only)
-    final manifestLimit = deep
-        ? 100
-        : 2; // Halved from Bolt (original 50:1 -> 100:2)
+    final manifestLimit = deep ? 100 : 2;
     debugPrint(
       '🚀 Pre-fetching Instant Play Links (Limit: $manifestLimit per channel)',
     );
@@ -635,7 +691,6 @@ class VideoCacheService {
     }
   }
 
-  /// Writes metadata sidecar for cached videos.
   @visibleForTesting
   Future<void> writeMetaSidecarForTest(
     String cacheDir,
@@ -702,7 +757,6 @@ class VideoCacheService {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('persistent_stream_urls');
-      // Clear all in-memory caches
       _streamUrlMemCache.clear();
       _manifestCache.clear();
       _cachedVideoIdSet = null;
@@ -711,9 +765,7 @@ class VideoCacheService {
     } catch (_) {}
   }
 
-  void dispose() {
-    // No-op: client managed by YoutubeClientService
-  }
+  void dispose() {}
 }
 
 class _CachedUrl {
@@ -725,7 +777,7 @@ class _CachedUrl {
   bool get isExpired {
     if (_isUrlExpired(url)) return true;
     final now = DateTime.now().millisecondsSinceEpoch;
-    return now - timestamp >= 1000 * 60 * 60 * 5; // 5 hours
+    return now - timestamp >= 1000 * 60 * 60 * 5;
   }
 }
 

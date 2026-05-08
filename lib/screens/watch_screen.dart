@@ -59,6 +59,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   bool _isBackgroundPlaying = false;
   String? _videoTitle;
   Orientation? _lastOrientation;
+  bool _isFullscreenTransitionInFlight = false;
+  DateTime? _lastFullscreenToggleAt;
   bool _wasPlayingBeforeBreak = false;
   bool _isBreakCurrentlyActive = false;
   @override
@@ -72,13 +74,13 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     // ⚡ Performance Prioritization: Pause background tasks immediately
     // to give the video player 100% of device resources.
-    _cacheService.pauseBackgroundOperations();
+    _cacheService.setPlaybackFocus(true);
     // Phase 2: Show Gentle Buffer before initializing player
     _setupPreviewAndInitialize();
     // Safety timeout: Re-enable background tasks if video fails to play within 15s
     Future.delayed(const Duration(seconds: 15), () {
       if (mounted) {
-        _cacheService.resumeBackgroundOperations();
+        _cacheService.setPlaybackFocus(false);
       }
     });
   }
@@ -89,7 +91,13 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _videoPlayerController!.value.isPlaying &&
         !_videoPlayerController!.value.isBuffering) {
       // 🚀 Video is playing smoothly. Resume background processes.
-      _cacheService.resumeBackgroundOperations();
+      // _cacheService.resumeBackgroundOperations(); // DEFERRED FOR FOCUS
+      
+      // Log as watched
+      if (mounted) {
+        context.read<UsageProvider>().markVideoAsWatched(widget.videoId);
+      }
+
       // Keep listener for buffering changes if needed, but for now we just want the initial resume.
       _videoPlayerController!.removeListener(_onPlayerStateChanged);
     }
@@ -238,6 +246,20 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       // ⚡ Reduced Black Bars: Apply custom scaling to the full-screen route
       routePageBuilder:
           (context, animation, secondaryAnimation, controllerProvider) {
+            final screenSize = MediaQuery.of(context).size;
+            final aspectRatio = _videoPlayerController?.value.isInitialized ==
+                    true
+                ? _videoPlayerController!.value.aspectRatio
+                : (16 / 9);
+
+            double fittedWidth = screenSize.width;
+            double fittedHeight = fittedWidth / aspectRatio;
+
+            if (fittedHeight < screenSize.height) {
+              fittedHeight = screenSize.height;
+              fittedWidth = fittedHeight * aspectRatio;
+            }
+
             return AnimatedBuilder(
               animation: animation,
               builder: (context, child) {
@@ -245,10 +267,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   backgroundColor: Colors.black,
                   body: SizedBox.expand(
                     child: Center(
-                      child: Transform.scale(
-                        scale: 1.1, // Zoom strictly at 1.1x as requested
-                        alignment: Alignment.center,
-                        child: controllerProvider,
+                      child: ClipRect(
+                        child: SizedBox(
+                          width: fittedWidth,
+                          height: fittedHeight,
+                          child: controllerProvider,
+                        ),
                       ),
                     ),
                   ),
@@ -259,10 +283,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     );
     _chewieController!.addListener(() {
       if (!_chewieController!.isFullScreen) {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
+        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
         SystemChrome.setEnabledSystemUIMode(
           SystemUiMode.manual,
           overlays: SystemUiOverlay.values,
@@ -282,8 +303,79 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     }
   }
 
+  bool _canAutoToggleFullscreen() {
+    if (!mounted ||
+        _chewieController == null ||
+        _videoPlayerController == null ||
+        !_videoPlayerController!.value.isInitialized ||
+        _isFullscreenTransitionInFlight) {
+      return false;
+    }
+
+    final lastToggleAt = _lastFullscreenToggleAt;
+    if (lastToggleAt != null &&
+        DateTime.now().difference(lastToggleAt) <
+            const Duration(milliseconds: 900)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  void _handleAutoFullscreen({
+    required Orientation orientation,
+    required bool autoFullscreenEnabled,
+  }) {
+    if (!autoFullscreenEnabled || !_canAutoToggleFullscreen()) {
+      _lastOrientation = orientation;
+      return;
+    }
+
+    final shouldEnter = orientation == Orientation.landscape;
+    final isFullscreen = _chewieController!.isFullScreen;
+
+    if (shouldEnter == isFullscreen) {
+      _lastOrientation = orientation;
+      return;
+    }
+
+    _isFullscreenTransitionInFlight = true;
+    _lastFullscreenToggleAt = DateTime.now();
+    _lastOrientation = orientation;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _chewieController == null) {
+        _isFullscreenTransitionInFlight = false;
+        return;
+      }
+
+      try {
+        if (shouldEnter) {
+          debugPrint('📺 Entering Full Screen (Auto)');
+          _chewieController!.enterFullScreen();
+        } else {
+          debugPrint('📱 Exiting Full Screen (Auto)');
+          _chewieController!.exitFullScreen();
+        }
+      } catch (e) {
+        debugPrint('⚠️ Auto fullscreen toggle failed: $e');
+      } finally {
+        if (mounted) {
+          Future.delayed(const Duration(milliseconds: 350), () {
+            if (mounted) {
+              _isFullscreenTransitionInFlight = false;
+            }
+          });
+        } else {
+          _isFullscreenTransitionInFlight = false;
+        }
+      }
+    });
+  }
+
   Future<void> _initializePlayer() async {
     try {
+      await YoutubeClientService().ensureReady();
       setState(() {
         _isLoading = true;
         _errorMessage = null;
@@ -384,9 +476,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       setState(() {
         _isLoading = false;
         final errorStr = e.toString().toLowerCase();
-        _errorMessage = errorStr.contains('bot')
-            ? "Oh no! A robot blocked this toy. \nLet's try another one!"
-            : "This toy is taking a nap. \nLet's find another one!";
+        _errorMessage = (errorStr.contains('bot') || errorStr.contains('robot'))
+            ? "Oh no! A robot blocked this toy.\nWe need to try a fresh identity!"
+            : "This toy is taking a nap.\nLet's find another one!";
       });
     } catch (e) {
       if (!mounted) return;
@@ -411,7 +503,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             print('🗑️ Deleted corrupted file: $cleanPath');
           }
           // Fallback to network
-          final manifest = await _cacheService.getManifest(widget.videoId);
+          final manifest = await _cacheService.getManifestWithOptions(
+            widget.videoId,
+            forceRefresh: true,
+          );
           final freshStream = manifest.muxed.withHighestBitrate();
           if (freshStream != null) {
             _videoPlayerController = VideoPlayerController.networkUrl(
@@ -429,7 +524,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       } else if (isNetwork) {
         try {
           print('⚠️ Watch Error: Network failure. Refreshing manifest...');
-          final manifest = await _cacheService.getManifest(widget.videoId);
+          await _cacheService.invalidateVideoSession(widget.videoId);
+          final manifest = await _cacheService.getManifestWithOptions(
+            widget.videoId,
+            forceRefresh: true,
+          );
           final freshStream = manifest.muxed.withHighestBitrate();
           if (freshStream != null) {
             _videoPlayerController = VideoPlayerController.networkUrl(
@@ -514,7 +613,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     // ⚡ Reset background state if we exit mid-buffer
-    _cacheService.resumeBackgroundOperations();
+    _cacheService.setPlaybackFocus(false);
     _videoPlayerController?.removeListener(_onPlayerStateChanged);
     _videoPlayerController?.removeListener(_onVideoProgress);
     WidgetsBinding.instance.removeObserver(this);
@@ -540,6 +639,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final usage = Provider.of<UsageProvider>(context);
+    final settings = Provider.of<SettingsProvider>(context);
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
     final showImmersive = isLandscape || (_isPlaying && !_isShowingBuffer);
@@ -550,14 +650,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       // Only trigger on ACTUAL orientation change to avoid loop issues
       if (_lastOrientation != orientation) {
         debugPrint('🔄 Orientation changed: $_lastOrientation -> $orientation');
-        if (isLandscape && !_chewieController!.isFullScreen) {
-          debugPrint('📺 Entering Full Screen (Auto)');
-          Future.microtask(() => _chewieController!.enterFullScreen());
-        } else if (!isLandscape && _chewieController!.isFullScreen) {
-          debugPrint('📱 Exiting Full Screen (Auto)');
-          Future.microtask(() => _chewieController!.exitFullScreen());
-        }
-        _lastOrientation = orientation;
+        _handleAutoFullscreen(
+          orientation: orientation,
+          autoFullscreenEnabled: settings.fullScreenByDefault,
+        );
       }
       // 🧘 Mandatory Periodic Breaks (Eye Yoga)
       // We use a transition-based approach to ensure manual pauses are respected.
@@ -581,12 +677,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     }
     return BedtimeOverlay(
       child: Container(
-        color: Theme.of(context)
-            .colorScheme
-            .background, // Ensure solid background even if Scaffold has issues
+        color: isLandscape
+            ? Colors.black
+            : Theme.of(context).colorScheme.background,
         child: Scaffold(
-          backgroundColor:
-              Colors.transparent, // Let Container provide the solid color
+          backgroundColor: Colors.transparent,
           body: Stack(
             children: [
               Column(
@@ -631,12 +726,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     ),
                 ],
               ),
-              // Hide PlaytimeBucket when video is playing for a fully immersive look
+              // Hide PlaytimeBucket in landscape for a fully immersive look
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
-                bottom:
-                    MediaQuery.of(context).padding.bottom +
-                    24, // Keep visible even when playing
+                bottom: isLandscape
+                    ? -120 // Move off-screen in landscape
+                    : (MediaQuery.of(context).padding.bottom + 24),
                 left: 24,
                 right: 24,
                 child: const PlaytimeBucket(size: 80),
@@ -702,29 +797,38 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildPlayerArea(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-    return AspectRatio(
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    Widget player = AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
         color: Colors.black,
         child: _errorMessage != null
             ? _buildErrorState(context)
             : _chewieController != null
-            ? Stack(
-                children: [
-                  Chewie(controller: _chewieController!),
-                  if (_isFinished) _buildConclusionOverlay(context),
-                ],
-              )
-            : (_previewController != null &&
-                  _previewController!.value.isInitialized)
-            ? VideoPlayer(_previewController!)
-            : _buildGentleBuffer(context),
+                ? Stack(
+                    children: [
+                      Chewie(controller: _chewieController!),
+                      if (_isFinished) _buildConclusionOverlay(context),
+                    ],
+                  )
+                : (_previewController != null &&
+                        _previewController!.value.isInitialized)
+                    ? VideoPlayer(_previewController!)
+                    : _buildGentleBuffer(context),
       ),
     );
+
+    if (isLandscape) {
+      return Center(child: player);
+    }
+
+    return player;
   }
 
   Widget _buildTactileControls(BuildContext context) {
+    final tokens = DadyTubeTheme.tokens(context);
     final hasPlayer =
         (_videoPlayerController != null &&
             _videoPlayerController!.value.isInitialized) ||
@@ -749,13 +853,21 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            tokens.playerPanel,
+            Theme.of(context).colorScheme.surface,
+          ],
+        ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        border: Border.all(color: tokens.playerPanelBorder.withOpacity(0.9)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: tokens.cardShadow.withOpacity(0.3),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -771,12 +883,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               Expanded(
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
-                    trackHeight: 12,
+                    trackHeight: 10,
                     thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 10,
+                      enabledThumbRadius: 8,
                     ),
                     activeTrackColor: DadyTubeTheme.primary,
-                    inactiveTrackColor: DadyTubeTheme.primary.withOpacity(0.1),
+                    inactiveTrackColor: tokens.accentSoft,
                     thumbColor: DadyTubeTheme.primary,
                   ),
                   child: Slider(
@@ -816,14 +928,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                       }
                     : null,
                 child: const TactileCard(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(9),
                   child: Icon(
                     Icons.replay_10_rounded,
                     color: DadyTubeTheme.primary,
+                    size: 22,
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               TactileButton(
                 semanticLabel: isPlaying ? 'Pause' : 'Play',
                 onTap: hasPlayer
@@ -838,16 +951,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     : null,
                 child: TactileCard(
                   color: DadyTubeTheme.primary,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   shape: const StadiumBorder(),
                   child: Icon(
                     isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     color: Colors.white,
-                    size: 40,
+                    size: 30,
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               TactileButton(
                 semanticLabel: 'Fast forward 10 seconds',
                 onTap: hasPlayer
@@ -859,24 +972,29 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                       }
                     : null,
                 child: const TactileCard(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(9),
                   child: Icon(
                     Icons.forward_10_rounded,
                     color: DadyTubeTheme.primary,
+                    size: 22,
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               // Download Button (Textless icon next to Fullscreen)
               TactileButton(
                 semanticLabel: 'Download for offline',
                 onTap: _startDownload,
                 child: const TactileCard(
-                  padding: EdgeInsets.all(12),
-                  child: Icon(Icons.download_rounded, color: Colors.blueAccent),
+                  padding: EdgeInsets.all(9),
+                  child: Icon(
+                    Icons.download_rounded,
+                    color: Colors.blueAccent,
+                    size: 22,
+                  ),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               TactileButton(
                 semanticLabel: 'Enter Fullscreen',
                 onTap: () {
@@ -885,10 +1003,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   }
                 },
                 child: const TactileCard(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(9),
                   child: Icon(
                     Icons.fullscreen_rounded,
                     color: DadyTubeTheme.primary,
+                    size: 22,
                   ),
                 ),
               ),
@@ -901,86 +1020,226 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   Widget _buildErrorState(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final errorStr = _errorMessage?.toLowerCase() ?? "";
+    final isBotBlock = errorStr.contains('bot') || errorStr.contains('robot');
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(32),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.orangeAccent.withOpacity(0.1),
-              shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: (isBotBlock ? Colors.redAccent : Colors.orangeAccent)
+                    .withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isBotBlock
+                    ? Icons.security_rounded
+                    : Icons.sentiment_dissatisfied_rounded,
+                size: 64,
+                color: isBotBlock ? Colors.redAccent : Colors.orangeAccent,
+              ),
             ),
-            child: const Icon(
-              Icons.sentiment_dissatisfied_rounded,
-              size: 80,
-              color: Colors.orangeAccent,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _errorMessage ?? loc.translate('error_loading_video'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: DadyTubeTheme.primary,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TactileButton(
-                onTap: _initializePlayer,
-                child: TactileCard(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage ?? loc.translate('error_loading_video'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: DadyTubeTheme.primary,
+                    fontSize: 18,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.refresh_rounded,
-                        color: DadyTubeTheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                if (isBotBlock)
+                  TactileButton(
+                    onTap: () async {
+                      await YoutubeClientService().resetIdentity();
+                      _cacheService.clearFailedClients();
+                      _initializePlayer();
+                    },
+                    child: TactileCard(
+                      color: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        loc.translate('try_again'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_search_rounded,
+                              color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Fresh Identity',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                TactileButton(
+                  onTap: _initializePlayer,
+                  child: TactileCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.refresh_rounded,
+                          color: DadyTubeTheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          loc.translate('try_again'),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              TactileButton(
-                onTap: _skipToNextToy,
-                child: TactileCard(
-                  color: DadyTubeTheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.skip_next_rounded, color: Colors.white),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Try Next Toy",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                TactileButton(
+                  onTap: _skipToNextToy,
+                  child: TactileCard(
+                    color: DadyTubeTheme.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.skip_next_rounded,
+                            color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          "Try Next Toy",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoInfo(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final tokens = DadyTubeTheme.tokens(context);
+    return TactileCard(
+      color: tokens.playerPanel.withOpacity(0.78),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _videoTitle ?? loc.translate('play'),
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Builder(
+                builder: (context) {
+                  final provider = Provider.of<ChannelProvider>(
+                    context,
+                    listen: false,
+                  );
+                  final channel = provider.channels.firstWhere(
+                    (c) =>
+                        c.name == widget.channelName ||
+                        c.thumbnailUrl == widget.channelThumbnailUrl,
+                    orElse: () =>
+                        YoutubeChannel(id: '', name: '', thumbnailUrl: ''),
+                  );
+                  if (channel.localThumbnailPath != null &&
+                      File(channel.localThumbnailPath!).existsSync()) {
+                    return CircleAvatar(
+                      backgroundImage: FileImage(
+                        File(channel.localThumbnailPath!),
+                      ),
+                      radius: 20,
+                    );
+                  }
+                  if (widget.channelThumbnailUrl != null &&
+                      widget.channelThumbnailUrl!.isNotEmpty) {
+                    return CircleAvatar(
+                      backgroundImage: CachedNetworkImageProvider(
+                        widget.channelThumbnailUrl!,
+                      ),
+                      radius: 20,
+                    );
+                  }
+                  return const CircleAvatar(
+                    backgroundColor: DadyTubeTheme.primaryContainer,
+                    radius: 20,
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: DadyTubeTheme.primary,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.channelName ?? "DadyTube Channel",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      loc.translate('popular_now'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.58),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -990,93 +1249,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildVideoInfo(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _videoTitle ?? loc.translate('play'),
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Builder(
-              builder: (context) {
-                final provider = Provider.of<ChannelProvider>(
-                  context,
-                  listen: false,
-                );
-                final channel = provider.channels.firstWhere(
-                  (c) =>
-                      c.name == widget.channelName ||
-                      c.thumbnailUrl == widget.channelThumbnailUrl,
-                  orElse: () =>
-                      YoutubeChannel(id: '', name: '', thumbnailUrl: ''),
-                );
-                if (channel.localThumbnailPath != null &&
-                    File(channel.localThumbnailPath!).existsSync()) {
-                  return CircleAvatar(
-                    backgroundImage: FileImage(
-                      File(channel.localThumbnailPath!),
-                    ),
-                    radius: 20,
-                  );
-                }
-                if (widget.channelThumbnailUrl != null &&
-                    widget.channelThumbnailUrl!.isNotEmpty) {
-                  return CircleAvatar(
-                    backgroundImage: CachedNetworkImageProvider(
-                      widget.channelThumbnailUrl!,
-                    ),
-                    radius: 20,
-                  );
-                }
-                return const CircleAvatar(
-                  backgroundColor: DadyTubeTheme.primaryContainer,
-                  radius: 20,
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: DadyTubeTheme.primary,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.channelName ?? "DadyTube Channel",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    loc.translate('popular_now'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildActions(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final tokens = DadyTubeTheme.tokens(context);
     return Column(
       children: [
         if (_isDownloading)
@@ -1127,12 +1302,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         TactileButton(
           onTap: () => Navigator.pop(context),
           child: TactileCard(
-            color: Theme.of(context).cardTheme.color,
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            color: tokens.accentSoft.withOpacity(0.85),
+            padding: const EdgeInsets.symmetric(vertical: 18),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.home_rounded, color: DadyTubeTheme.primary),
+                Icon(Icons.home_rounded, color: tokens.accentStrong),
                 const SizedBox(width: 12),
                 Text(
                   loc.translate('go_home'),

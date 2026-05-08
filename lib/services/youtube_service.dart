@@ -5,6 +5,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:xml/xml.dart';
 import '../providers/channel_provider.dart';
 import 'youtube_client_service.dart';
+import 'video_cache_service.dart';
 
 class YoutubeService {
   // We'll use a simple method to try and resolve channel info
@@ -13,6 +14,7 @@ class YoutubeService {
     String url, {
     yt.YoutubeExplode? ytClient,
   }) async {
+    await YoutubeClientService().ensureReady();
     final ytExplode = ytClient ?? YoutubeClientService().client;
     try {
       final channel = await ytExplode.channels.getByVideo(
@@ -45,6 +47,7 @@ class YoutubeService {
     yt.YoutubeExplode? ytClient,
     http.Client? httpClient,
   }) async {
+    await YoutubeClientService().ensureReady();
     final ytExplode = ytClient ?? YoutubeClientService().client;
     try {
       final channel = await ytExplode.channels.get(id);
@@ -145,10 +148,16 @@ class YoutubeService {
     int limit = 10,
     void Function(List<YoutubeVideo>)? onVideosFetched,
   }) async {
+    await YoutubeClientService().ensureReady();
     final ytExplode = YoutubeClientService().client;
     final List<YoutubeVideo> allVideos = [];
     List<YoutubeVideo> currentChunk = [];
     debugPrint('🔍 Fetching videos for: $channelId (Limit: $limit)');
+    
+    if (VideoCacheService().isBackgroundPaused) {
+      debugPrint('⏸️ YoutubeService: Background fetch suppressed during active playback.');
+      return [];
+    }
 
     try {
       // Phase 1: High Fidelity - YoutubeExplode
@@ -156,11 +165,11 @@ class YoutubeService {
 
       await for (final video in uploads.take(limit)) {
         try {
-          // --- Filter: Prevent "Reels" (Shorts) from loading ---
           // Heuristic 1: Duration check. Shorts are usually < 60s.
           // We'll use 60s as the limit for DadyTube to ensure high-fidelity regular videos.
-          if (video.duration != null && video.duration!.inSeconds < 60) {
-            debugPrint('⏭️ Skipping Short: ${video.title} (${video.duration!.inSeconds}s)');
+          final duration = video.duration;
+          if (duration != null && duration.inSeconds < 60) {
+            debugPrint('⏭️ Skipping Short: ${video.title} (${duration.inSeconds}s)');
             continue;
           }
 
@@ -176,10 +185,14 @@ class YoutubeService {
             continue;
           }
 
+          // Safety check for thumbnails to prevent null-check crashes
+          final thumbnails = video.thumbnails;
+          final thumbUrl = thumbnails.highResUrl;
+
           final v = YoutubeVideo(
             id: video.id.value,
             title: video.title,
-            thumbnailUrl: video.thumbnails.highResUrl,
+            thumbnailUrl: thumbUrl,
             channelId: channelId,
             publishedAt: video.uploadDate ?? DateTime.now(),
             isLive: video.isLive,

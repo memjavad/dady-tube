@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
 
@@ -11,6 +12,10 @@ class SettingsProvider with ChangeNotifier {
       _prefs ??= await SharedPreferences.getInstance();
 
   VideoQuality _videoQuality = VideoQuality.auto;
+  bool _isFirstRun = true;
+
+  bool get isFirstRun => _isFirstRun;
+
   bool _fullScreenByDefault = false;
   bool _showSuggestions = false;
   bool _autoCacheEnabled = true;
@@ -66,10 +71,18 @@ class SettingsProvider with ChangeNotifier {
         prefs.getBool('postureProtectionEnabled') ?? true;
     _safeVolumeEnabled = prefs.getBool('safeVolumeEnabled') ?? true;
     _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.5;
+    _isFirstRun = prefs.getBool('is_first_run') ?? true;
 
-    final langCode = prefs.getString('language_code') ?? 'en';
-    final countryCode = prefs.getString('country_code') ?? 'US';
-    _locale = Locale(langCode, countryCode);
+    final savedLangCode = prefs.getString('language_code');
+    final savedCountryCode = prefs.getString('country_code');
+    if (savedLangCode != null && savedLangCode.isNotEmpty) {
+      _locale = Locale(savedLangCode, savedCountryCode ?? '');
+    } else {
+      final deviceLocale = ui.PlatformDispatcher.instance.locale;
+      _locale = deviceLocale.languageCode == 'ar'
+          ? const Locale('ar', 'IQ')
+          : const Locale('en', 'US');
+    }
 
     final levelIndex = prefs.getInt('theme_level') ?? AppThemeLevel.blush.index;
     _themeLevel = AppThemeLevel.values[levelIndex];
@@ -210,6 +223,13 @@ class SettingsProvider with ChangeNotifier {
     _themeLevel = level;
     final prefs = await _getPrefs;
     await prefs.setInt('theme_level', level.index);
+    notifyListeners();
+  }
+
+  Future<void> completeOnboarding() async {
+    _isFirstRun = false;
+    final prefs = await _getPrefs;
+    await prefs.setBool('is_first_run', false);
     notifyListeners();
   }
 }

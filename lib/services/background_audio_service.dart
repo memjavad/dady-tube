@@ -2,14 +2,15 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+import 'youtube_client_service.dart';
+
+import 'video_cache_service.dart';
 
 class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player;
-  final yt.YoutubeExplode _yt;
 
-  BackgroundAudioService({AudioPlayer? player, yt.YoutubeExplode? ytExplode})
-    : _player = player ?? AudioPlayer(),
-      _yt = ytExplode ?? yt.YoutubeExplode() {
+  BackgroundAudioService({AudioPlayer? player})
+    : _player = player ?? AudioPlayer() {
     // Broadcast playback state changes
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
   }
@@ -37,7 +38,7 @@ class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
     String? thumbnailUrl,
   ) async {
     try {
-      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      final manifest = await VideoCacheService().getManifest(videoId);
       final audioStream = manifest.audioOnly.withHighestBitrate();
 
       if (audioStream == null) return;
@@ -92,6 +93,6 @@ class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
 
   void dispose() {
     _player.dispose();
-    _yt.close();
+    // Do not close _yt as it's a shared singleton from YoutubeClientService
   }
 }

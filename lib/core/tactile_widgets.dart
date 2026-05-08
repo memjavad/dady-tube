@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'theme.dart';
 
 class TactileButton extends StatefulWidget {
   final Widget child;
@@ -118,11 +119,12 @@ class TactileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveColor = color ?? Theme.of(context).cardColor;
+    final tokens = DadyTubeTheme.tokens(context);
     final effectiveShadow = [
       BoxShadow(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
-        blurRadius: 40,
-        offset: const Offset(0, 4),
+        color: tokens.cardShadow,
+        blurRadius: 28,
+        offset: const Offset(0, 10),
       ),
     ];
 
@@ -137,6 +139,7 @@ class TactileCard extends StatelessWidget {
           : BoxDecoration(
               color: effectiveColor,
               borderRadius: BorderRadius.circular(borderRadius ?? 32.0),
+              border: Border.all(color: tokens.cardBorder.withOpacity(0.8)),
               boxShadow: effectiveShadow,
             ),
       child: child,
@@ -161,8 +164,13 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = DadyTubeTheme.tokens(context);
     final baseColor = isDark ? Colors.black : Colors.white;
-    final glassColor = baseColor.withValues(alpha: opacity);
+    final glassColor = Color.lerp(
+      baseColor,
+      tokens.glassTint,
+      0.75,
+    )!.withValues(alpha: opacity);
     final sheenColor = baseColor.withValues(
       alpha: 0.05,
     ); // Very subtle static reflection
@@ -175,13 +183,14 @@ class GlassContainer extends StatelessWidget {
           decoration: BoxDecoration(
             color: glassColor,
             borderRadius: borderRadius ?? BorderRadius.circular(32.0),
+            border: Border.all(
+              color: tokens.cardBorder.withValues(alpha: isDark ? 0.55 : 0.8),
+            ),
             boxShadow: [
               BoxShadow(
-                color: (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: 0.05,
-                ),
-                blurRadius: 1,
-                spreadRadius: 0,
+                color: tokens.cardShadow.withValues(alpha: isDark ? 0.55 : 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
             gradient: LinearGradient(

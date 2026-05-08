@@ -4,16 +4,16 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'youtube_client_service.dart';
+import 'video_cache_service.dart';
 
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
-  final yt.YoutubeExplode _yt;
-  final http.Client _client;
+  
+  http.Client get _client => YoutubeClientService().httpClient;
 
-  // Dependency injection constructor
-  DownloadService({yt.YoutubeExplode? ytClient, http.Client? httpClient})
-    : _yt = ytClient ?? yt.YoutubeExplode(),
-      _client = httpClient ?? http.Client();
+  // Constructor removed parameters as we use singletons now
+  DownloadService();
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   Future<String>? _resolvedLocalPathFuture;
@@ -39,7 +39,7 @@ class DownloadService {
     Function(double) onProgress,
   ) async {
     try {
-      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      final manifest = await VideoCacheService().getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
 
       if (streamInfo == null) throw Exception("No downloadable stream found.");
@@ -131,7 +131,6 @@ class DownloadService {
   }
 
   void dispose() {
-    _yt.close();
-    _client.close();
+    // No-op as we use shared singletons
   }
 }

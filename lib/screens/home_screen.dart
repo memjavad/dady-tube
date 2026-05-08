@@ -172,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     final provider = context.watch<ChannelProvider>();
     final settings = context.watch<SettingsProvider>();
+    final usage = context.watch<UsageProvider>();
     final blockedKeywords = settings.blockedKeywords;
 
     final videos = provider.getFilteredBigList(
@@ -179,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
       availableVideos: _availableVideos,
       blockedKeywords: blockedKeywords,
       isNightTime: settings.isNightTime,
+      watchedVideoIds: usage.watchedVideoIds,
     );
 
     if (videos.isEmpty && provider.isLoading) {
@@ -638,13 +640,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomNav(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final tokens = DadyTubeTheme.tokens(context);
     return GlassContainer(
       blur: 16,
-      opacity: 0.6,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+      opacity: 0.72,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
       child: Container(
-        height: 100,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        height: 96,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: tokens.cardBorder.withOpacity(0.7))),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -691,6 +697,7 @@ class _HomeScreenState extends State<HomeScreen> {
     int index,
   ) {
     final isActive = _currentIndex == index;
+    final tokens = DadyTubeTheme.tokens(context);
     return TactileButton(
       onTap: () {
         if (index == 4) {
@@ -709,19 +716,28 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? tokens.accentSoft.withOpacity(0.95)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+              border: isActive
+                  ? Border.all(color: tokens.cardBorder.withOpacity(0.9))
+                  : null,
+            ),
+            child: Icon(
+              icon,
+              color: isActive ? tokens.navActive : tokens.navInactive,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              color: isActive ? tokens.navActive : tokens.navInactive,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
           ),

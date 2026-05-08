@@ -247,6 +247,7 @@ class ChannelProvider with ChangeNotifier {
     required List<YoutubeVideo> availableVideos,
     required List<String> blockedKeywords,
     required bool isNightTime,
+    required Set<String> watchedVideoIds,
   }) {
     final hash = Object.hash(
       isOffline,
@@ -254,6 +255,7 @@ class ChannelProvider with ChangeNotifier {
       Object.hashAll(blockedKeywords),
       isNightTime,
       allVideos.length,
+      Object.hashAll(watchedVideoIds),
     );
     if (_cachedBigFilteredVideos != null && _lastBigFilterHash == hash) {
       return _cachedBigFilteredVideos!;
@@ -266,6 +268,18 @@ class ChannelProvider with ChangeNotifier {
         return !blockedKeywords.any((keyword) => title.contains(keyword));
       }).toList();
     }
+
+    // Partition into unwatched / watched
+    final unwatched = <YoutubeVideo>[];
+    final watched = <YoutubeVideo>[];
+    for (final v in videos) {
+      if (watchedVideoIds.contains(v.id)) {
+        watched.add(v);
+      } else {
+        unwatched.add(v);
+      }
+    }
+    videos = [...unwatched, ...watched];
 
     if (isNightTime) {
       // ⚡ Bolt: Use compiled RegExp for faster filtering instead of multiple .contains()

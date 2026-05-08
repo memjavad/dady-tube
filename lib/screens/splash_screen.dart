@@ -4,6 +4,9 @@ import '../providers/channel_provider.dart';
 import '../core/app_localizations.dart';
 import '../core/theme.dart';
 import 'home_screen.dart';
+import 'onboarding_screen.dart';
+import '../providers/settings_provider.dart';
+
 import '../widgets/particle_background.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -49,11 +52,16 @@ class _SplashScreenState extends State<SplashScreen>
     if (_isNavigating) return;
     _isNavigating = true;
 
+        final settings = context.read<SettingsProvider>();
+    final destination = settings.isFirstRun ? const OnboardingScreen() : const HomeScreen();
+
     Navigator.pushReplacement(
+
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const HomeScreen(),
+            destination,
+
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -70,6 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DadyTubeTheme.tokens(context);
     return Scaffold(
       body: ParticleBackground(
         child: Center(
@@ -88,13 +97,23 @@ class _SplashScreenState extends State<SplashScreen>
                         height: 180,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Theme.of(context).colorScheme.surface,
+                              tokens.accentSoft,
+                            ],
+                          ),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: tokens.cardBorder.withOpacity(0.85),
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: DadyTubeTheme.primary.withOpacity(0.2),
-                              blurRadius: 40,
-                              offset: const Offset(0, 10),
+                              color: tokens.cardShadow.withOpacity(0.7),
+                              blurRadius: 36,
+                              offset: const Offset(0, 18),
                             ),
                           ],
                         ),
@@ -112,6 +131,17 @@ class _SplashScreenState extends State<SplashScreen>
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.2,
                             ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        ).translate('author_credit'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: DadyTubeTheme.primary.withOpacity(0.75),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 48),
                       // Tactile Progress Bar
@@ -131,9 +161,12 @@ class _SplashScreenState extends State<SplashScreen>
                                 width: 240,
                                 height: 12,
                                 decoration: BoxDecoration(
-                                  color: DadyTubeTheme.primary.withOpacity(0.1),
+                                  color: tokens.accentSoft.withOpacity(0.95),
                                   borderRadius: BorderRadius.circular(
                                     DadyTubeTheme.borderRadiusFull,
+                                  ),
+                                  border: Border.all(
+                                    color: tokens.cardBorder.withOpacity(0.7),
                                   ),
                                 ),
                                 child: Stack(
@@ -146,10 +179,8 @@ class _SplashScreenState extends State<SplashScreen>
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
-                                            DadyTubeTheme.primary,
-                                            DadyTubeTheme.primary.withOpacity(
-                                              0.8,
-                                            ),
+                                            tokens.accentStrong,
+                                            tokens.highlight,
                                           ],
                                         ),
                                         borderRadius: BorderRadius.circular(
