@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-05-26 - [Dart Inefficient Interleaving Optimization]
+**Learning:** Using nested loops to interleave lists forces iteration over every list even if most have been exhausted, resulting in O(N*M) performance bottlenecks.
+**Action:** Always use a list of Iterators and remove exhausted iterators dynamically to avoid iterating over exhausted groups and drastically speed up the interleaving process.
