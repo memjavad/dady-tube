@@ -270,111 +270,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Center(child: Text(loc.translate('search_hint')));
   }
 
-  Widget _buildPopularFeed(
-    BuildContext context,
-    ChannelProvider provider,
-    AppLocalizations loc,
-  ) {
-    if (provider.isLoading) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildShimmerHeader(),
-          const SizedBox(height: 24),
-          const StaggeredEntryCard(index: 0, child: ShimmerVideoCard()),
-          const SizedBox(height: 16),
-          const StaggeredEntryCard(index: 1, child: ShimmerVideoCard()),
-        ],
-      );
-    }
-
-    final downloadProvider = context.watch<DownloadProvider>();
-    final videos = provider.getFilteredPopularList(
-      selectedWorld: _selectedWorld,
-      downloadedVideos: downloadProvider.downloadedVideos,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _selectedWorld == 'All'
-                  ? loc.translate('popular_now')
-                  : '${loc.translate('exploring')} $_selectedWorld',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            if (_selectedWorld != 'All')
-              TactileButton(
-                onTap: () => setState(() => _selectedWorld = 'All'),
-                child: Text(
-                  loc.translate('reset'),
-                  style: const TextStyle(
-                    color: DadyTubeTheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (videos.isEmpty)
-          _buildEmptyFeed(loc)
-        else ...[
-          Builder(
-            builder: (context) {
-              final firstChannel = provider.channels.firstWhere(
-                (c) => c.id == videos[0].channelId,
-                orElse: () =>
-                    YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
-              );
-              return StaggeredEntryCard(
-                uniqueId: videos[0].id,
-                index: 0,
-                child: _buildVideoCard(
-                  context,
-                  videos[0].title,
-                  firstChannel.name,
-                  videos[0].thumbnailUrl,
-                  videoId: videos[0].id,
-                  videoTitle: videos[0].title,
-                  channelThumbnailUrl: firstChannel.thumbnailUrl,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          ...videos.skip(1).take(5).toList().asMap().entries.map((entry) {
-            final index = entry.key + 1;
-            final video = entry.value;
-            final channel = provider.channels.firstWhere(
-              (c) => c.id == video.channelId,
-              orElse: () =>
-                  YoutubeChannel(id: '', name: 'DadyTube', thumbnailUrl: ''),
-            );
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: StaggeredEntryCard(
-                uniqueId: video.id,
-                index: index,
-                child: _buildVideoCard(
-                  context,
-                  video.title,
-                  channel.name,
-                  video.thumbnailUrl,
-                  videoId: video.id,
-                  channelThumbnailUrl: channel.thumbnailUrl,
-                ),
-              ),
-            );
-          }),
-        ],
-      ],
-    );
-  }
-
   Widget _buildShimmerHeader() {
     return Shimmer.fromColors(
       baseColor: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -649,7 +544,9 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 96,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: tokens.cardBorder.withOpacity(0.7))),
+          border: Border(
+            top: BorderSide(color: tokens.cardBorder.withOpacity(0.7)),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
