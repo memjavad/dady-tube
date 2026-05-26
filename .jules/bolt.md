@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2024-05-18 - [Optimized collection mapping in offline videos filter]
+**Learning:** Using `Set.difference` and `getVideoById` instead of iterating over a large `List` and doing `Set.contains` lookups drastically improves performance when computing offline videos from the curated channel feed.
+**Action:** Always prefer `Set` operations when calculating differences, and leverage mapped collections over linear scans to find objects by their IDs.
