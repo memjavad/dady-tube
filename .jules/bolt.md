@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-05-20 - String Manipulation inside async Directory stream
+**Learning:** Performing string manipulation (like `.split()` and `.replaceAll()`) inside an `await for` loop that reads from a directory stream delays the processing of subsequent chunks from the stream, leading to reduced throughput.
+**Action:** Always accumulate raw data (like file paths) quickly inside the `await for` loop and perform any necessary synchronous transformations (like extracting filenames) in a separate loop after the stream has completed, using faster string methods like `lastIndexOf` and `substring`.
