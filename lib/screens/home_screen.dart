@@ -205,66 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  final List<Map<String, String>> _magicBubbles = [
-    {'emoji': '🦖', 'query': 'Dinosaurs'},
-    {'emoji': '🚂', 'query': 'Trains'},
-    {'emoji': '🎶', 'query': 'Nursery Rhymes'},
-    {'emoji': '🎨', 'query': 'Coloring'},
-    {'emoji': '🦄', 'query': 'Magic'},
-    {'emoji': '🐱', 'query': 'Cats'},
-    {'emoji': '🚀', 'query': 'Space'},
-  ];
-
-  Widget _buildMagicBubbles(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _magicBubbles.length,
-        itemBuilder: (context, index) {
-          final bubble = _magicBubbles[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: TactileButton(
-              onTap: () {
-                // In a real app, this would trigger search
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Searching for ${bubble['query']}...'),
-                  ),
-                );
-              },
-              child: TactileCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                borderRadius: 25,
-                color: Colors.white,
-                child: Row(
-                  children: [
-                    Text(
-                      bubble['emoji']!,
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      bubble['query']!,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildSearchPlaceholder(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Center(child: Text(loc.translate('search_hint')));
@@ -649,7 +589,9 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 96,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: tokens.cardBorder.withOpacity(0.7))),
+          border: Border(
+            top: BorderSide(color: tokens.cardBorder.withOpacity(0.7)),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
