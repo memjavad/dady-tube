@@ -92,7 +92,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         !_videoPlayerController!.value.isBuffering) {
       // 🚀 Video is playing smoothly. Resume background processes.
       // _cacheService.resumeBackgroundOperations(); // DEFERRED FOR FOCUS
-      
+
       // Log as watched
       if (mounted) {
         context.read<UsageProvider>().markVideoAsWatched(widget.videoId);
@@ -247,8 +247,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       routePageBuilder:
           (context, animation, secondaryAnimation, controllerProvider) {
             final screenSize = MediaQuery.of(context).size;
-            final aspectRatio = _videoPlayerController?.value.isInitialized ==
-                    true
+            final aspectRatio =
+                _videoPlayerController?.value.isInitialized == true
                 ? _videoPlayerController!.value.aspectRatio
                 : (16 / 9);
 
@@ -463,7 +463,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           thumbnailUrl: widget.thumbnailUrl ?? '',
           channelId: widget.channelName ?? '',
         );
-
       }
       _videoPlayerController!.addListener(_onPlayerStateChanged);
       await _videoPlayerController!.initialize().timeout(
@@ -807,16 +806,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         child: _errorMessage != null
             ? _buildErrorState(context)
             : _chewieController != null
-                ? Stack(
-                    children: [
-                      Chewie(controller: _chewieController!),
-                      if (_isFinished) _buildConclusionOverlay(context),
-                    ],
-                  )
-                : (_previewController != null &&
-                        _previewController!.value.isInitialized)
-                    ? VideoPlayer(_previewController!)
-                    : _buildGentleBuffer(context),
+            ? Stack(
+                children: [
+                  Chewie(controller: _chewieController!),
+                  if (_isFinished) _buildConclusionOverlay(context),
+                ],
+              )
+            : (_previewController != null &&
+                  _previewController!.value.isInitialized)
+            ? VideoPlayer(_previewController!)
+            : _buildGentleBuffer(context),
       ),
     );
 
@@ -856,10 +855,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            tokens.playerPanel,
-            Theme.of(context).colorScheme.surface,
-          ],
+          colors: [tokens.playerPanel, Theme.of(context).colorScheme.surface],
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
         border: Border.all(color: tokens.playerPanelBorder.withOpacity(0.9)),
@@ -1054,10 +1050,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               _errorMessage ?? loc.translate('error_loading_video'),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: DadyTubeTheme.primary,
-                    fontSize: 18,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: DadyTubeTheme.primary,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(height: 24),
             Wrap(
@@ -1081,8 +1077,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.person_search_rounded,
-                              color: Colors.white, size: 20),
+                          Icon(
+                            Icons.person_search_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Fresh Identity',
@@ -1134,8 +1133,11 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.skip_next_rounded,
-                            color: Colors.white, size: 20),
+                        Icon(
+                          Icons.skip_next_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           "Try Next Toy",
@@ -1556,67 +1558,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AuthorizedDownload extends StatelessWidget {
-  const _AuthorizedDownload();
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.download_rounded,
-              size: 64,
-              color: DadyTubeTheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              loc.translate('download_confirm'),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(loc.translate('download_msg'), textAlign: TextAlign.center),
-            const SizedBox(height: 48),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TactileButton(
-                  onTap: () => Navigator.pop(context, false),
-                  child: TactileCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(loc.translate('cancel')),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                TactileButton(
-                  onTap: () => Navigator.pop(context, true),
-                  child: TactileCard(
-                    color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                    child: Text(
-                      loc.translate('yes_download'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
