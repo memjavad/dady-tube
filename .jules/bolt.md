@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-05-26 - [Optimize SharedPreferences JSON parsing]
+**Learning:** Parsing and encoding a large JSON string from SharedPreferences on every loop iteration or frequent set operations (e.g. `json.decode(prefs.getString(...))`) causes massive CPU spikes and I/O overhead due to O(N²) string building.
+**Action:** Keep a parsed `Map` in memory, update the in-memory map on writes, and flush it to SharedPreferences asynchronously using a debouncer (`Timer`) or a background isolate. This reduces frequent O(N) operations to O(1) in-memory assignments with occasional flushed writes.

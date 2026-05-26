@@ -57,7 +57,8 @@ class VideoCacheService {
 
   Future<String> get _cachePath async {
     if (_resolvedCachePath != null) return _resolvedCachePath!;
-    if (_resolvingCachePathFuture != null) return await _resolvingCachePathFuture!;
+    if (_resolvingCachePathFuture != null)
+      return await _resolvingCachePathFuture!;
 
     _resolvingCachePathFuture = getTemporaryDirectory().then((directory) {
       _resolvedCachePath = '${directory.path}/video_cache';
@@ -75,21 +76,30 @@ class VideoCacheService {
 
   String sanitizeVideoId(String id) => _sanitizeId(id);
 
+  Map<String, dynamic>? _persistentUrlsCache;
+  Timer? _persistTimer;
+
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
-      _streamUrlMemCache[videoId] = _CachedUrl(
-        url: url,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      _streamUrlMemCache[videoId] = _CachedUrl(url: url, timestamp: now);
 
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
-      final Map<String, dynamic> data = json.decode(jsonStr);
-      data[videoId] = {
-        'url': url,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      };
-      await prefs.setString('persistent_stream_urls', json.encode(data));
+
+      if (_persistentUrlsCache == null) {
+        final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
+        _persistentUrlsCache = json.decode(jsonStr);
+      }
+
+      _persistentUrlsCache![videoId] = {'url': url, 'timestamp': now};
+
+      _persistTimer?.cancel();
+      _persistTimer = Timer(const Duration(seconds: 2), () {
+        prefs.setString(
+          'persistent_stream_urls',
+          json.encode(_persistentUrlsCache),
+        );
+      });
     } catch (_) {}
   }
 
@@ -129,12 +139,19 @@ class VideoCacheService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('persistent_stream_urls');
-      if (jsonStr == null) return;
+      if (_persistentUrlsCache == null) {
+        final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
+        _persistentUrlsCache = json.decode(jsonStr);
+      }
 
-      final Map<String, dynamic> data = json.decode(jsonStr);
-      if (data.remove(videoId) != null) {
-        await prefs.setString('persistent_stream_urls', json.encode(data));
+      if (_persistentUrlsCache!.remove(videoId) != null) {
+        _persistTimer?.cancel();
+        _persistTimer = Timer(const Duration(seconds: 2), () {
+          prefs.setString(
+            'persistent_stream_urls',
+            json.encode(_persistentUrlsCache),
+          );
+        });
       }
     } catch (_) {}
   }
@@ -213,7 +230,7 @@ class VideoCacheService {
         ..._ytClients.where((c) => !_failedClients.contains(c)),
         ..._ytClients.where((c) => _failedClients.contains(c)),
       ];
-      
+
       final client = orderedClients[attempt];
       final delayIndex = attempt < delays.length ? attempt : delays.length - 1;
 
@@ -230,17 +247,18 @@ class VideoCacheService {
           videoId,
           ytClients: [client],
         );
-        
+
         _failedClients.remove(client);
         return manifest;
       } on yt.VideoUnplayableException catch (e) {
         final msg = e.toString().toLowerCase();
-        final isBot = msg.contains('bot') ||
+        final isBot =
+            msg.contains('bot') ||
             msg.contains('sign in') ||
             msg.contains('confirm') ||
             msg.contains('robot') ||
             msg.contains('available'); // "Not available" is often a soft-block
-            
+
         if (isBot) {
           debugPrint('🤖 Bot-block on client $client, marking as failed...');
           _failedClients.add(client);
@@ -256,7 +274,10 @@ class VideoCacheService {
     }
 
     if (lastError != null) throw lastError;
-    throw yt.VideoUnplayableException.unplayable(yt.VideoId(videoId), reason: 'All clients exhausted');
+    throw yt.VideoUnplayableException.unplayable(
+      yt.VideoId(videoId),
+      reason: 'All clients exhausted',
+    );
   }
 
   bool _isBackgroundPaused = false;
@@ -288,7 +309,9 @@ class VideoCacheService {
   void resumeBackgroundOperations() {
     if (!_isBackgroundPaused) return;
     if (_playbackFocus) {
-      debugPrint('⏸️ VideoCacheService: Resume suppressed while Playback Focus is active.');
+      debugPrint(
+        '⏸️ VideoCacheService: Resume suppressed while Playback Focus is active.',
+      );
       return;
     }
     _isBackgroundPaused = false;
