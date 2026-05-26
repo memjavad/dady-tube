@@ -130,6 +130,81 @@ void main() {
       verify(() => mockChannelClient.get(channelId)).called(1);
       verify(() => mockHttpClient.get(any())).called(1);
     });
+
+    test('Returns channel info using scraping fallback when YoutubeExplode fails', () async {
+      final channelId = 'UC_FALLBACK_TEST';
+      final mockHttpClient = MockHttpClient();
+
+      when(() => mockChannelClient.get(any())).thenThrow(Exception('YoutubeExplode failed'));
+
+      final mockResponse = http.Response(
+        '<html><body>ytInitialData = {"metadata":{"channelMetadataRenderer":{"title":"Scraped Channel","externalId":"UC_FALLBACK_TEST","avatar":{"thumbnails":[{"url":"https://example.com/scraped.png"}]}}}};</script></body></html>',
+        200,
+      );
+      when(() => mockHttpClient.get(any())).thenAnswer((_) async => mockResponse);
+
+      final result = await YoutubeService.getChannelInfoById(
+        channelId,
+        ytClient: mockYtClient,
+        httpClient: mockHttpClient,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.id, 'UC_FALLBACK_TEST');
+      expect(result.name, 'Scraped Channel');
+      expect(result.thumbnailUrl, 'https://example.com/scraped.png');
+
+      verify(() => mockChannelClient.get(channelId)).called(1);
+      verify(() => mockHttpClient.get(any())).called(1);
+    });
+
+    test('Returns channel info using regex fallback when ytInitialData is missing', () async {
+      final channelId = 'UC_REGEX_TEST';
+      final mockHttpClient = MockHttpClient();
+
+      when(() => mockChannelClient.get(any())).thenThrow(Exception('YoutubeExplode failed'));
+
+      final mockResponse = http.Response(
+        '<html><head><title>Regex Channel - YouTube</title></head><body><meta itemprop="channelId" content="UC_REGEX_TEST"><script>"avatar":{"thumbnails":[{"url":"https://example.com/regex.png"}]}</script></body></html>',
+        200,
+      );
+      when(() => mockHttpClient.get(any())).thenAnswer((_) async => mockResponse);
+
+      final result = await YoutubeService.getChannelInfoById(
+        channelId,
+        ytClient: mockYtClient,
+        httpClient: mockHttpClient,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.id, 'UC_REGEX_TEST');
+      expect(result.name, 'Regex Channel');
+      expect(result.thumbnailUrl, 'https://example.com/regex.png');
+
+      verify(() => mockChannelClient.get(channelId)).called(1);
+      verify(() => mockHttpClient.get(any())).called(1);
+    });
+
+    test('Returns null when YoutubeExplode fails and HTTP status is not 200', () async {
+      final channelId = 'UC_STATUS_TEST';
+      final mockHttpClient = MockHttpClient();
+
+      when(() => mockChannelClient.get(any())).thenThrow(Exception('YoutubeExplode failed'));
+
+      final mockResponse = http.Response('Not Found', 404);
+      when(() => mockHttpClient.get(any())).thenAnswer((_) async => mockResponse);
+
+      final result = await YoutubeService.getChannelInfoById(
+        channelId,
+        ytClient: mockYtClient,
+        httpClient: mockHttpClient,
+      );
+
+      expect(result, isNull);
+
+      verify(() => mockChannelClient.get(channelId)).called(1);
+      verify(() => mockHttpClient.get(any())).called(1);
+    });
   });
 
   group('YoutubeService.getOptimizedThumbnail Tests', () {
