@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'youtube_service.dart';
 import 'youtube_client_service.dart';
 
-bool _isUrlExpired(String url) {
+bool _isUrlExpired(String url, [int? timestamp]) {
   try {
     final uri = Uri.parse(url);
     int? expireSeconds;
@@ -33,7 +33,13 @@ bool _isUrlExpired(String url) {
       );
     }
   } catch (_) {}
-  return false;
+
+  if (timestamp != null) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // Strict TTL fallback of 2 hours if expiration parameter is missing or parsing fails
+    return now - timestamp >= 1000 * 60 * 60 * 2;
+  }
+  return true;
 }
 
 class VideoCacheService {
@@ -48,6 +54,7 @@ class VideoCacheService {
 
   yt.YoutubeExplode get _yt => mockYt ?? YoutubeClientService().client;
   final Map<String, _PersistentManifest> _manifestCache = {};
+
   final Map<String, Future<yt.StreamManifest>> _activeFetches = {};
   static const int _maxCacheEntries = 25;
   static const int _manifestTTLHours = 5;
@@ -109,7 +116,7 @@ class VideoCacheService {
       final url = entry['url'] as String;
       final timestamp = entry['timestamp'] as int;
 
-      if (_isUrlExpired(url)) return null;
+      if (_isUrlExpired(url, timestamp)) return null;
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - timestamp < 1000 * 60 * 60 * _manifestTTLHours) {
         _streamUrlMemCache[videoId] = _CachedUrl(
@@ -775,7 +782,7 @@ class _CachedUrl {
   _CachedUrl({required this.url, required this.timestamp});
 
   bool get isExpired {
-    if (_isUrlExpired(url)) return true;
+    if (_isUrlExpired(url, timestamp)) return true;
     final now = DateTime.now().millisecondsSinceEpoch;
     return now - timestamp >= 1000 * 60 * 60 * 5;
   }
