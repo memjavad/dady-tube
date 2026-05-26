@@ -57,7 +57,8 @@ class VideoCacheService {
 
   Future<String> get _cachePath async {
     if (_resolvedCachePath != null) return _resolvedCachePath!;
-    if (_resolvingCachePathFuture != null) return await _resolvingCachePathFuture!;
+    if (_resolvingCachePathFuture != null)
+      return await _resolvingCachePathFuture!;
 
     _resolvingCachePathFuture = getTemporaryDirectory().then((directory) {
       _resolvedCachePath = '${directory.path}/video_cache';
@@ -213,7 +214,7 @@ class VideoCacheService {
         ..._ytClients.where((c) => !_failedClients.contains(c)),
         ..._ytClients.where((c) => _failedClients.contains(c)),
       ];
-      
+
       final client = orderedClients[attempt];
       final delayIndex = attempt < delays.length ? attempt : delays.length - 1;
 
@@ -230,17 +231,18 @@ class VideoCacheService {
           videoId,
           ytClients: [client],
         );
-        
+
         _failedClients.remove(client);
         return manifest;
       } on yt.VideoUnplayableException catch (e) {
         final msg = e.toString().toLowerCase();
-        final isBot = msg.contains('bot') ||
+        final isBot =
+            msg.contains('bot') ||
             msg.contains('sign in') ||
             msg.contains('confirm') ||
             msg.contains('robot') ||
             msg.contains('available'); // "Not available" is often a soft-block
-            
+
         if (isBot) {
           debugPrint('🤖 Bot-block on client $client, marking as failed...');
           _failedClients.add(client);
@@ -256,7 +258,10 @@ class VideoCacheService {
     }
 
     if (lastError != null) throw lastError;
-    throw yt.VideoUnplayableException.unplayable(yt.VideoId(videoId), reason: 'All clients exhausted');
+    throw yt.VideoUnplayableException.unplayable(
+      yt.VideoId(videoId),
+      reason: 'All clients exhausted',
+    );
   }
 
   bool _isBackgroundPaused = false;
@@ -288,7 +293,9 @@ class VideoCacheService {
   void resumeBackgroundOperations() {
     if (!_isBackgroundPaused) return;
     if (_playbackFocus) {
-      debugPrint('⏸️ VideoCacheService: Resume suppressed while Playback Focus is active.');
+      debugPrint(
+        '⏸️ VideoCacheService: Resume suppressed while Playback Focus is active.',
+      );
       return;
     }
     _isBackgroundPaused = false;
@@ -571,9 +578,11 @@ class VideoCacheService {
     }
     if (files.length <= _maxCacheEntries) return;
 
-    final filesWithStats = files
-        .map((f) => (file: f, modified: f.lastModifiedSync()))
-        .toList();
+    final stats = await Future.wait(files.map((f) => f.lastModified()));
+    final filesWithStats = List.generate(
+      files.length,
+      (i) => (file: files[i], modified: stats[i]),
+    );
     filesWithStats.sort((a, b) => a.modified.compareTo(b.modified));
 
     final sortedFiles = filesWithStats.map((e) => e.file).toList();

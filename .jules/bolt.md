@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-06-25 - [Optimize Sorting Files by Modification Date]
+**Learning:** In Dart, calling `lastModifiedSync()` inside `List.sort()` or sequentially in a map operation is highly inefficient because it blocks the UI thread and runs sequentially. Using `Future.wait` combined with asynchronous `lastModified()` provides a huge performance boost when mapping file statistics for sorting.
+**Action:** When sorting files by last modified time, always pre-fetch the statistics asynchronously using `Future.wait` and map the values to a Dart Record before sorting, avoiding synchronous disk I/O completely.
