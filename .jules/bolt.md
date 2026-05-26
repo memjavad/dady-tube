@@ -70,3 +70,7 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-05-19 - Concurrent I/O Operations in Directory Streams
+**Learning:** Checking the size (`.length()`) of every file within an `await for` directory loop sequentially causes serious bottlenecks, as it incurs an O(N) wait delay by pausing loop iteration until each file's size is retrieved.
+**Action:** Always collect the asynchronous file futures (like `.length()`) into a list during the directory stream iteration, and execute `await Future.wait(futures)` outside the loop to read file sizes concurrently, heavily improving total execution time over many files.
