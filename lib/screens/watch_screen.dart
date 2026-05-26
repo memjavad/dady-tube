@@ -383,7 +383,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       // 1. Instant Metadata Lookup (Parallel)
       final channelProvider = context.read<ChannelProvider>();
       // Fire off metadata fetch and player init in parallel
-      final metadataLookup = Future(() {
+      Future(() {
         final localVideo = channelProvider.getVideoById(widget.videoId);
         if (localVideo != null && mounted) {
           setState(() => _videoTitle = localVideo.title);
