@@ -159,11 +159,7 @@ void main() {
 
       final dir = Directory('./test_tmp');
       if (!await dir.exists()) await dir.create();
-
-      double lastProgress = 0;
-      await service.downloadVideo('test_video', (progress) {
-        lastProgress = progress;
-      });
+      await service.downloadVideo('test_video', (_) {});
 
       final isDownloaded = await service.isDownloaded('test_video');
       expect(isDownloaded, true);
