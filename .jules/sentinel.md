@@ -21,3 +21,8 @@
 **Vulnerability:** The `_persistChannelAvatar` method constructed a local file path by interpolating an external API identifier (`channel.id`) directly into the file path string without sanitization, exposing a high-priority Path Traversal vulnerability.
 **Learning:** External IDs should never be implicitly trusted as safe file names, as they could contain directory traversal sequences (`../`) or other malicious characters intended to overwrite critical files.
 **Prevention:** Always sanitize external identifiers using a restrictive regular expression (e.g., `replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '')`) before using them in local file system operations.
+
+## 2026-05-26 - [Security Theater in DB Queries]
+**Vulnerability:** The task suggested parameterizing `getChannels` (which executes `db.query('channels')`) to prevent potential future SQL Injection.
+**Learning:** Static SQL strings (like table names without WHERE clauses, or simple raw queries like `SELECT COUNT(*) FROM channels`) that do not incorporate any user input have zero risk of SQL injection. Modifying them to use query builders or parameters solely for "standardization" constitutes unnecessary security theater.
+**Prevention:** Focus vulnerability analysis and remediation strictly on queries that incorporate unsanitized external or user-provided input. Do not arbitrarily refactor safe static queries under the guise of security.
