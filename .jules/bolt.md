@@ -94,3 +94,7 @@
 ## 2026-05-19 - Concurrent I/O Operations in Directory Streams
 **Learning:** Checking the size (`.length()`) of every file within an `await for` directory loop sequentially causes serious bottlenecks, as it incurs an O(N) wait delay by pausing loop iteration until each file's size is retrieved.
 **Action:** Always collect the asynchronous file futures (like `.length()`) into a list during the directory stream iteration, and execute `await Future.wait(futures)` outside the loop to read file sizes concurrently, heavily improving total execution time over many files.
+
+## 2026-06-25 - [Optimize Sorting Files by Modification Date]
+**Learning:** In Dart, calling `lastModifiedSync()` inside `List.sort()` or sequentially in a map operation is highly inefficient because it blocks the UI thread and runs sequentially. Using `Future.wait` combined with asynchronous `lastModified()` provides a huge performance boost when mapping file statistics for sorting.
+**Action:** When sorting files by last modified time, always pre-fetch the statistics asynchronously using `Future.wait` and map the values to a Dart Record before sorting, avoiding synchronous disk I/O completely.

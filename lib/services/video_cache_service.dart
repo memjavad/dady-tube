@@ -593,9 +593,11 @@ class VideoCacheService {
     }
     if (files.length <= _maxCacheEntries) return;
 
-    final filesWithStats = files
-        .map((f) => (file: f, modified: f.lastModifiedSync()))
-        .toList();
+    final stats = await Future.wait(files.map((f) => f.lastModified()));
+    final filesWithStats = List.generate(
+      files.length,
+      (i) => (file: files[i], modified: stats[i]),
+    );
     filesWithStats.sort((a, b) => a.modified.compareTo(b.modified));
 
     final sortedFiles = filesWithStats.map((e) => e.file).toList();
