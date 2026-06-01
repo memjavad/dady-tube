@@ -83,21 +83,30 @@ class VideoCacheService {
 
   String sanitizeVideoId(String id) => _sanitizeId(id);
 
+  Map<String, dynamic>? _persistentUrlsCache;
+  Timer? _persistTimer;
+
   Future<void> _persistStreamUrl(String videoId, String url) async {
     try {
-      _streamUrlMemCache[videoId] = _CachedUrl(
-        url: url,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      _streamUrlMemCache[videoId] = _CachedUrl(url: url, timestamp: now);
 
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
-      final Map<String, dynamic> data = json.decode(jsonStr);
-      data[videoId] = {
-        'url': url,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      };
-      await prefs.setString('persistent_stream_urls', json.encode(data));
+
+      if (_persistentUrlsCache == null) {
+        final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
+        _persistentUrlsCache = json.decode(jsonStr);
+      }
+
+      _persistentUrlsCache![videoId] = {'url': url, 'timestamp': now};
+
+      _persistTimer?.cancel();
+      _persistTimer = Timer(const Duration(seconds: 2), () {
+        prefs.setString(
+          'persistent_stream_urls',
+          json.encode(_persistentUrlsCache),
+        );
+      });
     } catch (_) {}
   }
 
@@ -137,12 +146,19 @@ class VideoCacheService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('persistent_stream_urls');
-      if (jsonStr == null) return;
+      if (_persistentUrlsCache == null) {
+        final jsonStr = prefs.getString('persistent_stream_urls') ?? '{}';
+        _persistentUrlsCache = json.decode(jsonStr);
+      }
 
-      final Map<String, dynamic> data = json.decode(jsonStr);
-      if (data.remove(videoId) != null) {
-        await prefs.setString('persistent_stream_urls', json.encode(data));
+      if (_persistentUrlsCache!.remove(videoId) != null) {
+        _persistTimer?.cancel();
+        _persistTimer = Timer(const Duration(seconds: 2), () {
+          prefs.setString(
+            'persistent_stream_urls',
+            json.encode(_persistentUrlsCache),
+          );
+        });
       }
     } catch (_) {}
   }

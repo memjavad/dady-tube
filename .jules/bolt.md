@@ -98,3 +98,7 @@
 ## 2026-06-25 - [Optimize Sorting Files by Modification Date]
 **Learning:** In Dart, calling `lastModifiedSync()` inside `List.sort()` or sequentially in a map operation is highly inefficient because it blocks the UI thread and runs sequentially. Using `Future.wait` combined with asynchronous `lastModified()` provides a huge performance boost when mapping file statistics for sorting.
 **Action:** When sorting files by last modified time, always pre-fetch the statistics asynchronously using `Future.wait` and map the values to a Dart Record before sorting, avoiding synchronous disk I/O completely.
+
+## 2026-05-26 - [Optimize SharedPreferences JSON parsing]
+**Learning:** Parsing and encoding a large JSON string from SharedPreferences on every loop iteration or frequent set operations (e.g. `json.decode(prefs.getString(...))`) causes massive CPU spikes and I/O overhead due to O(N²) string building.
+**Action:** Keep a parsed `Map` in memory, update the in-memory map on writes, and flush it to SharedPreferences asynchronously using a debouncer (`Timer`) or a background isolate. This reduces frequent O(N) operations to O(1) in-memory assignments with occasional flushed writes.
