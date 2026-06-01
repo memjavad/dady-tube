@@ -90,3 +90,7 @@
 ## 2024-05-18 - [Optimized collection mapping in offline videos filter]
 **Learning:** Using `Set.difference` and `getVideoById` instead of iterating over a large `List` and doing `Set.contains` lookups drastically improves performance when computing offline videos from the curated channel feed.
 **Action:** Always prefer `Set` operations when calculating differences, and leverage mapped collections over linear scans to find objects by their IDs.
+
+## 2026-05-19 - Concurrent I/O Operations in Directory Streams
+**Learning:** Checking the size (`.length()`) of every file within an `await for` directory loop sequentially causes serious bottlenecks, as it incurs an O(N) wait delay by pausing loop iteration until each file's size is retrieved.
+**Action:** Always collect the asynchronous file futures (like `.length()`) into a list during the directory stream iteration, and execute `await Future.wait(futures)` outside the loop to read file sizes concurrently, heavily improving total execution time over many files.

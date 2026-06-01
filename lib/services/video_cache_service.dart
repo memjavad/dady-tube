@@ -736,12 +736,17 @@ class VideoCacheService {
       final path = await _cachePath;
       final dir = Directory(path);
       if (await dir.exists()) {
+        final futures = <Future<int>>[];
         await for (final entity in dir.list()) {
           if (entity is File) {
-            totalBytes += await entity.length();
             if (entity.path.endsWith('.mp4')) mp4Count++;
             if (entity.path.endsWith('.preview')) previewCount++;
+            futures.add(entity.length());
           }
+        }
+        final lengths = await Future.wait(futures);
+        for (final length in lengths) {
+          totalBytes += length;
         }
       }
 
