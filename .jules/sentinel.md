@@ -21,3 +21,7 @@
 **Vulnerability:** The `_persistChannelAvatar` method constructed a local file path by interpolating an external API identifier (`channel.id`) directly into the file path string without sanitization, exposing a high-priority Path Traversal vulnerability.
 **Learning:** External IDs should never be implicitly trusted as safe file names, as they could contain directory traversal sequences (`../`) or other malicious characters intended to overwrite critical files.
 **Prevention:** Always sanitize external identifiers using a restrictive regular expression (e.g., `replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '')`) before using them in local file system operations.
+## 2024-05-24 - Strict TTL Fallback for Cached URLs
+**Vulnerability:** The `_isUrlExpired` function returned `false` (never expired) when the expiration parameter was missing or parsing failed, leading to stale stream URLs being cached indefinitely.
+**Learning:** Fail-open caching logic on network resources (especially dynamic CDN links) causes fragility and playback errors.
+**Prevention:** Always implement a strict, time-based TTL fallback (e.g., 2 hours) when absolute expiration tokens cannot be determined from external input.
