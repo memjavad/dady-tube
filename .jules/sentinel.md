@@ -25,3 +25,8 @@
 **Vulnerability:** The `_isUrlExpired` function returned `false` (never expired) when the expiration parameter was missing or parsing failed, leading to stale stream URLs being cached indefinitely.
 **Learning:** Fail-open caching logic on network resources (especially dynamic CDN links) causes fragility and playback errors.
 **Prevention:** Always implement a strict, time-based TTL fallback (e.g., 2 hours) when absolute expiration tokens cannot be determined from external input.
+
+## 2026-05-26 - [Security Theater in DB Queries]
+**Vulnerability:** The task suggested parameterizing `getChannels` (which executes `db.query('channels')`) to prevent potential future SQL Injection.
+**Learning:** Static SQL strings (like table names without WHERE clauses, or simple raw queries like `SELECT COUNT(*) FROM channels`) that do not incorporate any user input have zero risk of SQL injection. Modifying them to use query builders or parameters solely for "standardization" constitutes unnecessary security theater.
+**Prevention:** Focus vulnerability analysis and remediation strictly on queries that incorporate unsanitized external or user-provided input. Do not arbitrarily refactor safe static queries under the guise of security.
