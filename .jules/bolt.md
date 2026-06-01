@@ -78,3 +78,7 @@
 ## 2026-05-20 - [Fix sqflite N+1 Query using Batched IN Clause]
 **Learning:** In Flutter sqflite, executing `Future.wait` on multiple sequential or concurrent `db.query` calls to fetch records for multiple IDs creates an N+1 query problem. This incurs severe lock contention and excessive Dart-to-native bridge overhead, drastically slowing down large bulk data loading operations.
 **Action:** Always replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` operator (e.g., `where: 'channelId IN ($placeholders)'`) and group the results locally in Dart. This transforms N bridge calls into 1, dramatically reducing latency and overhead.
+
+## 2026-05-20 - String Manipulation inside async Directory stream
+**Learning:** Performing string manipulation (like `.split()` and `.replaceAll()`) inside an `await for` loop that reads from a directory stream delays the processing of subsequent chunks from the stream, leading to reduced throughput.
+**Action:** Always accumulate raw data (like file paths) quickly inside the `await for` loop and perform any necessary synchronous transformations (like extracting filenames) in a separate loop after the stream has completed, using faster string methods like `lastIndexOf` and `substring`.
