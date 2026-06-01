@@ -129,24 +129,32 @@ class ChannelProvider with ChangeNotifier {
         .map((v) => v.id)
         .toSet();
 
-    return all
-        .where((v) => cachedIds.contains(v.id) || downloadedIds.contains(v.id))
-        .toList();
+    final availableIds = cachedIds.union(downloadedIds);
+    final List<YoutubeVideo> available = [];
+    for (var id in availableIds) {
+      final v = getVideoById(id);
+      if (v != null) {
+        available.add(v);
+      }
+    }
+    return available;
   }
 
   /// Updates the list of videos ready for offline play (Manual + Auto-Cache)
   Future<void> updateOfflineVideos(DownloadProvider downloadProvider) async {
     final cachedIds = await VideoCacheService().getCachedVideoIds();
     final downloadedVideos = downloadProvider.downloadedVideos;
-    final all = allVideos;
 
     // 1. Start with all manual downloads from the DownloadProvider
     List<YoutubeVideo> combined = List.from(downloadedVideos);
 
     // 2. Add all videos from the curated channel feed that have been auto-cached
     final manualIds = downloadedVideos.map((e) => e.id).toSet();
-    for (var v in all) {
-      if (cachedIds.contains(v.id) && !manualIds.contains(v.id)) {
+    final autoCachedIds = cachedIds.difference(manualIds);
+
+    for (var id in autoCachedIds) {
+      final v = getVideoById(id);
+      if (v != null) {
         combined.add(v);
       }
     }

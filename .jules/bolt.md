@@ -86,3 +86,7 @@
 ## 2026-05-26 - [Dart Inefficient Interleaving Optimization]
 **Learning:** Using nested loops to interleave lists forces iteration over every list even if most have been exhausted, resulting in O(N*M) performance bottlenecks.
 **Action:** Always use a list of Iterators and remove exhausted iterators dynamically to avoid iterating over exhausted groups and drastically speed up the interleaving process.
+
+## 2024-05-18 - [Optimized collection mapping in offline videos filter]
+**Learning:** Using `Set.difference` and `getVideoById` instead of iterating over a large `List` and doing `Set.contains` lookups drastically improves performance when computing offline videos from the curated channel feed.
+**Action:** Always prefer `Set` operations when calculating differences, and leverage mapped collections over linear scans to find objects by their IDs.
