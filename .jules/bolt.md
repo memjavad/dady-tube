@@ -70,3 +70,11 @@
 **Learning:** Initializing the app with a cold image cache results in noticeable stutter and pop-in when displaying video thumbnails or channel avatars. Downloading the same manifests across sessions increases startup latency and wastes bandwidth.
 **Action:** Always pre-warm critical assets (e.g. using `precacheImage`) during the app splash screen or initialization phase. Additionally, implement persistent local caching for remote manifests or configurations to guarantee instant startup and offline resilience.
 
+
+## 2026-05-19 - [Fix N+1 Query in JSON Cache Migration and Batched Inserts]
+**Learning:** Inserting multiple items into a database individually inside a loop (N+1 query problem) creates severe transaction overhead and blocks the UI thread unnecessarily, especially for operations like migrating a cached JSON list.
+**Action:** When inserting or updating nested collections (e.g., `Map<String, List<Model>>`), flatten the data structure using `.values.expand((v) => v).toList()` and process it in a single `Batch` commit instead of iteratively writing to the database inside a loop.
+
+## 2026-05-20 - [Fix sqflite N+1 Query using Batched IN Clause]
+**Learning:** In Flutter sqflite, executing `Future.wait` on multiple sequential or concurrent `db.query` calls to fetch records for multiple IDs creates an N+1 query problem. This incurs severe lock contention and excessive Dart-to-native bridge overhead, drastically slowing down large bulk data loading operations.
+**Action:** Always replace multiple concurrent `db.query` calls with a single batched query using the SQL `IN` operator (e.g., `where: 'channelId IN ($placeholders)'`) and group the results locally in Dart. This transforms N bridge calls into 1, dramatically reducing latency and overhead.
