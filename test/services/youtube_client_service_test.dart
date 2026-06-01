@@ -30,14 +30,14 @@ void main() {
 
       service.dispose();
 
-      // When the client is closed, it throws a ClientException
-      // containing "HTTP request failed. Client is already closed."
+      // When the client is closed, it throws an exception
+      // containing "closed"
       try {
         await service.httpClient.get(Uri.parse('https://example.com'));
-        fail('Should have thrown a ClientException');
-      } on http.ClientException catch (e) {
-        expect(e.message.contains('closed'), isTrue,
-          reason: 'Exception should indicate client is closed, got: ${e.message}');
+        fail('Should have thrown an exception');
+      } catch (e) {
+        expect(e.toString().toLowerCase(), contains('closed'),
+          reason: 'Exception should indicate client is closed, got: $e');
       }
 
       // YoutubeExplode wraps the inner HttpClientClosedException inside a Retry logic

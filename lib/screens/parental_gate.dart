@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/tactile_widgets.dart';
 import '../core/theme.dart';
 import '../core/app_localizations.dart';
+import '../providers/settings_provider.dart';
 
 class ParentalGate extends StatefulWidget {
   final Widget destination;
@@ -20,6 +22,7 @@ class _ParentalGateState extends State<ParentalGate> {
   String _question = '';
   int _num1 = 0;
   int _num2 = 0;
+  bool _useMasterPin = false;
 
   @override
   void dispose() {
@@ -42,20 +45,56 @@ class _ParentalGateState extends State<ParentalGate> {
       _question = '$_num1 × $_num2 = ?';
       _expectedAnswer = (_num1 * _num2).toString();
       _pinController.clear();
+      _useMasterPin = false;
     });
   }
 
+  void _switchToMasterPin() {
+    setState(() {
+      _useMasterPin = true;
+      _pinController.clear();
+      _error = '';
+    });
+  }
+
+  void _switchToMathChallenge() {
+    _generateMathProblem();
+  }
+
+  int get _expectedLength {
+    if (_useMasterPin) {
+      final settings = context.read<SettingsProvider>();
+      return settings.masterPin?.length ?? 4;
+    }
+    return _expectedAnswer.length;
+  }
+
   void _verifyPin() {
-    if (_pinController.text == _expectedAnswer) {
+    final settings = context.read<SettingsProvider>();
+
+    bool verified = false;
+    if (_useMasterPin) {
+      verified = settings.verifyMasterPin(_pinController.text);
+    } else {
+      // Math challenge verification
+      verified = _pinController.text == _expectedAnswer;
+      // Also accept master PIN in math mode as a shortcut
+      if (!verified && settings.hasMasterPin) {
+        verified = settings.verifyMasterPin(_pinController.text);
+      }
+    }
+
+    if (verified) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => widget.destination),
       );
     } else {
-      _generateMathProblem();
+      if (!_useMasterPin) _generateMathProblem();
       setState(() {
         final loc = AppLocalizations.of(context);
         _error = loc.translate('parental_gate_error');
+        _pinController.clear();
       });
     }
   }
@@ -63,8 +102,9 @@ class _ParentalGateState extends State<ParentalGate> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final settings = context.watch<SettingsProvider>();
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -87,25 +127,32 @@ class _ParentalGateState extends State<ParentalGate> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.lock_person_rounded,
+                Icon(
+                  _useMasterPin
+                      ? Icons.pin_rounded
+                      : Icons.lock_person_rounded,
                   size: 64,
                   color: DadyTubeTheme.primary,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  loc.translate('parental_gate_msg'),
+                  _useMasterPin
+                      ? loc.translate('enter_master_pin')
+                      : loc.translate('parental_gate_msg'),
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  _question,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: DadyTubeTheme.primary,
+                if (!_useMasterPin) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _question,
+                    style:
+                        Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: DadyTubeTheme.primary,
+                            ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 24),
                 _buildPinField(context),
                 if (_error.isNotEmpty) ...[
@@ -120,6 +167,24 @@ class _ParentalGateState extends State<ParentalGate> {
                 ],
                 const SizedBox(height: 32),
                 _buildNumPad(context),
+                // Toggle button between math challenge and master PIN
+                if (settings.hasMasterPin) ...[
+                  const SizedBox(height: 16),
+                  TactileButton(
+                    onTap: _useMasterPin
+                        ? _switchToMathChallenge
+                        : _switchToMasterPin,
+                    child: Text(
+                      _useMasterPin
+                          ? loc.translate('use_math_challenge')
+                          : loc.translate('use_master_pin'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: DadyTubeTheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -129,9 +194,10 @@ class _ParentalGateState extends State<ParentalGate> {
   }
 
   Widget _buildPinField(BuildContext context) {
+    final pinLength = _expectedLength;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_expectedAnswer.length, (index) {
+      children: List.generate(pinLength, (index) {
         bool filled = _pinController.text.length > index;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -140,7 +206,7 @@ class _ParentalGateState extends State<ParentalGate> {
           decoration: BoxDecoration(
             color: filled
                 ? DadyTubeTheme.primary
-                : Colors.grey.withOpacity(0.3),
+                : Colors.grey.withValues(alpha: 0.3),
             shape: BoxShape.circle,
           ),
         );
@@ -183,12 +249,12 @@ class _ParentalGateState extends State<ParentalGate> {
         final number = index == 10 ? '0' : (index + 1).toString();
         return TactileButton(
           onTap: () {
-            if (_pinController.text.length < _expectedAnswer.length) {
+            if (_pinController.text.length < _expectedLength) {
               setState(() {
                 if (_error.isNotEmpty) _error = '';
                 _pinController.text += number;
               });
-              if (_pinController.text.length == _expectedAnswer.length) {
+              if (_pinController.text.length == _expectedLength) {
                 _verifyPin();
               }
             }

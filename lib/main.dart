@@ -48,7 +48,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => UsageProvider()),
         // Provide the AudioHandler via a FutureProvider or just wait for it
         ProxyProvider0<Future<AudioHandler>>(
-          update: (_, __) => audioHandlerFuture,
+          update: (_, _) => audioHandlerFuture,
         ),
       ],
       child: const DadyTubeApp(),

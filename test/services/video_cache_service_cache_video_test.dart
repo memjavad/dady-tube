@@ -8,26 +8,8 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:dadytube/services/video_cache_service.dart';
-import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:flutter/services.dart';
 import 'video_cache_service_cache_video_test.mocks.dart';
-
-class MockPathProviderPlatform extends Fake
-    with MockPlatformInterfaceMixin
-    implements PathProviderPlatform {
-  final String path;
-  MockPathProviderPlatform(this.path);
-
-  @override
-  Future<String?> getApplicationDocumentsDirectoryPath() async {
-    return path;
-  }
-
-  @override
-  Future<String?> getTemporaryPath() async {
-    return path;
-  }
-}
 
 class FakeFileSize extends Fake implements yt.FileSize {
   final int _totalBytes;
@@ -55,7 +37,17 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('video_cache_test_');
-    PathProviderPlatform.instance = MockPathProviderPlatform(tempDir.path);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getApplicationDocumentsDirectory' ||
+            methodCall.method == 'getTemporaryDirectory') {
+          return tempDir.path;
+        }
+        return null;
+      },
+    );
     SharedPreferences.setMockInitialValues({});
   });
 

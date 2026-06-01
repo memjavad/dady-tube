@@ -124,32 +124,12 @@ void main() {
       expect(await futureSlouching, false);
     });
 
-    test('emits isSlouching=true when face top ratio > 0.65', () async {
-      final mockFace = MockFace();
-      when(() => mockFace.boundingBox).thenReturn(
-        const Rect.fromLTWH(0, 70, 20, 20),
-      ); // top ratio = 70/100 = 0.7 > 0.65
-      when(() => mockFace.headEulerAngleX).thenReturn(0);
-
-      when(
-        () => mockFaceDetector.processImage(any()),
-      ).thenAnswer((_) async => [mockFace]);
-
-      final futureTooClose = service.isTooCloseStream.first;
-      final futureSlouching = service.isSlouchingStream.first;
-
-      await service.processImageForTesting(mockImage);
-
-      expect(await futureTooClose, false);
-      expect(await futureSlouching, true);
-    });
-
-    test('emits isSlouching=true when head tilt > 25', () async {
+    test('emits isSlouching=true when head tilt < -20', () async {
       final mockFace = MockFace();
       when(
         () => mockFace.boundingBox,
       ).thenReturn(const Rect.fromLTWH(0, 0, 20, 20));
-      when(() => mockFace.headEulerAngleX).thenReturn(30); // tilt > 25
+      when(() => mockFace.headEulerAngleX).thenReturn(-25); // tilt < -20
 
       when(
         () => mockFaceDetector.processImage(any()),

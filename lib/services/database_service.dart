@@ -21,7 +21,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2, // Upgraded from 1
+      version: 3, // Upgraded: added composite index on videos
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -53,12 +53,23 @@ CREATE TABLE videos (
   FOREIGN KEY (channelId) REFERENCES channels (id) ON DELETE CASCADE
 )
 ''');
+
+    // ⚡ Perf: Composite index eliminates O(N) full table scans on video queries
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_videos_channel_date ON videos (channelId, publishedAt DESC)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute(
         'ALTER TABLE channels ADD COLUMN localThumbnailPath TEXT',
+      );
+    }
+    if (oldVersion < 3) {
+      // ⚡ Perf: Add composite index for existing databases upgrading to v3
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_videos_channel_date ON videos (channelId, publishedAt DESC)',
       );
     }
   }

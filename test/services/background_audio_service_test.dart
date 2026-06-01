@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'package:audio_service/audio_service.dart';
 import 'package:dadytube/services/background_audio_service.dart';
+import 'package:dadytube/services/video_cache_service.dart';
 
 class MockAudioPlayer extends Mock implements AudioPlayer {}
 
@@ -17,6 +17,8 @@ class MockStreamClient extends Mock implements yt.StreamClient {}
 class MockStreamManifest extends Mock implements yt.StreamManifest {}
 
 class MockAudioOnlyStreamInfo extends Mock implements yt.AudioOnlyStreamInfo {}
+
+class MockMuxedStreamInfo extends Mock implements yt.MuxedStreamInfo {}
 
 class FakeAudioSource extends Fake implements AudioSource {}
 
@@ -34,6 +36,9 @@ void main() {
       mockAudioPlayer = MockAudioPlayer();
       mockYoutubeExplode = MockYoutubeExplode();
 
+      // Hook up mock to VideoCacheService so calls to getManifest use the mock client
+      VideoCacheService().mockYt = mockYoutubeExplode;
+
       // Mock the stream to keep the Subject from dying or causing issues.
       when(
         () => mockAudioPlayer.playbackEventStream,
@@ -41,7 +46,6 @@ void main() {
 
       backgroundAudioService = BackgroundAudioService(
         player: mockAudioPlayer,
-        ytExplode: mockYoutubeExplode,
       );
     });
 
@@ -70,14 +74,12 @@ void main() {
       verify(() => mockAudioPlayer.seek(duration)).called(1);
     });
 
-    test('dispose delegates to AudioPlayer and YoutubeExplode', () async {
+    test('dispose delegates to AudioPlayer', () async {
       when(() => mockAudioPlayer.dispose()).thenAnswer((_) async {});
-      when(() => mockYoutubeExplode.close()).thenReturn(null);
 
       backgroundAudioService.dispose();
 
       verify(() => mockAudioPlayer.dispose()).called(1);
-      verify(() => mockYoutubeExplode.close()).called(1);
     });
 
     test('playVideo successfully plays audio from Youtube', () async {
@@ -85,6 +87,7 @@ void main() {
       final mockStreamClient = MockStreamClient();
       final mockManifest = MockStreamManifest();
       final mockAudioStreamInfo = MockAudioOnlyStreamInfo();
+      final mockMuxedStreamInfo = MockMuxedStreamInfo();
 
       final videoId = 'test_video_id';
       final title = 'Test Title';
@@ -95,15 +98,22 @@ void main() {
       when(() => mockYoutubeExplode.videos).thenReturn(mockVideoClient);
       when(() => mockVideoClient.streamsClient).thenReturn(mockStreamClient);
       when(
-        () => mockStreamClient.getManifest(videoId),
+        () => mockStreamClient.getManifest(videoId, ytClients: any(named: 'ytClients')),
       ).thenAnswer((_) async => mockManifest);
 
       when(() => mockManifest.audioOnly).thenReturn(
         UnmodifiableListView<yt.AudioOnlyStreamInfo>([mockAudioStreamInfo]),
       );
+      when(() => mockManifest.muxed).thenReturn(
+        UnmodifiableListView<yt.MuxedStreamInfo>([mockMuxedStreamInfo]),
+      );
 
       when(() => mockAudioStreamInfo.bitrate).thenReturn(yt.Bitrate(128000));
       when(() => mockAudioStreamInfo.url).thenReturn(audioUri);
+
+      when(() => mockMuxedStreamInfo.bitrate).thenReturn(yt.Bitrate(128000));
+      when(() => mockMuxedStreamInfo.url).thenReturn(audioUri);
+      when(() => mockMuxedStreamInfo.size).thenReturn(yt.FileSize(100000));
 
       when(
         () => mockAudioPlayer.setAudioSource(any()),
@@ -117,7 +127,7 @@ void main() {
         thumbnailUrl,
       );
 
-      verify(() => mockStreamClient.getManifest(videoId)).called(1);
+      verify(() => mockStreamClient.getManifest(videoId, ytClients: any(named: 'ytClients'))).called(1);
       verify(() => mockAudioPlayer.setAudioSource(any())).called(1);
       verify(() => mockAudioPlayer.play()).called(1);
     });

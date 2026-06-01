@@ -121,12 +121,13 @@ class DistanceProtectionService {
           _cameraController!.description.sensorOrientation;
       InputImageRotation rotation = InputImageRotation.rotation0deg;
 
-      if (sensorOrientation == 90)
+      if (sensorOrientation == 90) {
         rotation = InputImageRotation.rotation90deg;
-      else if (sensorOrientation == 180)
+      } else if (sensorOrientation == 180) {
         rotation = InputImageRotation.rotation180deg;
-      else if (sensorOrientation == 270)
+      } else if (sensorOrientation == 270) {
         rotation = InputImageRotation.rotation270deg;
+      }
 
       final format = defaultTargetPlatform == TargetPlatform.android
           ? InputImageFormat.nv21

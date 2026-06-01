@@ -2,8 +2,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'youtube_client_service.dart';
-
 import 'video_cache_service.dart';
 
 class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
@@ -40,8 +38,6 @@ class BackgroundAudioService extends BaseAudioHandler with SeekHandler {
     try {
       final manifest = await VideoCacheService().getManifest(videoId);
       final audioStream = manifest.audioOnly.withHighestBitrate();
-
-      if (audioStream == null) return;
 
       // Update MediaItem for the notification
       mediaItem.add(

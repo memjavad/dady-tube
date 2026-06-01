@@ -44,6 +44,7 @@ class _EyeProtectionOverlayState extends State<EyeProtectionOverlay> {
 
           _postureSubscription = DistanceProtectionService().isSlouchingStream
               .listen((slouching) {
+                if (!mounted) return;
                 final postureEnabled = Provider.of<SettingsProvider>(
                   context,
                   listen: false,
@@ -119,7 +120,7 @@ class _BlueLightFilterOverlay extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(seconds: 3),
         curve: Curves.easeInOut,
-        color: Colors.deepOrange.withOpacity(intensity * 0.25),
+        color: Colors.deepOrange.withValues(alpha: intensity * 0.25),
       ),
     );
   }
@@ -137,7 +138,7 @@ class _SunsetFadeoutOverlay extends StatelessWidget {
           if (intensity <= 0) return const SizedBox.shrink();
 
           return Container(
-            color: const Color(0xFF1A1A2E).withOpacity(intensity * 0.8),
+            color: const Color(0xFF1A1A2E).withValues(alpha: intensity * 0.8),
           );
         },
       ),
@@ -154,10 +155,10 @@ class _DistanceWarningOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         child: BackdropFilter(
           filter: ColorFilter.mode(
-            Colors.white.withOpacity(0.2),
+            Colors.white.withValues(alpha: 0.2),
             BlendMode.overlay,
           ),
           child: SafeArea(
@@ -172,7 +173,7 @@ class _DistanceWarningOverlay extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: DadyTubeTheme.primary.withOpacity(0.2),
+                          color: DadyTubeTheme.primary.withValues(alpha: 0.2),
                           blurRadius: 32,
                           spreadRadius: 8,
                         ),
@@ -193,7 +194,7 @@ class _DistanceWarningOverlay extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.red.withOpacity(0.15),
+                              color: Colors.red.withValues(alpha: 0.15),
                               blurRadius: 40,
                               spreadRadius: 4,
                             ),
@@ -223,11 +224,11 @@ class _DistanceWarningOverlay extends StatelessWidget {
                       vertical: 20,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 40,
                           offset: const Offset(0, 10),
                         ),
@@ -279,7 +280,7 @@ class _PostureWarningOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(40),
@@ -292,7 +293,7 @@ class _PostureWarningOverlay extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: DadyTubeTheme.primary.withOpacity(0.1),
+                          color: DadyTubeTheme.primary.withValues(alpha: 0.1),
                           blurRadius: 40,
                           spreadRadius: 4,
                         ),
@@ -307,7 +308,7 @@ class _PostureWarningOverlay extends StatelessWidget {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.red.withOpacity(0.1),
+                                color: Colors.red.withValues(alpha: 0.1),
                                 blurRadius: 60,
                                 spreadRadius: 10,
                               ),
@@ -321,11 +322,11 @@ class _PostureWarningOverlay extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.red.withOpacity(0.2),
+                                color: Colors.red.withValues(alpha: 0.2),
                                 blurRadius: 20,
                               ),
                             ],
@@ -351,7 +352,7 @@ class _PostureWarningOverlay extends StatelessWidget {
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),

@@ -106,14 +106,17 @@ class _SplashScreenState extends State<SplashScreen>
                             ],
                           ),
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: tokens.cardBorder.withOpacity(0.85),
-                          ),
+                          // Zero-Line Policy: tonal shadow replaces Border.all
                           boxShadow: [
                             BoxShadow(
-                              color: tokens.cardShadow.withOpacity(0.7),
+                              color: tokens.cardShadow.withValues(alpha: 0.7),
                               blurRadius: 36,
                               offset: const Offset(0, 18),
+                            ),
+                            BoxShadow(
+                              color: tokens.cardBorder.withValues(alpha: 0.3),
+                              blurRadius: 1,
+                              spreadRadius: 0.5,
                             ),
                           ],
                         ),
@@ -138,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
                           context,
                         ).translate('author_credit'),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: DadyTubeTheme.primary.withOpacity(0.75),
+                          color: DadyTubeTheme.primary.withValues(alpha: 0.75),
                           fontWeight: FontWeight.w600,
                         ),
                         textAlign: TextAlign.center,
@@ -161,13 +164,18 @@ class _SplashScreenState extends State<SplashScreen>
                                 width: 240,
                                 height: 12,
                                 decoration: BoxDecoration(
-                                  color: tokens.accentSoft.withOpacity(0.95),
+                                  color: tokens.accentSoft.withValues(alpha: 0.95),
                                   borderRadius: BorderRadius.circular(
                                     DadyTubeTheme.borderRadiusFull,
                                   ),
-                                  border: Border.all(
-                                    color: tokens.cardBorder.withOpacity(0.7),
-                                  ),
+                                  // Zero-Line Policy: tonal shadow replaces Border.all
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: tokens.cardBorder.withValues(alpha: 0.3),
+                                      blurRadius: 1,
+                                      spreadRadius: 0.5,
+                                    ),
+                                  ],
                                 ),
                                 child: Stack(
                                   children: [
@@ -189,7 +197,7 @@ class _SplashScreenState extends State<SplashScreen>
                                         boxShadow: [
                                           BoxShadow(
                                             color: DadyTubeTheme.primary
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                             blurRadius: 10,
                                             offset: const Offset(0, 2),
                                           ),
@@ -206,8 +214,8 @@ class _SplashScreenState extends State<SplashScreen>
                                     Theme.of(
                                       context,
                                     ).textTheme.bodyMedium?.copyWith(
-                                      color: DadyTubeTheme.primary.withOpacity(
-                                        0.7,
+                                      color: DadyTubeTheme.primary.withValues(
+                                        alpha: 0.7,
                                       ),
                                       fontWeight: FontWeight.w600,
                                     ) ??

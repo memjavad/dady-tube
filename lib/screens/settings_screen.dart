@@ -303,7 +303,7 @@ class _ExperienceTab extends StatelessWidget {
               ? themeData.colorScheme.primary
               : (themeData.brightness == Brightness.dark
                     ? Colors.white10
-                    : Colors.black.withOpacity(0.05)),
+                    : Colors.black.withValues(alpha: 0.05)),
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Center(
             child: Text(
@@ -311,7 +311,7 @@ class _ExperienceTab extends StatelessWidget {
               style: TextStyle(
                 color: isSelected
                     ? Colors.white
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -369,7 +369,7 @@ class _ExperienceTab extends StatelessWidget {
   ) {
     return TactileCard(
       color: settings.turboModeEnabled
-          ? Colors.orangeAccent.withOpacity(0.1)
+          ? Colors.orangeAccent.withValues(alpha: 0.1)
           : null,
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -398,7 +398,7 @@ class _ExperienceTab extends StatelessWidget {
           Switch.adaptive(
             value: settings.turboModeEnabled,
             onChanged: (val) => settings.setTurboMode(val),
-            activeColor: Colors.orangeAccent,
+            activeThumbColor: Colors.orangeAccent,
           ),
         ],
       ),
@@ -547,7 +547,7 @@ class _SafetyTab extends StatelessWidget {
           Switch.adaptive(
             value: settings.autoCacheEnabled,
             onChanged: (val) => settings.setAutoCacheEnabled(val),
-            activeColor: DadyTubeTheme.primary,
+            activeThumbColor: DadyTubeTheme.primary,
           ),
         ],
       ),
@@ -581,7 +581,7 @@ class _SafetyTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               TactileButton(
-                semanticLabel: loc.translate('add_keyword') ?? 'Add keyword',
+                semanticLabel: loc.translate('add_keyword'),
                 onTap: () {
                   if (controller.text.isNotEmpty) {
                     settings.addBlockedKeyword(controller.text);
@@ -772,7 +772,7 @@ Widget _buildSettingToggle(
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeColor: DadyTubeTheme.primary,
+          activeThumbColor: DadyTubeTheme.primary,
         ),
       ],
     ),
@@ -857,7 +857,7 @@ class _GuideTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: accentColor, size: 28),
@@ -944,7 +944,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: TactileCard(
-                color: DadyTubeTheme.primary.withOpacity(0.1),
+                color: DadyTubeTheme.primary.withValues(alpha: 0.1),
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
@@ -1092,7 +1092,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 28),
@@ -1166,7 +1166,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -1192,7 +1192,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
                 Text(
                   '${_formatBytes(_cacheStats!['totalBytes'])} used locally',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -1216,7 +1216,7 @@ class _StatisticsTabState extends State<_StatisticsTab> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -1330,7 +1330,7 @@ class _CookieInjectionCardState extends State<_CookieInjectionCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: DadyTubeTheme.primary.withOpacity(0.1),
+                  color: DadyTubeTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -1371,7 +1371,7 @@ class _CookieInjectionCardState extends State<_CookieInjectionCard> {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.surfaceContainerLow.withOpacity(0.6),
+              ).colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -1380,7 +1380,7 @@ class _CookieInjectionCardState extends State<_CookieInjectionCard> {
               'press F12 → Application → Cookies → youtube.com, then copy and '
               'paste all cookies as text. Refresh cookies every 1–2 weeks.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 height: 1.5,
               ),
             ),
@@ -1485,7 +1485,7 @@ class _CookieInjectionCardState extends State<_CookieInjectionCard> {
                         horizontal: 16,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(

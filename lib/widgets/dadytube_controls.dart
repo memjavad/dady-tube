@@ -115,8 +115,9 @@ class _DadyTubeControlsState extends State<DadyTubeControls> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || _chewieController == null)
+    if (_controller == null || _chewieController == null) {
       return const SizedBox();
+    }
 
     // ✅ Strengthened full-screen detection
     final isFullScreen =

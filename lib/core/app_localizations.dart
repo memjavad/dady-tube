@@ -65,6 +65,13 @@ class AppLocalizations {
       'parental_gate_msg': 'Please ask a parent to help you with this.',
       'enter_pin': 'Enter PIN',
       'parental_gate_error': 'Oops! Ask a grown-up for help.',
+      'enter_master_pin': 'Enter your Parent PIN',
+      'use_master_pin': 'Use Parent PIN instead',
+      'use_math_challenge': 'Use math challenge instead',
+      'set_master_pin': 'Set Parent PIN',
+      'master_pin_desc': 'Set a custom numeric PIN as a quick alternative to math challenges.',
+      'master_pin_cleared': 'Parent PIN removed',
+      'master_pin_set': 'Parent PIN saved',
 
       // Channels / Settings
       'add_channel': 'Add Channel',
@@ -243,6 +250,13 @@ class AppLocalizations {
       'parental_gate_msg': 'يرجى طلب المساعدة من أحد الوالدين.',
       'enter_pin': 'أدخل رقم التعريف الشخصي',
       'parental_gate_error': 'عذراً! اطلب المعاونة من شخص كبير.',
+      'enter_master_pin': 'أدخل رمز الأهل',
+      'use_master_pin': 'استخدم رمز الأهل بدلاً من ذلك',
+      'use_math_challenge': 'استخدم تحدي الرياضيات بدلاً من ذلك',
+      'set_master_pin': 'تعيين رمز الأهل',
+      'master_pin_desc': 'عيّن رمزاً رقمياً مخصصاً كبديل سريع لتحديات الرياضيات.',
+      'master_pin_cleared': 'تم إزالة رمز الأهل',
+      'master_pin_set': 'تم حفظ رمز الأهل',
 
       // Channels / Settings
       'add_channel': 'إضافة قناة',

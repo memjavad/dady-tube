@@ -1,13 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:collection';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:dadytube/services/video_cache_service.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   test('writeMetaSidecarForTest writes correctly', () async {

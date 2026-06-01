@@ -30,6 +30,7 @@ class SettingsProvider with ChangeNotifier {
   bool _postureProtectionEnabled = true;
   bool _safeVolumeEnabled = true;
   double _maxVolumeLevel = 0.5;
+  String? _masterPin;
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;
@@ -46,6 +47,8 @@ class SettingsProvider with ChangeNotifier {
   List<String> get blockedKeywords => _blockedKeywords;
   Locale get locale => _locale;
   AppThemeLevel get themeLevel => _themeLevel;
+  String? get masterPin => _masterPin;
+  bool get hasMasterPin => _masterPin != null && _masterPin!.isNotEmpty;
 
   SettingsProvider() {
     _loadSettings();
@@ -72,6 +75,7 @@ class SettingsProvider with ChangeNotifier {
     _safeVolumeEnabled = prefs.getBool('safeVolumeEnabled') ?? true;
     _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.5;
     _isFirstRun = prefs.getBool('is_first_run') ?? true;
+    _masterPin = prefs.getString('master_pin');
 
     final savedLangCode = prefs.getString('language_code');
     final savedCountryCode = prefs.getString('country_code');
@@ -231,5 +235,21 @@ class SettingsProvider with ChangeNotifier {
     final prefs = await _getPrefs;
     await prefs.setBool('is_first_run', false);
     notifyListeners();
+  }
+
+  Future<void> setMasterPin(String? pin) async {
+    _masterPin = pin;
+    final prefs = await _getPrefs;
+    if (pin != null && pin.isNotEmpty) {
+      await prefs.setString('master_pin', pin);
+    } else {
+      await prefs.remove('master_pin');
+    }
+    notifyListeners();
+  }
+
+  bool verifyMasterPin(String input) {
+    if (!hasMasterPin) return false;
+    return _masterPin == input;
   }
 }

@@ -72,7 +72,7 @@ class AchievementsScreen extends StatelessWidget {
         Text(
           '${loc.translate('monthly_collection')} - $monthName',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -88,7 +88,7 @@ class AchievementsScreen extends StatelessWidget {
             Icon(
               Icons.auto_awesome_rounded,
               size: 80,
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 16),
             Text(
@@ -172,11 +172,11 @@ class _StarSlotState extends State<_StarSlot>
           width: 70,
           height: 70,
           decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(_isTapped ? 0.3 : 0.2),
+            color: Colors.amber.withValues(alpha: _isTapped ? 0.3 : 0.2),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.amber.withOpacity(0.2),
+                color: Colors.amber.withValues(alpha: 0.2),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),

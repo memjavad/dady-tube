@@ -15,6 +15,7 @@ void main() {
       await provider.setFullScreenByDefault(i % 2 == 0);
     }
     stopwatch.stop();
+    // ignore: avoid_print
     print('Time taken for 10000 setter calls: ${stopwatch.elapsedMilliseconds} ms');
   });
 }

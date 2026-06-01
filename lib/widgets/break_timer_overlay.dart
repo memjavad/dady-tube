@@ -106,7 +106,7 @@ class BreakTimerOverlay extends StatelessWidget {
                         child: CircularProgressIndicator(
                           value: countdown / 30,
                           strokeWidth: 12,
-                          backgroundColor: DadyTubeTheme.primary.withOpacity(0.1),
+                          backgroundColor: DadyTubeTheme.primary.withValues(alpha: 0.1),
                           valueColor: const AlwaysStoppedAnimation(DadyTubeTheme.primary),
                           strokeCap: StrokeCap.round,
                         ),

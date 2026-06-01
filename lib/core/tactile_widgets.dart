@@ -11,16 +11,16 @@ class TactileButton extends StatefulWidget {
   final String? semanticLabel;
 
   const TactileButton({
-    Key? key,
+    super.key,
     required this.child,
     this.onTap,
     this.onTapDown,
     this.scaleOnPress = 0.95,
     this.semanticLabel,
-  }) : super(key: key);
+  });
 
   @override
-  _TactileButtonState createState() => _TactileButtonState();
+  State<TactileButton> createState() => _TactileButtonState();
 }
 
 class _TactileButtonState extends State<TactileButton>
@@ -89,7 +89,7 @@ class _TactileButtonState extends State<TactileButton>
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001)
                 ..rotateX(-0.05 * pressProgress)
-                ..scale(scale),
+                ..scaleByDouble(scale, scale, 1.0, 1.0),
               child: child,
             );
           },
@@ -108,23 +108,30 @@ class TactileCard extends StatelessWidget {
   final ShapeBorder? shape;
 
   const TactileCard({
-    Key? key,
+    super.key,
     required this.child,
     this.padding,
     this.color,
     this.borderRadius,
     this.shape,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final effectiveColor = color ?? Theme.of(context).cardColor;
     final tokens = DadyTubeTheme.tokens(context);
+    // Zero-Line Policy: Use tonal shadow layering instead of Border.all
     final effectiveShadow = [
       BoxShadow(
         color: tokens.cardShadow,
         blurRadius: 28,
         offset: const Offset(0, 10),
+      ),
+      // Subtle inner-edge glow replaces the old border line
+      BoxShadow(
+        color: tokens.cardBorder.withValues(alpha: 0.18),
+        blurRadius: 1,
+        spreadRadius: 0.5,
       ),
     ];
 
@@ -139,7 +146,7 @@ class TactileCard extends StatelessWidget {
           : BoxDecoration(
               color: effectiveColor,
               borderRadius: BorderRadius.circular(borderRadius ?? 32.0),
-              border: Border.all(color: tokens.cardBorder.withOpacity(0.8)),
+              // Zero-Line Policy: No Border.all — tonal shadow replaces border
               boxShadow: effectiveShadow,
             ),
       child: child,
@@ -147,19 +154,43 @@ class TactileCard extends StatelessWidget {
   }
 }
 
-class GlassContainer extends StatelessWidget {
+class GlassContainer extends StatefulWidget {
   final Widget child;
   final double blur;
   final double opacity;
   final BorderRadius? borderRadius;
 
   const GlassContainer({
-    Key? key,
+    super.key,
     required this.child,
     this.blur = 12.0,
     this.opacity = 0.7,
     this.borderRadius,
-  }) : super(key: key);
+  });
+
+  @override
+  State<GlassContainer> createState() => _GlassContainerState();
+}
+
+class _GlassContainerState extends State<GlassContainer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _sheenController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Dynamic Aurora Sheen: Continuously sweeps the reflection gradient
+    _sheenController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _sheenController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,37 +201,59 @@ class GlassContainer extends StatelessWidget {
       baseColor,
       tokens.glassTint,
       0.75,
-    )!.withValues(alpha: opacity);
-    final sheenColor = baseColor.withValues(
-      alpha: 0.05,
-    ); // Very subtle static reflection
+    )!.withValues(alpha: widget.opacity);
+    final sheenColor = baseColor.withValues(alpha: 0.08);
 
     return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.circular(32.0),
+      borderRadius: widget.borderRadius ?? BorderRadius.circular(32.0),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          decoration: BoxDecoration(
-            color: glassColor,
-            borderRadius: borderRadius ?? BorderRadius.circular(32.0),
-            border: Border.all(
-              color: tokens.cardBorder.withValues(alpha: isDark ? 0.55 : 0.8),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: tokens.cardShadow.withValues(alpha: isDark ? 0.55 : 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+        filter: ImageFilter.blur(sigmaX: widget.blur, sigmaY: widget.blur),
+        child: AnimatedBuilder(
+          animation: _sheenController,
+          child: widget.child,
+          builder: (context, animChild) {
+            // Dynamic sweep: sheen moves from top-left to bottom-right
+            final sweepValue = _sheenController.value;
+            final startX = -1.0 + (sweepValue * 3.0);
+            final startY = -1.0 + (sweepValue * 3.0);
+            final endX = startX + 1.0;
+            final endY = startY + 1.0;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: glassColor,
+                borderRadius:
+                    widget.borderRadius ?? BorderRadius.circular(32.0),
+                // Zero-Line Policy: No Border.all — tonal shadow replaces border
+                boxShadow: [
+                  BoxShadow(
+                    color: tokens.cardShadow
+                        .withValues(alpha: isDark ? 0.55 : 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  // Subtle edge glow replacing old Border.all
+                  BoxShadow(
+                    color: tokens.cardBorder
+                        .withValues(alpha: isDark ? 0.25 : 0.35),
+                    blurRadius: 1,
+                    spreadRadius: 0.5,
+                  ),
+                ],
+                gradient: LinearGradient(
+                  begin: Alignment(startX.clamp(-1.0, 1.0), startY.clamp(-1.0, 1.0)),
+                  end: Alignment(endX.clamp(-1.0, 1.0), endY.clamp(-1.0, 1.0)),
+                  colors: [
+                    Colors.transparent,
+                    sheenColor,
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
               ),
-            ],
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [sheenColor, Colors.transparent, sheenColor],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-          child: child,
+              child: animChild,
+            );
+          },
         ),
       ),
     );

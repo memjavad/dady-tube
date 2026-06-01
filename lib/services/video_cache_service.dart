@@ -64,8 +64,9 @@ class VideoCacheService {
 
   Future<String> get _cachePath async {
     if (_resolvedCachePath != null) return _resolvedCachePath!;
-    if (_resolvingCachePathFuture != null)
+    if (_resolvingCachePathFuture != null) {
       return await _resolvingCachePathFuture!;
+    }
 
     _resolvingCachePathFuture = getTemporaryDirectory().then((directory) {
       _resolvedCachePath = '${directory.path}/video_cache';
@@ -351,8 +352,9 @@ class VideoCacheService {
   Future<void> _processManifestQueue() async {
     if (_isFetchingManifest ||
         _manifestFetchQueue.isEmpty ||
-        _isBackgroundPaused)
+        _isBackgroundPaused) {
       return;
+    }
 
     _isFetchingManifest = true;
     final videoId = _manifestFetchQueue.removeAt(0);
@@ -693,7 +695,9 @@ class VideoCacheService {
 
     if (!deep) {
       List<YoutubeVideo> candidates = [];
-      allChannelVideos.values.forEach((vids) => candidates.addAll(vids));
+      for (var vids in allChannelVideos.values) {
+        candidates.addAll(vids);
+      }
       candidates.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
 
       final cachedIds = await getCachedVideoIds();

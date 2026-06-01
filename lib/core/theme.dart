@@ -233,7 +233,6 @@ class DadyTubeTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,
       brightness: isDark ? Brightness.dark : Brightness.light,
-      background: background,
       primary: primary,
       onPrimary: Colors.white,
       primaryContainer: primaryContainer,

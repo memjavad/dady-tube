@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/usage_provider.dart';
-import '../core/theme.dart';
 
 class PlaytimeBucket extends StatefulWidget {
   final double size;
@@ -44,8 +43,9 @@ class _PlaytimeBucketState extends State<PlaytimeBucket>
 
         // Pulse when getting low (3 or fewer bars, but not 0)
         if (activeBars > 0 && activeBars <= 3) {
-          if (!_pulseController.isAnimating)
+          if (!_pulseController.isAnimating) {
             _pulseController.repeat(reverse: true);
+          }
         } else {
           if (_pulseController.isAnimating) {
             _pulseController.stop();
@@ -106,7 +106,7 @@ class _PlaytimeBucketState extends State<PlaytimeBucket>
                               ? (widget.size * 0.4)
                               : (isActive ? (widget.size * 0.8) : 12),
                           decoration: BoxDecoration(
-                            color: isActive ? color : color.withOpacity(0.08),
+                            color: isActive ? color : color.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(
                               widget.size * 0.1,
                             ),
@@ -119,17 +119,17 @@ class _PlaytimeBucketState extends State<PlaytimeBucket>
                                         ? Alignment.centerRight
                                         : Alignment.bottomCenter,
                                     colors: [
-                                      color.withOpacity(0.8),
+                                      color.withValues(alpha: 0.8),
                                       color,
-                                      color.withOpacity(0.9),
+                                      color.withValues(alpha: 0.9),
                                     ],
                                   )
                                 : null,
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: color.withOpacity(
-                                        0.4 + (_pulseController.value * 0.3),
+                                      color: color.withValues(
+                                        alpha: 0.4 + (_pulseController.value * 0.3),
                                       ), // Shadow pulses too
                                       blurRadius:
                                           6 + (_pulseController.value * 6),
@@ -142,7 +142,7 @@ class _PlaytimeBucketState extends State<PlaytimeBucket>
                               ? Container(
                                   margin: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.white.withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 )

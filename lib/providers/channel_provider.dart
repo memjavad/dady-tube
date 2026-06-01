@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -507,7 +506,7 @@ class ChannelProvider with ChangeNotifier {
             },
           );
         } catch (e) {
-          print('Failed to load channel ${channel.name}: $e');
+          debugPrint('Failed to load channel ${channel.name}: $e');
           failCount++;
         } finally {
           completedCount++;
@@ -627,7 +626,7 @@ class ChannelProvider with ChangeNotifier {
 
     if (index != -1 && index < list.length - 1) {
       final nextVideo = list[index + 1];
-      print('🚀 Predictive Pre-warming for: ${nextVideo.title}');
+      debugPrint('🚀 Predictive Pre-warming for: ${nextVideo.title}');
       VideoCacheService().prefetchManifest(nextVideo.id);
     }
   }

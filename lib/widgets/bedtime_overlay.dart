@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'animated_bedtime_moon.dart';
 import '../providers/usage_provider.dart';
 import '../core/tactile_widgets.dart';
-import '../core/theme.dart';
 import '../screens/parental_gate.dart';
 import '../core/app_localizations.dart';
 
@@ -45,8 +44,8 @@ class BedtimeOverlay extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF4A148C).withOpacity(0.9), // Deep Purple
-            const Color(0xFFE91E63).withOpacity(0.8), // Elegant Pink
+            const Color(0xFF4A148C).withValues(alpha: 0.9), // Deep Purple
+            const Color(0xFFE91E63).withValues(alpha: 0.8), // Elegant Pink
           ],
         ),
       ),
@@ -85,7 +84,7 @@ class BedtimeOverlay extends StatelessWidget {
                 );
               },
               child: TactileCard(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 child: const Padding(
                   padding: EdgeInsets.all(16),
                   child: Icon(Icons.vpn_key_rounded, color: Colors.white),

@@ -1,5 +1,11 @@
 # DadyTube Changelog
 
+## [v3.8.0] - 2026-06-01
+- `Fixed`: **Zero-Line Policy Compliance**. Removed all 6 remaining `Border.all` violations across `TactileCard`, `GlassContainer`, `HomeScreen` nav, `SplashScreen` logo/progress, and `WatchScreen` controls. All separation now uses tonal `BoxShadow` edge glow.
+- `Added`: **Dynamic Aurora Glassmorphism**. Upgraded `GlassContainer` from a static gradient to a continuously sweeping animated sheen, simulating dynamic room-light reflection on glass surfaces.
+- `Added`: **Parent Master PIN**. Parents can now set a custom numeric PIN as a fast alternative to math challenges in the Parental Gate. Toggle between math and PIN modes with a single tap. Localized in English and Arabic.
+- `Improved`: **SQLite Query Performance**. Added composite index `idx_videos_channel_date` on `videos(channelId, publishedAt DESC)` with migration path (DB v2 → v3), eliminating O(N) full table scans during video list rendering.
+
 ## [v3.7.0] - 2026-04-20
 - `Added`: **Mandatory Periodic Breaks (Eye Yoga)**. Implemented 30-second eye-health breaks every 15 minutes to encourage healthy viewing habits.
 - `Added`: **Auto-Orientation Control**. The app now automatically enters full-screen mode when the device is rotated to landscape and exits when returned to portrait.

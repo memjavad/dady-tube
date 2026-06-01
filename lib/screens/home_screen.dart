@@ -18,10 +18,7 @@ import '../widgets/video_card.dart';
 
 import '../services/video_cache_service.dart';
 import 'offline_videos_screen.dart';
-import 'package:shimmer/shimmer.dart';
 import '../core/theme.dart';
-import 'watch_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   List<YoutubeVideo> _availableVideos = [];
   bool _isRefreshingAvailability = false;
-  String _selectedWorld = 'All';
 
   @override
   void initState() {
@@ -210,182 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Center(child: Text(loc.translate('search_hint')));
   }
 
-  Widget _buildShimmerHeader() {
-    return Shimmer.fromColors(
-      baseColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      highlightColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-      child: Container(
-        height: 32,
-        width: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildEmptyFeed(AppLocalizations loc) {
-    return TactileCard(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(
-                Icons.toys_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.primaryContainer,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                _selectedWorld == 'Travel Mode'
-                    ? loc.translate('empty_bag')
-                    : loc.translate('no_videos'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-              if (_selectedWorld == 'All') ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(loc.translate('add_channels_msg')),
-                ),
-                const SizedBox(height: 24),
-                TactileButton(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const ParentalGate(destination: SettingsScreen()),
-                      ),
-                    );
-                  },
-                  child: TactileCard(
-                    color: DadyTubeTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.add_circle_outline_rounded,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          loc.translate('settings'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVideoCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    String imageUrl, {
-    bool isAsset = false,
-    String videoId = 'L_LUpnjyPso',
-    String? videoTitle,
-    String? channelThumbnailUrl,
-  }) {
-    return TactileButton(
-      onTapDown: () {
-        VideoCacheService().prefetchManifest(videoId);
-      },
-      onTap: () {
-        Navigator.push(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 250),
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                WatchScreen(
-                  videoId: videoId,
-                  videoTitle: videoTitle ?? title,
-                  thumbnailUrl: isAsset ? imageUrl : null,
-                  channelName: subtitle,
-                  channelThumbnailUrl: channelThumbnailUrl,
-                ),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-          ),
-        );
-      },
-      child: TactileCard(
-        padding: EdgeInsets.zero,
-        borderRadius: 32,
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
-              ),
-              child: isAsset
-                  ? Image.asset(
-                      imageUrl,
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
-                  : CachedNetworkImage(
-                      imageUrl: YoutubeService.getOptimizedThumbnail(
-                        imageUrl,
-                        context.read<SettingsProvider>().turboModeEnabled,
-                      ),
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          Container(color: DadyTubeTheme.surfaceContainerLow),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildBottomNav(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -399,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: tokens.cardBorder.withOpacity(0.7)),
+            top: BorderSide(color: tokens.cardBorder.withValues(alpha: 0.7)),
           ),
         ),
         child: Row(
@@ -472,11 +293,18 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
               color: isActive
-                  ? tokens.accentSoft.withOpacity(0.95)
+                  ? tokens.accentSoft.withValues(alpha: 0.95)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(18),
-              border: isActive
-                  ? Border.all(color: tokens.cardBorder.withOpacity(0.9))
+              // Zero-Line Policy: tonal shadow replaces Border.all
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: tokens.cardBorder.withValues(alpha: 0.35),
+                        blurRadius: 1,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
                   : null,
             ),
             child: Icon(

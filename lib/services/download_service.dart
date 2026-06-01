@@ -10,10 +10,17 @@ import 'video_cache_service.dart';
 class DownloadService {
   static const String _keyDownloaded = 'downloaded_video_ids';
   
-  http.Client get _client => YoutubeClientService().httpClient;
+  final http.Client? _customClient;
+  final VideoCacheService? _customVideoCache;
 
-  // Constructor removed parameters as we use singletons now
-  DownloadService();
+  DownloadService({
+    http.Client? httpClient,
+    VideoCacheService? videoCacheService,
+  }) : _customClient = httpClient,
+       _customVideoCache = videoCacheService;
+
+  http.Client get _client => _customClient ?? YoutubeClientService().httpClient;
+  VideoCacheService get _videoCache => _customVideoCache ?? VideoCacheService();
 
   // ⚡ Fix 1: Cache the resolved path — getApplicationDocumentsDirectory() only called once
   Future<String>? _resolvedLocalPathFuture;
@@ -39,10 +46,8 @@ class DownloadService {
     Function(double) onProgress,
   ) async {
     try {
-      final manifest = await VideoCacheService().getManifest(videoId);
+      final manifest = await _videoCache.getManifest(videoId);
       final streamInfo = manifest.muxed.withHighestBitrate();
-
-      if (streamInfo == null) throw Exception("No downloadable stream found.");
 
       final url = streamInfo.url;
       final totalSize = streamInfo.size.totalBytes;

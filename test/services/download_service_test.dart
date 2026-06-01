@@ -1,58 +1,26 @@
-import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dadytube/services/download_service.dart';
+import 'package:dadytube/services/video_cache_service.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'youtube_service_test.mocks.dart' as mocks;
+import 'package:mocktail/mocktail.dart';
 
-class MockStreamManifest extends Mock implements yt.StreamManifest {
-  @override
-  UnmodifiableListView<yt.MuxedStreamInfo> get muxed => UnmodifiableListView([MockMuxedStreamInfo()]);
-}
+class MockStreamManifest extends Mock implements yt.StreamManifest {}
 
-class MockMuxedStreamInfo extends Mock implements yt.MuxedStreamInfo {
-  @override
-  Uri get url => Uri.parse('https://example.com/video.mp4');
-  @override
-  yt.FileSize get size => yt.FileSize(1024);
+class MockMuxedStreamInfo extends Mock implements yt.MuxedStreamInfo {}
 
-  // mock the comparable methods
-  @override
-  int compareTo(yt.StreamInfo other) => 0;
-}
-
-class MockVideoClient extends Mock implements yt.VideoClient {
-  @override
-  yt.StreamClient get streamsClient => MockStreamClient();
-}
-
-class MockStreamClient extends Mock implements yt.StreamClient {
-  @override
-  Future<yt.StreamManifest> getManifest(dynamic videoId, {bool fullManifest = false, List<yt.YoutubeApiClient>? ytClients, bool requireWatchPage = false}) async {
-    return MockStreamManifest();
-  }
-}
-
-class MockYoutubeExplode extends Mock implements yt.YoutubeExplode {
-  @override
-  yt.VideoClient get videos => MockVideoClient();
-
-  @override
-  void close() {}
-}
+class MockVideoCacheService extends Mock implements VideoCacheService {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late DownloadService service;
-  late MockYoutubeExplode mockYtClient;
+  late MockVideoCacheService mockVideoCache;
   late MockClient mockHttpClient;
 
   setUp(() {
@@ -66,13 +34,27 @@ void main() {
         return null;
       },
     );
-    mockYtClient = MockYoutubeExplode();
+    mockVideoCache = MockVideoCacheService();
+
+    final mockManifest = MockStreamManifest();
+    final mockMuxedStreamInfo = MockMuxedStreamInfo();
+
+    when(() => mockMuxedStreamInfo.url).thenReturn(Uri.parse('https://example.com/video.mp4'));
+    when(() => mockMuxedStreamInfo.size).thenReturn(yt.FileSize(1024));
+    when(() => mockManifest.muxed).thenReturn(
+      UnmodifiableListView<yt.MuxedStreamInfo>([mockMuxedStreamInfo]),
+    );
 
     mockHttpClient = MockClient((request) async {
       return http.Response('dummy content chunk', 200);
     });
 
-    service = DownloadService(ytClient: mockYtClient, httpClient: mockHttpClient);
+    when(() => mockVideoCache.getManifest('test_video')).thenAnswer((_) async => mockManifest);
+
+    service = DownloadService(
+      httpClient: mockHttpClient,
+      videoCacheService: mockVideoCache,
+    );
   });
 
   tearDown(() async {

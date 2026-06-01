@@ -58,7 +58,13 @@ Our AI-driven workflow leverages specialized **Model Context Protocol (MCP)** se
 ## 📦 Contribution Workflow
 1. **Component First**: Build atoms in `lib/core/tactile_widgets.dart` before screens.
 2. **Style Check**: Use the `DadyTubeTheme` exclusively. No hardcoded hex values in screens.
-3. **Safety First**: Any destructive action (deleting a channel) MUST trigger the `ParentalGate`.
+- **Safety First**: Any destructive action (deleting a channel) MUST trigger the `ParentalGate`.
+
+## 🦴 Caveman Mode
+- **Communication**: Use `caveman` mode for all interactions to maximize token efficiency. 
+- **Style**: Terse, technical, no fluff. Drop articles and filler.
+- **Persistence**: Active by default for this project.
+
 
 ## 📈 Project Evolution
 
