@@ -72,7 +72,6 @@ class ChannelProvider with ChangeNotifier {
     _cachedShuffledVideos = null;
     _cachedVideoByIdMap = null;
     _cachedBigFilteredVideos = null;
-    _cachedPopularFilteredVideos = null;
     _cachedChannelFeedVideos = null;
   }
 
@@ -209,9 +208,6 @@ class ChannelProvider with ChangeNotifier {
   int _lastBigFilterHash = 0;
   List<YoutubeVideo>? _cachedBigFilteredVideos;
 
-  int _lastPopularFilterHash = 0;
-  List<YoutubeVideo>? _cachedPopularFilteredVideos;
-
   // ⚡ Bolt: Memoization Cache for Channel Feed Screen
   // Reduces O(N log N) sorting overhead during frequent background syncs by caching
   // the filtered and sorted list per channel. Avoids severe UI jank.
@@ -311,36 +307,6 @@ class ChannelProvider with ChangeNotifier {
 
     _cachedBigFilteredVideos = videos;
     _lastBigFilterHash = hash;
-    return videos;
-  }
-
-  List<YoutubeVideo> getFilteredPopularList({
-    required String selectedWorld,
-    required List<YoutubeVideo> downloadedVideos,
-  }) {
-    final hash = Object.hash(
-      selectedWorld,
-      downloadedVideos.length,
-      allVideos.length,
-    );
-    if (_cachedPopularFilteredVideos != null &&
-        _lastPopularFilterHash == hash) {
-      return _cachedPopularFilteredVideos!;
-    }
-
-    var videos = allVideos;
-    if (selectedWorld == 'Travel Mode') {
-      videos = downloadedVideos;
-    } else if (selectedWorld != 'All') {
-      // ⚡ Bolt: Cache lowercase transformation outside the loop to prevent O(N) redundant memory allocations
-      final searchStr = selectedWorld.toLowerCase();
-      videos = videos
-          .where((v) => v.title.toLowerCase().contains(searchStr))
-          .toList();
-    }
-
-    _cachedPopularFilteredVideos = videos;
-    _lastPopularFilterHash = hash;
     return videos;
   }
 
