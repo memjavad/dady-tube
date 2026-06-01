@@ -82,3 +82,7 @@
 ## 2026-05-20 - String Manipulation inside async Directory stream
 **Learning:** Performing string manipulation (like `.split()` and `.replaceAll()`) inside an `await for` loop that reads from a directory stream delays the processing of subsequent chunks from the stream, leading to reduced throughput.
 **Action:** Always accumulate raw data (like file paths) quickly inside the `await for` loop and perform any necessary synchronous transformations (like extracting filenames) in a separate loop after the stream has completed, using faster string methods like `lastIndexOf` and `substring`.
+
+## 2026-05-26 - [Dart Inefficient Interleaving Optimization]
+**Learning:** Using nested loops to interleave lists forces iteration over every list even if most have been exhausted, resulting in O(N*M) performance bottlenecks.
+**Action:** Always use a list of Iterators and remove exhausted iterators dynamically to avoid iterating over exhausted groups and drastically speed up the interleaving process.

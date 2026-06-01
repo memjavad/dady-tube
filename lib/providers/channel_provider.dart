@@ -97,16 +97,18 @@ class ChannelProvider with ChangeNotifier {
 
     if (groups.isEmpty) return [];
 
-    // Find the maximum number of videos in any single channel
-    int maxVideos = groups.fold(
-      0,
-      (max, list) => list.length > max ? list.length : max,
-    );
-
-    for (int i = 0; i < maxVideos; i++) {
-      for (var group in groups) {
-        if (i < group.length) {
-          all.add(group[i]);
+    // Interleave videos optimally using active iterators
+    List<Iterator<YoutubeVideo>> activeIterators = groups
+        .map((g) => g.iterator)
+        .toList();
+    while (activeIterators.isNotEmpty) {
+      int j = 0;
+      while (j < activeIterators.length) {
+        if (activeIterators[j].moveNext()) {
+          all.add(activeIterators[j].current);
+          j++;
+        } else {
+          activeIterators.removeAt(j);
         }
       }
     }
@@ -684,7 +686,10 @@ class ChannelProvider with ChangeNotifier {
           await avatarsDir.create(recursive: true);
         }
 
-        final sanitizedId = channel.id.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '');
+        final sanitizedId = channel.id.replaceAll(
+          RegExp(r'[^a-zA-Z0-9_\-]'),
+          '',
+        );
         final file = File('${avatarsDir.path}/$sanitizedId.jpg');
         await file.writeAsBytes(response.bodyBytes);
 
