@@ -45,4 +45,46 @@ void main() {
       expect(provider.usageSeconds, 0);
     },
   );
+
+  test('markVideoAsWatched adds video and saves to prefs', () async {
+    final provider = UsageProvider();
+    await Future.delayed(Duration.zero);
+
+    expect(provider.watchedVideoIds.isEmpty, true);
+
+    provider.markVideoAsWatched('video1');
+    expect(provider.watchedVideoIds.contains('video1'), true);
+
+    await Future.delayed(Duration.zero); // wait for async prefs save
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('watched_videos'), contains('video1'));
+  });
+
+  test('markVideoAsWatched does not add duplicates', () async {
+    final provider = UsageProvider();
+    await Future.delayed(Duration.zero);
+
+    provider.markVideoAsWatched('video1');
+    provider.markVideoAsWatched('video1');
+
+    expect(provider.watchedVideoIds.length, 1);
+  });
+
+  test(
+    'markVideoAsWatched limits list to 500 items and removes oldest',
+    () async {
+      final provider = UsageProvider();
+      await Future.delayed(Duration.zero);
+
+      for (int i = 0; i < 505; i++) {
+        provider.markVideoAsWatched('video$i');
+      }
+
+      expect(provider.watchedVideoIds.length, 500);
+      expect(provider.watchedVideoIds.contains('video0'), false);
+      expect(provider.watchedVideoIds.contains('video4'), false);
+      expect(provider.watchedVideoIds.contains('video5'), true);
+      expect(provider.watchedVideoIds.contains('video504'), true);
+    },
+  );
 }
