@@ -622,12 +622,18 @@ class VideoCacheService {
     for (int i = 0; i < sortedFiles.length - _maxCacheEntries; i++) {
       deleteTasks.add(() async {
         try {
-          await sortedFiles[i].delete();
           final base = sortedFiles[i].path.replaceAll('.mp4', '');
           final metaFile = File('$base.meta');
-          if (await metaFile.exists()) await metaFile.delete();
           final previewFile = File('$base.preview');
-          if (await previewFile.exists()) await previewFile.delete();
+
+          // ⚡ Bolt Optimization: Concurrent file deletion using Future.wait
+          // avoids sequential I/O blocking. Using catchError instead of
+          // checking exists() reduces system calls and speeds up cleanup.
+          await Future.wait([
+            sortedFiles[i].delete().catchError((_) => sortedFiles[i]),
+            metaFile.delete().catchError((_) => metaFile),
+            previewFile.delete().catchError((_) => previewFile),
+          ]);
 
           final name = sortedFiles[i].path
               .split(Platform.pathSeparator)
