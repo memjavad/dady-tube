@@ -1,16 +1,16 @@
-import os
+from default_api import submit
 
-title = "⚡ Bolt: [replace sync file I/O with async in cache management]"
-body = """💡 **What:** Replaced synchronous disk I/O (`lastModifiedSync()`) inside the cache sizing map loop with concurrent asynchronous disk I/O using `Future.wait()`.
+title = "🧹 Remove unused showImmersive variable"
+description = """🎯 **What:** Removed the unused local variable `showImmersive` from the `build` method in `lib/screens/watch_screen.dart`.
 
-🎯 **Why:** In Dart, calling `lastModifiedSync()` blocks the execution thread. When managing cache boundaries, doing this sequentially for a large number of files causes a significant UI thread freeze.
+💡 **Why:** The variable was declared but never used in the build method. Removing dead calculations slightly improves code readability and marginally benefits performance by skipping an unnecessary condition evaluation.
 
-📊 **Measured Improvement:**
-- **Baseline (synchronous mapped approach):** ~13ms for 1000 files
-- **Optimized (async pre-fetch):** ~29ms for 1000 files in benchmark, but prevents the main isolate from blocking, freeing it up to render frames without jank. Note: Though the pure clock time is slightly higher due to async overhead in a tight benchmark loop, in a real Flutter app, blocking the UI isolate with synchronous I/O causes dropped frames. The async version allows other tasks to run.
+✅ **Verification:**
+- Verified by running `flutter analyze lib/screens/watch_screen.dart`, ensuring no related errors exist.
+- Executed `flutter test` to ensure overall app integrity is preserved.
+- Code review was successfully requested and passed.
 
-🔬 **Measurement details:** Ran a benchmark script creating 1000 temporary files and mapping them, demonstrating the shift from blocking sequential reads to concurrent unblocking I/O.
+✨ **Result:** A cleaner `build` method with slightly reduced cognitive load and dead code eliminated.
 """
 
-# Usually I'd use the submit tool, but since I am running a python script, I will just call the underlying CLI or use the MCP tool directly if available.
-# Actually I have a dedicated MCP submit tool I must call.
+submit(branch_name="remove-unused-showimmersive", commit_message=title, pr_title=title, pr_body=description)
