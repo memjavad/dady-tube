@@ -292,10 +292,9 @@ class SettingsProvider with ChangeNotifier {
         initialDelay: _calculateDelayTo3AM(),
         constraints: Constraints(
           networkType: NetworkType.unmetered, // WiFi only
-          requiresCharging: true, // Only when charging
         ),
       );
-      debugPrint('🌙 DadyTube: Scheduled periodic nightly sync at 3 AM constraints (Charging & WiFi)');
+      debugPrint('🌙 DadyTube: Scheduled periodic nightly sync at 3 AM constraints (WiFi only)');
     } catch (e) {
       debugPrint('⚠️ Error registering WorkManager periodic task: $e');
     }
