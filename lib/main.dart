@@ -33,7 +33,6 @@ Future<void> main() async {
   try {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,
     );
   } catch (e) {
     debugPrint('⚠️ Error initializing WorkManager: $e');
