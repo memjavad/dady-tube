@@ -12,13 +12,32 @@ import 'widgets/eye_protection_overlay.dart';
 import 'widgets/break_timer_overlay.dart';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:workmanager/workmanager.dart';
 import 'services/background_audio_service.dart';
+import 'services/background_sync_worker.dart';
 import 'services/volume_service.dart';
 
 late AudioHandler audioHandler;
 
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    return await nightlySyncTask(task, inputData);
+  });
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize background WorkManager
+  try {
+    await Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: false,
+    );
+  } catch (e) {
+    debugPrint('⚠️ Error initializing WorkManager: $e');
+  }
 
   // Initialize Providers (Load only essential local data first)
   final channelProvider = ChannelProvider();

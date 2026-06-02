@@ -409,6 +409,8 @@ class VideoCacheService {
   @visibleForTesting
   void invalidateCachedIdSetForTest() => _invalidateCachedIdSet();
 
+  void clearCachedIdSet() => _invalidateCachedIdSet();
+
   void _invalidateCachedIdSet() => _cachedVideoIdSet = null;
 
   Future<Set<String>> getCachedVideoIds() async {

@@ -101,6 +101,8 @@ class AppLocalizations {
       'smart_features': 'Smart Features',
       'auto_cache_title': 'Auto-Cache New Videos',
       'auto_cache_desc': 'Always download the latest 3 videos for offline fun.',
+      'smart_night_sync_title': 'Smart Night Sync (3 AM)',
+      'smart_night_sync_desc': 'Silent overnight caching of the latest 2 videos per channel on WiFi & Charging.',
       'offline_mode_active': 'Offline Mode Active',
       'offline_mode_desc': 'Showing only videos available in your bag.',
       'experience': 'Experience',
@@ -358,6 +360,8 @@ class AppLocalizations {
       'safe_volume_desc': 'يحمي حاسة السمع من خلال تحديد مستوى الصوت الأقصى.',
       'posture_protection': 'حماية القوام',
       'posture_desc': 'يذكرك بالجلوس بشكل مستقيم مثل الأرنوب.',
+      'smart_night_sync_title': 'المزامنة الليلية الذكية (3 صباحاً)',
+      'smart_night_sync_desc': 'تحميل صامت لأحدث فيديوهين لكل قناة ليلاً عند الشحن والاتصال بالواي فاي.',
       'max_volume_level': 'مستوى الصوت الأقصى',
       // Statistics
       'statistics': 'الإحصائيات',

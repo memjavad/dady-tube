@@ -535,14 +535,15 @@ class ChannelProvider with ChangeNotifier {
     _isOffline = failCount > 0 && failCount == _channels.length;
 
     if (updated) {
-      // Pre-fetch manifests for top videos (Reduced from 5 to 2)
-      final topVideos = allVideos.take(2);
-      for (var video in topVideos) {
-        VideoCacheService().prefetchManifest(video.id);
-      }
-
       _cacheTopPreviews();
       _precacheTopThumbnails();
+    }
+
+    if (!isBackground) {
+      await prewarmStartupVideoLinks();
+    } else {
+      // Async warming in background for fast-boot to keep it fast
+      prewarmStartupVideoLinks();
     }
 
     _isLoading = false;
@@ -618,16 +619,41 @@ class ChannelProvider with ChangeNotifier {
     }
   }
 
-  /// Predictive Pre-warming: Pre-fetches the manifest for the video physically following
-  /// the current one in the shuffled list.
+  /// Predictive Pre-warming: Disabled to prevent bot actions.
   void prewarmNextVideo(String currentVideoId) {
-    final list = shuffledVideos;
-    final index = list.indexWhere((v) => v.id == currentVideoId);
+    // Disabled during child interaction
+  }
 
-    if (index != -1 && index < list.length - 1) {
-      final nextVideo = list[index + 1];
-      debugPrint('🚀 Predictive Pre-warming for: ${nextVideo.title}');
-      VideoCacheService().prefetchManifest(nextVideo.id);
+  /// Concurrently pre-resolves stream URLs for the top 2 videos of every channel
+  /// at app startup to ensure instant playback without delay.
+  Future<void> prewarmStartupVideoLinks() async {
+    if (_channelVideos.isEmpty) return;
+
+    _initStatusKey = "splash_warming_links";
+    _initProgress = 0.96;
+    _initStatusArg = "";
+    notifyListeners();
+
+    final List<Future<void>> warmingTasks = [];
+    final activeChannels = _channels.map((c) => c.id).toList();
+
+    for (var channelId in activeChannels) {
+      final videos = _channelVideos[channelId] ?? [];
+      final topVids = videos.take(2);
+      for (var v in topVids) {
+        warmingTasks.add(() async {
+          try {
+            await VideoCacheService().getManifest(v.id);
+            debugPrint('⚡ Startup pre-warm link success: ${v.title}');
+          } catch (e) {
+            debugPrint('⚠️ Link pre-warm failed for ${v.title}: $e');
+          }
+        }());
+      }
+    }
+
+    if (warmingTasks.isNotEmpty) {
+      await Future.wait(warmingTasks);
     }
   }
 

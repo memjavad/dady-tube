@@ -16,7 +16,6 @@ import '../providers/settings_provider.dart';
 import '../core/app_localizations.dart';
 import '../widgets/video_card.dart';
 
-import '../services/video_cache_service.dart';
 import 'offline_videos_screen.dart';
 import '../core/theme.dart';
 
@@ -401,8 +400,6 @@ class _StaggeredEntryCardState extends State<StaggeredEntryCard> {
         _animatedIds.add(widget.uniqueId!);
         _shouldAnimate = true;
       }
-      // ⚡ Viewport Pre-warming: Instantly queue this video's stream URL when scrolled onto screen
-      VideoCacheService().prefetchManifest(widget.uniqueId!);
     } else {
       // If no ID is provided, animate based on index for fallback UI Elements like shimmer
       _shouldAnimate = true;

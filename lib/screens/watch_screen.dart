@@ -458,13 +458,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         _videoPlayerController = VideoPlayerController.networkUrl(
           streamInfo.url,
         );
-        // ⚡ Fix 7: Pass metadata so the .meta sidecar is written alongside the .mp4
-        _cacheService.cacheVideo(
-          widget.videoId,
-          title: _videoTitle ?? widget.videoTitle ?? '',
-          thumbnailUrl: widget.thumbnailUrl ?? '',
-          channelId: widget.channelName ?? '',
-        );
+        // Caching is fully moved to background Nightly Sync service to prevent rate limiting
       }
       _videoPlayerController!.addListener(_onPlayerStateChanged);
       await _videoPlayerController!.initialize().timeout(
@@ -586,12 +580,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         setState(() {
           _isFinished = true;
         });
-        // Predictive Pre-warming: Prepare the next video while this one plays
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            context.read<ChannelProvider>().prewarmNextVideo(widget.videoId);
-          }
-        });
+        // Predictive Pre-warming fully disabled during child interaction to prevent bot blocks
         // Phase 4: Grant Stars for educational content
         final title = (_videoTitle ?? widget.videoTitle ?? "").toLowerCase();
         final isEducational =

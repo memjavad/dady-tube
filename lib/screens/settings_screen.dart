@@ -435,6 +435,8 @@ class _SafetyTab extends StatelessWidget {
           const SizedBox(height: 16),
           _buildAutoCacheToggle(context, loc, settings),
           const SizedBox(height: 16),
+          _buildSmartNightSyncToggle(context, loc, settings),
+          const SizedBox(height: 16),
           _buildSettingToggle(
             context,
             loc.translate('rest_reminders'),
@@ -613,6 +615,46 @@ class _SafetyTab extends StatelessWidget {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildSmartNightSyncToggle(
+    BuildContext context,
+    AppLocalizations loc,
+    SettingsProvider settings,
+  ) {
+    return TactileCard(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loc.translate('smart_night_sync_title'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  loc.translate('smart_night_sync_desc'),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Switch.adaptive(
+            value: settings.smartNightSyncEnabled,
+            onChanged: (val) => settings.setSmartNightSyncEnabled(val),
+            activeThumbColor: DadyTubeTheme.primary,
+          ),
+        ],
+      ),
     );
   }
 }

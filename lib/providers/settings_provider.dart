@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 import '../core/theme.dart';
 
 enum VideoQuality { auto, p360, p720, p1080 }
@@ -31,6 +32,7 @@ class SettingsProvider with ChangeNotifier {
   bool _safeVolumeEnabled = true;
   double _maxVolumeLevel = 0.5;
   String? _masterPin;
+  bool _smartNightSyncEnabled = true;
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;
@@ -49,6 +51,7 @@ class SettingsProvider with ChangeNotifier {
   AppThemeLevel get themeLevel => _themeLevel;
   String? get masterPin => _masterPin;
   bool get hasMasterPin => _masterPin != null && _masterPin!.isNotEmpty;
+  bool get smartNightSyncEnabled => _smartNightSyncEnabled;
 
   SettingsProvider() {
     _loadSettings();
@@ -76,6 +79,12 @@ class SettingsProvider with ChangeNotifier {
     _maxVolumeLevel = prefs.getDouble('maxVolumeLevel') ?? 0.5;
     _isFirstRun = prefs.getBool('is_first_run') ?? true;
     _masterPin = prefs.getString('master_pin');
+    _smartNightSyncEnabled = prefs.getBool('smart_night_sync_enabled') ?? true;
+    
+    // Auto-schedule on load if enabled
+    if (_smartNightSyncEnabled) {
+      _scheduleNightlySync();
+    }
 
     final savedLangCode = prefs.getString('language_code');
     final savedCountryCode = prefs.getString('country_code');
@@ -251,5 +260,53 @@ class SettingsProvider with ChangeNotifier {
   bool verifyMasterPin(String input) {
     if (!hasMasterPin) return false;
     return _masterPin == input;
+  }
+
+  Future<void> setSmartNightSyncEnabled(bool enabled) async {
+    _smartNightSyncEnabled = enabled;
+    final prefs = await _getPrefs;
+    await prefs.setBool('smart_night_sync_enabled', enabled);
+    if (enabled) {
+      _scheduleNightlySync();
+    } else {
+      _cancelNightlySync();
+    }
+    notifyListeners();
+  }
+
+  Duration _calculateDelayTo3AM() {
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, 3, 0);
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled.difference(now);
+  }
+
+  void _scheduleNightlySync() {
+    try {
+      Workmanager().registerPeriodicTask(
+        'nightly_caching_sync',
+        'nightlySyncTask',
+        frequency: const Duration(hours: 24),
+        initialDelay: _calculateDelayTo3AM(),
+        constraints: Constraints(
+          networkType: NetworkType.unmetered, // WiFi only
+          requiresCharging: true, // Only when charging
+        ),
+      );
+      debugPrint('🌙 DadyTube: Scheduled periodic nightly sync at 3 AM constraints (Charging & WiFi)');
+    } catch (e) {
+      debugPrint('⚠️ Error registering WorkManager periodic task: $e');
+    }
+  }
+
+  void _cancelNightlySync() {
+    try {
+      Workmanager().cancelByUniqueName('nightly_caching_sync');
+      debugPrint('🌙 DadyTube: Cancelled periodic nightly sync.');
+    } catch (e) {
+      debugPrint('⚠️ Error cancelling WorkManager task: $e');
+    }
   }
 }

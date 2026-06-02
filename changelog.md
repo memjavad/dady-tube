@@ -1,5 +1,11 @@
 # DadyTube Changelog
 
+## [v3.9.0] - 2026-06-02
+- `Added`: **Smart Night Sync (3 AM background worker)**. Runs headlessly via WorkManager constrained to WiFi and Charging, fetching and caching the latest 2 videos per channel to ensure offline preparedness.
+- `Added`: **Curated Channel Pruning**. Automatically enforces a maximum footprint of 10 cached videos per channel, grouping locally stored media via sidecar metadata and pruning oldest entries during nightly sync.
+- `Added`: **Startup Playback Warming**. Resolves and caches stream URLs for top videos once during Splash loader, showing interactive Iraq-Arabic and English localization. Tapping a video starts playback instantly with zero programmatic delay.
+- `Improved`: **Interactive Quiet Mode**. Completely silenced all network-heavy pre-warming lookups, scrolling pre-fetches, and watch-time downloads during active child play, minimizing API hits and eliminating YouTube bot detection triggers.
+
 ## [v3.8.0] - 2026-06-01
 - `Fixed`: **Zero-Line Policy Compliance**. Removed all 6 remaining `Border.all` violations across `TactileCard`, `GlassContainer`, `HomeScreen` nav, `SplashScreen` logo/progress, and `WatchScreen` controls. All separation now uses tonal `BoxShadow` edge glow.
 - `Added`: **Dynamic Aurora Glassmorphism**. Upgraded `GlassContainer` from a static gradient to a continuously sweeping animated sheen, simulating dynamic room-light reflection on glass surfaces.
