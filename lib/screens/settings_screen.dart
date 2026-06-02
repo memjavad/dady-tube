@@ -436,6 +436,10 @@ class _SafetyTab extends StatelessWidget {
           _buildAutoCacheToggle(context, loc, settings),
           const SizedBox(height: 16),
           _buildSmartNightSyncToggle(context, loc, settings),
+          if (settings.smartNightSyncEnabled) ...[
+            const SizedBox(height: 16),
+            _buildSmartNightSyncControls(context, loc, settings),
+          ],
           const SizedBox(height: 16),
           _buildSettingToggle(
             context,
@@ -652,6 +656,89 @@ class _SafetyTab extends StatelessWidget {
             value: settings.smartNightSyncEnabled,
             onChanged: (val) => settings.setSmartNightSyncEnabled(val),
             activeThumbColor: DadyTubeTheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmartNightSyncControls(
+    BuildContext context,
+    AppLocalizations loc,
+    SettingsProvider settings,
+  ) {
+    return TactileCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                loc.translate('sync_time_title'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${settings.smartNightSyncHour == 0 ? 12 : (settings.smartNightSyncHour > 12 ? settings.smartNightSyncHour - 12 : settings.smartNightSyncHour)}:00 '
+                '${settings.smartNightSyncHour >= 12 ? loc.translate('pm') : loc.translate('am')}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: DadyTubeTheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Slider(
+            value: settings.smartNightSyncHour.toDouble(),
+            min: 0,
+            max: 23,
+            divisions: 23,
+            activeColor: DadyTubeTheme.primary,
+            onChanged: (val) {
+              settings.setSmartNightSyncHour(val.toInt());
+            },
+          ),
+          const SizedBox(height: 24),
+          Text(
+            loc.translate('videos_limit_title'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(5, (index) {
+              final limitVal = index + 1;
+              final isSelected = settings.smartNightSyncVideoLimit == limitVal;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TactileButton(
+                    onTap: () => settings.setSmartNightSyncVideoLimit(limitVal),
+                    child: TactileCard(
+                      color: isSelected ? DadyTubeTheme.primary : Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          '$limitVal',
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
         ],
       ),

@@ -8,7 +8,9 @@ import 'video_cache_service.dart';
 
 /// Headless callback executed by WorkManager in a separate background isolate.
 Future<bool> nightlySyncTask(String task, Map<String, dynamic>? inputData) async {
-  debugPrint('🌙 DadyTube: Nightly background caching task started at 3 AM constraints.');
+  // Extract custom video caching limit per channel (default 2)
+  final videoLimit = inputData?['videoLimit'] as int? ?? 2;
+  debugPrint('🌙 DadyTube: Nightly background caching task started. Caching limit: $videoLimit videos per channel.');
   
   try {
     // 1. Initialize DB Service
@@ -21,7 +23,7 @@ Future<bool> nightlySyncTask(String task, Map<String, dynamic>? inputData) async
       return true;
     }
 
-    // 3. For each channel, fetch latest videos, update DB, download top 2, and prune to 10
+    // 3. For each channel, fetch latest videos, update DB, download top videos, and prune to 10
     for (var channel in channels) {
       debugPrint('🌙 DadyTube Night Sync: Syncing channel: ${channel.name}');
       
@@ -40,10 +42,10 @@ Future<bool> nightlySyncTask(String task, Map<String, dynamic>? inputData) async
         // Insert new discoveries into local DB for offline access metadata
         await dbService.insertOrUpdateVideos(fetchedVideos);
 
-        // Download the 2 latest videos for future offline rewatches
-        final top2ToCache = fetchedVideos.take(2);
-        for (var v in top2ToCache) {
-          debugPrint('🌙 DadyTube Night Sync: Caching top video: ${v.title}');
+        // Download the latest videos for future offline rewatches based on custom limit
+        final videosToCache = fetchedVideos.take(videoLimit);
+        for (var v in videosToCache) {
+          debugPrint('🌙 DadyTube Night Sync: Caching video: ${v.title}');
           await VideoCacheService().cacheVideo(
             v.id,
             title: v.title,

@@ -33,6 +33,8 @@ class SettingsProvider with ChangeNotifier {
   double _maxVolumeLevel = 0.5;
   String? _masterPin;
   bool _smartNightSyncEnabled = true;
+  int _smartNightSyncHour = 3; // Default 3 AM
+  int _smartNightSyncVideoLimit = 2; // Default 2 videos per channel
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;
@@ -52,6 +54,8 @@ class SettingsProvider with ChangeNotifier {
   String? get masterPin => _masterPin;
   bool get hasMasterPin => _masterPin != null && _masterPin!.isNotEmpty;
   bool get smartNightSyncEnabled => _smartNightSyncEnabled;
+  int get smartNightSyncHour => _smartNightSyncHour;
+  int get smartNightSyncVideoLimit => _smartNightSyncVideoLimit;
 
   SettingsProvider() {
     _loadSettings();
@@ -80,6 +84,8 @@ class SettingsProvider with ChangeNotifier {
     _isFirstRun = prefs.getBool('is_first_run') ?? true;
     _masterPin = prefs.getString('master_pin');
     _smartNightSyncEnabled = prefs.getBool('smart_night_sync_enabled') ?? true;
+    _smartNightSyncHour = prefs.getInt('smart_night_sync_hour') ?? 3;
+    _smartNightSyncVideoLimit = prefs.getInt('smart_night_sync_video_limit') ?? 2;
     
     // Auto-schedule on load if enabled
     if (_smartNightSyncEnabled) {
@@ -274,9 +280,31 @@ class SettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Duration _calculateDelayTo3AM() {
+  Future<void> setSmartNightSyncHour(int hour) async {
+    _smartNightSyncHour = hour;
+    final prefs = await _getPrefs;
+    await prefs.setInt('smart_night_sync_hour', hour);
+    if (_smartNightSyncEnabled) {
+      // Re-schedule dynamically to apply new timing immediately
+      _scheduleNightlySync();
+    }
+    notifyListeners();
+  }
+
+  Future<void> setSmartNightSyncVideoLimit(int limit) async {
+    _smartNightSyncVideoLimit = limit;
+    final prefs = await _getPrefs;
+    await prefs.setInt('smart_night_sync_video_limit', limit);
+    if (_smartNightSyncEnabled) {
+      // Re-schedule dynamically to apply new limit to inputData immediately
+      _scheduleNightlySync();
+    }
+    notifyListeners();
+  }
+
+  Duration _calculateDelayToHour(int hour) {
     final now = DateTime.now();
-    var scheduled = DateTime(now.year, now.month, now.day, 3, 0);
+    var scheduled = DateTime(now.year, now.month, now.day, hour, 0);
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -285,16 +313,22 @@ class SettingsProvider with ChangeNotifier {
 
   void _scheduleNightlySync() {
     try {
+      // Cancel existing first to prevent conflicts during rescheduling
+      Workmanager().cancelByUniqueName('nightly_caching_sync');
+
       Workmanager().registerPeriodicTask(
         'nightly_caching_sync',
         'nightlySyncTask',
         frequency: const Duration(hours: 24),
-        initialDelay: _calculateDelayTo3AM(),
+        initialDelay: _calculateDelayToHour(_smartNightSyncHour),
+        inputData: {
+          'videoLimit': _smartNightSyncVideoLimit,
+        },
         constraints: Constraints(
           networkType: NetworkType.unmetered, // WiFi only
         ),
       );
-      debugPrint('🌙 DadyTube: Scheduled periodic nightly sync at 3 AM constraints (WiFi only)');
+      debugPrint('🌙 DadyTube: Scheduled periodic nightly sync at $_smartNightSyncHour:00 constraints (WiFi only, limit: $_smartNightSyncVideoLimit)');
     } catch (e) {
       debugPrint('⚠️ Error registering WorkManager periodic task: $e');
     }

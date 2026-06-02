@@ -1,7 +1,12 @@
 # DadyTube Changelog
 
+## [v3.10.0] - 2026-06-02
+- `Added`: **Granular Caching Timing Controls**. Added customizable hour setting (0-23) dynamically recalculating initial delays. Schedules and triggers background caching tasks at the parent's exact preferred hour.
+- `Added`: **Customizable Video Cache Limits**. Integrated custom limit selector (1 to 5 videos per channel) mapped headlessly as `inputData` parameters inside the WorkManager periodic task runner.
+- `Added`: **Premium Settings UI Selectors**. Created responsive sliders for sync hours displaying dynamic AM/PM localizations, and segmented selectors for video limits under the parental Safety tab. Localized in Arabic and English.
+
 ## [v3.9.0] - 2026-06-02
-- `Added`: **Smart Night Sync (3 AM background worker)**. Runs headlessly via WorkManager constrained to WiFi and Charging, fetching and caching the latest 2 videos per channel to ensure offline preparedness.
+- `Added`: **Smart Night Sync**. Runs headlessly via WorkManager constrained to WiFi, fetching and caching latest videos per channel overnight.
 - `Added`: **Curated Channel Pruning**. Automatically enforces a maximum footprint of 10 cached videos per channel, grouping locally stored media via sidecar metadata and pruning oldest entries during nightly sync.
 - `Added`: **Startup Playback Warming**. Resolves and caches stream URLs for top videos once during Splash loader, showing interactive Iraq-Arabic and English localization. Tapping a video starts playback instantly with zero programmatic delay.
 - `Improved`: **Interactive Quiet Mode**. Completely silenced all network-heavy pre-warming lookups, scrolling pre-fetches, and watch-time downloads during active child play, minimizing API hits and eliminating YouTube bot detection triggers.
