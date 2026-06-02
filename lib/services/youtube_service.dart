@@ -187,7 +187,20 @@ class YoutubeService {
 
           // Safety check for thumbnails to prevent null-check crashes
           final thumbnails = video.thumbnails;
-          final thumbUrl = thumbnails.highResUrl;
+          String thumbUrl = '';
+          try {
+            thumbUrl = thumbnails.highResUrl;
+          } catch (_) {
+            try {
+              thumbUrl = thumbnails.mediumResUrl;
+            } catch (_) {
+              try {
+                thumbUrl = thumbnails.lowResUrl;
+              } catch (_) {
+                thumbUrl = 'https://img.youtube.com/vi/${video.id.value}/0.jpg';
+              }
+            }
+          }
 
           final v = YoutubeVideo(
             id: video.id.value,

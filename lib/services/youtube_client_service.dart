@@ -44,6 +44,15 @@ class _BrowserHttpClient extends YoutubeHttpClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
+    // If request goes to InnerTube API, do not inject desktop browser headers.
+    // That triggers signature/client verification mismatches (e.g. claiming to be TV client but carrying Chrome desktop UA).
+    if (request.url.path.contains('/youtubei/')) {
+      if (_cookieString != null && _cookieString!.isNotEmpty) {
+        request.headers['Cookie'] = _cookieString!;
+      }
+      return super.send(request);
+    }
+
     final ua = _userAgents[_uaIndex];
     
     // Inject realistic browser headers that YouTube expects from a human user

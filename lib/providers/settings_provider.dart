@@ -35,6 +35,9 @@ class SettingsProvider with ChangeNotifier {
   bool _smartNightSyncEnabled = true;
   int _smartNightSyncHour = 3; // Default 3 AM
   int _smartNightSyncVideoLimit = 2; // Default 2 videos per channel
+  bool _bedtimeCalmModeEnabled = true;
+  bool _playSoothingNoises = true;
+  String _defaultBedtimeNoise = 'lullaby'; // lullaby, rain, ocean, white_noise
 
   VideoQuality get videoQuality => _videoQuality;
   bool get fullScreenByDefault => _fullScreenByDefault;
@@ -56,6 +59,9 @@ class SettingsProvider with ChangeNotifier {
   bool get smartNightSyncEnabled => _smartNightSyncEnabled;
   int get smartNightSyncHour => _smartNightSyncHour;
   int get smartNightSyncVideoLimit => _smartNightSyncVideoLimit;
+  bool get bedtimeCalmModeEnabled => _bedtimeCalmModeEnabled;
+  bool get playSoothingNoises => _playSoothingNoises;
+  String get defaultBedtimeNoise => _defaultBedtimeNoise;
 
   SettingsProvider() {
     _loadSettings();
@@ -86,6 +92,9 @@ class SettingsProvider with ChangeNotifier {
     _smartNightSyncEnabled = prefs.getBool('smart_night_sync_enabled') ?? true;
     _smartNightSyncHour = prefs.getInt('smart_night_sync_hour') ?? 3;
     _smartNightSyncVideoLimit = prefs.getInt('smart_night_sync_video_limit') ?? 2;
+    _bedtimeCalmModeEnabled = prefs.getBool('bedtime_calm_mode_enabled') ?? true;
+    _playSoothingNoises = prefs.getBool('play_soothing_noises') ?? true;
+    _defaultBedtimeNoise = prefs.getString('default_bedtime_noise') ?? 'lullaby';
     
     // Auto-schedule on load if enabled
     if (_smartNightSyncEnabled) {
@@ -341,5 +350,26 @@ class SettingsProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('⚠️ Error cancelling WorkManager task: $e');
     }
+  }
+
+  Future<void> setBedtimeCalmModeEnabled(bool value) async {
+    _bedtimeCalmModeEnabled = value;
+    final prefs = await _getPrefs;
+    await prefs.setBool('bedtime_calm_mode_enabled', value);
+    notifyListeners();
+  }
+
+  Future<void> setPlaySoothingNoises(bool value) async {
+    _playSoothingNoises = value;
+    final prefs = await _getPrefs;
+    await prefs.setBool('play_soothing_noises', value);
+    notifyListeners();
+  }
+
+  Future<void> setDefaultBedtimeNoise(String value) async {
+    _defaultBedtimeNoise = value;
+    final prefs = await _getPrefs;
+    await prefs.setString('default_bedtime_noise', value);
+    notifyListeners();
   }
 }

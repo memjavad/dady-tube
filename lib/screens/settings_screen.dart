@@ -125,6 +125,26 @@ class _ExperienceTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildUsageTimerCard(context, usage, loc),
+          const SizedBox(height: 16),
+          _buildSettingToggle(
+            context,
+            loc.translate('calm_mode_title'),
+            settings.bedtimeCalmModeEnabled,
+            (val) => settings.setBedtimeCalmModeEnabled(val),
+          ),
+          if (settings.bedtimeCalmModeEnabled) ...[
+            const SizedBox(height: 16),
+            _buildSettingToggle(
+              context,
+              loc.translate('soothing_noises'),
+              settings.playSoothingNoises,
+              (val) => settings.setPlaySoothingNoises(val),
+            ),
+            if (settings.playSoothingNoises) ...[
+              const SizedBox(height: 16),
+              _buildDefaultNoiseSelectorCard(context, settings, loc),
+            ],
+          ],
           const SizedBox(height: 32),
           _buildSectionHeader(
             context,
@@ -399,6 +419,64 @@ class _ExperienceTab extends StatelessWidget {
             value: settings.turboModeEnabled,
             onChanged: (val) => settings.setTurboMode(val),
             activeThumbColor: Colors.orangeAccent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultNoiseSelectorCard(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
+    final currentNoise = settings.defaultBedtimeNoise;
+    final options = [
+      {'id': 'lullaby', 'label': loc.translate('lullaby')},
+      {'id': 'rain', 'label': loc.translate('rain')},
+      {'id': 'ocean', 'label': loc.translate('ocean')},
+      {'id': 'white_noise', 'label': loc.translate('white_noise')},
+    ];
+
+    return TactileCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.translate('default_noise_title'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: options.map((opt) {
+              final isSelected = currentNoise == opt['id'];
+              return TactileButton(
+                onTap: () => settings.setDefaultBedtimeNoise(opt['id']!),
+                child: TactileCard(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                      : Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: 16,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Text(
+                      opt['label']!,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
